@@ -1,0 +1,43 @@
+name: openclawpanel
+
+services:
+  openclaw-gateway:
+    image: ${OPENCLAW_IMAGE:-ghcr.io/openclaw/openclaw:2026.2.14}
+    container_name: openclaw-gateway
+    restart: unless-stopped
+    environment:
+      HOME: /home/node
+      TERM: xterm-256color
+      OPENCLAW_GATEWAY_TOKEN: ${OPENCLAW_GATEWAY_TOKEN}
+    volumes:
+      - ./data/openclaw:/home/node/.openclaw
+    ports:
+      - "${OPENCLAW_GATEWAY_PORT:-18789}:18789"
+    command:
+      [
+        "node",
+        "dist/index.js",
+        "gateway",
+        "--bind",
+        "${OPENCLAW_GATEWAY_BIND:-lan}",
+        "--port",
+        "18789",
+      ]
+
+  panel:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: openclaw-panel:local
+    container_name: openclaw-panel
+    restart: unless-stopped
+    depends_on:
+      - openclaw-gateway
+    environment:
+      PANEL_CONFIG_PATH: /data/panel/panel.config.json
+    volumes:
+      - ./data/openclaw:/data/openclaw
+      - ./data/panel:/data/panel
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - "${PANEL_BIND_IP:-127.0.0.1}:${PANEL_PORT:-18080}:18080"

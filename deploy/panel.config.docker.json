@@ -1,0 +1,25 @@
+{
+  "panel": {
+    "listen_host": "0.0.0.0",
+    "listen_port": 18080
+  },
+  "runtime": {
+    "mode": "docker"
+  },
+  "reverse_proxy": {
+    "enabled": false
+  },
+  "openclaw": {
+    "config_path": "/data/openclaw/openclaw.json",
+    "service_name": "openclaw-gateway",
+    "container_name": "openclaw-gateway",
+    "image_repo": "ghcr.io/openclaw/openclaw"
+  },
+  "docker": {
+    "enabled": true
+  },
+  "log": {
+    "source": "docker",
+    "file_path": "/data/openclaw/logs/gateway.log"
+  }
+}

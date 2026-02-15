@@ -1,0 +1,414 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OpenClaw 龙虾控制台</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body data-theme="light">
+    <div class="layout">
+      <aside class="sidebar">
+        <div class="brand">
+          <p class="eyebrow">OpenClaw Panel</p>
+          <h1>龙虾 Bot 控制台</h1>
+          <p class="sub">只暴露业务配置，不暴露服务器端点。</p>
+        </div>
+
+        <section class="sidebar-group">
+          <h2 class="group-title">系统状态</h2>
+          <div class="status-chip">
+            <span class="dot"></span>
+            <span id="runtime_state">面板已连接</span>
+          </div>
+          <div class="meta">
+            <span id="meta_service_name">service: -</span>
+            <span id="meta_log_source">log: -</span>
+          </div>
+        </section>
+
+        <nav class="tabs sidebar-tabs">
+          <button class="tab is-active" data-tab-target="panel-model">AI 模型</button>
+          <button class="tab" data-tab-target="panel-channel">渠道接入</button>
+          <button class="tab" data-tab-target="panel-update">版本更新</button>
+          <button class="tab" data-tab-target="panel-service">服务控制</button>
+          <button class="tab" data-tab-target="panel-logs">日志排障</button>
+        </nav>
+      </aside>
+
+      <main class="content">
+        <header class="page-header">
+          <div>
+            <h2 class="page-title">OpenClaw 可视化管理</h2>
+            <p class="page-subtitle">面向用户的业务配置界面，默认隐藏服务器基础设施细节。</p>
+          </div>
+          <button id="theme_toggle" class="btn-soft" type="button">切换到深夜模式</button>
+        </header>
+
+        <section class="panel is-visible" data-panel="panel-model">
+          <article class="card">
+            <h2>模型与 API</h2>
+            <p class="muted-line">对应 OpenClaw 的 `models.providers.*` 和 `agents.defaults.model.primary`。</p>
+            <div class="grid">
+              <label>
+                主模型引用（自动）
+                <input id="model_primary" type="text" readonly />
+              </label>
+              <label>
+                Provider ID
+                <input id="model_provider_id" type="text" />
+              </label>
+              <label>
+                API 类型
+                <input id="model_provider_api" type="text" />
+              </label>
+              <label>
+                API Base URL
+                <input id="model_provider_base_url" type="url" />
+              </label>
+              <label>
+                API Key
+                <input id="model_provider_api_key" type="password" autocomplete="off" />
+              </label>
+              <label>
+                Model ID
+                <input id="model_id" type="text" />
+              </label>
+              <label>
+                Model Name
+                <input id="model_name" type="text" />
+              </label>
+              <label>
+                Context Window
+                <input id="model_context_window" type="number" min="1" />
+              </label>
+              <label>
+                Max Tokens
+                <input id="model_max_tokens" type="number" min="1" />
+              </label>
+            </div>
+            <div class="actions">
+              <button id="save_settings">保存全部配置</button>
+            </div>
+          </article>
+        </section>
+
+        <section class="panel" data-panel="panel-channel">
+          <article class="card">
+            <h2>Telegram（官方字段）</h2>
+            <p class="muted-line">对应 `channels.telegram.*`，默认建议 DM 策略用 `pairing`。</p>
+            <div class="grid">
+              <label class="inline-check">
+                启用 Telegram
+                <input id="tg_enabled" type="checkbox" />
+              </label>
+              <label>
+                Bot Token
+                <input id="tg_bot_token" type="password" autocomplete="off" />
+              </label>
+              <label>
+                DM Policy
+                <select id="tg_dm_policy">
+                  <option value="pairing">pairing</option>
+                  <option value="allowlist">allowlist</option>
+                  <option value="open">open</option>
+                  <option value="disabled">disabled</option>
+                </select>
+              </label>
+              <label>
+                Group Policy
+                <select id="tg_group_policy">
+                  <option value="allowlist">allowlist</option>
+                  <option value="open">open</option>
+                  <option value="disabled">disabled</option>
+                </select>
+              </label>
+              <label>
+                Stream Mode
+                <select id="tg_stream_mode">
+                  <option value="partial">partial</option>
+                  <option value="block">block</option>
+                  <option value="off">off</option>
+                </select>
+              </label>
+              <label class="inline-check">
+                群消息需 @ 机器人（groups["*"].requireMention）
+                <input id="tg_require_mention" type="checkbox" />
+              </label>
+            </div>
+            <div class="grid">
+              <label>
+                allowFrom（每行一个，`open` 模式必须包含 `*`）
+                <textarea id="tg_allow_from" rows="4"></textarea>
+              </label>
+              <label>
+                groupAllowFrom（每行一个）
+                <textarea id="tg_group_allow_from" rows="4"></textarea>
+              </label>
+            </div>
+            <div class="actions">
+              <button id="test_telegram" class="btn-soft">测试 Telegram</button>
+            </div>
+          </article>
+
+          <article class="card">
+            <h2>Feishu（插件字段）</h2>
+            <p class="muted-line">对应 `channels.feishu.*`，兼容 `accounts.main`。</p>
+            <div class="grid">
+              <label class="inline-check">
+                启用 Feishu
+                <input id="fs_enabled" type="checkbox" />
+              </label>
+              <label>
+                App ID
+                <input id="fs_app_id" type="text" />
+              </label>
+              <label>
+                App Secret
+                <input id="fs_app_secret" type="password" autocomplete="off" />
+              </label>
+              <label>
+                Domain
+                <select id="fs_domain">
+                  <option value="feishu">feishu</option>
+                  <option value="lark">lark</option>
+                </select>
+              </label>
+              <label>
+                Connection Mode
+                <select id="fs_connection_mode">
+                  <option value="websocket">websocket</option>
+                  <option value="webhook">webhook</option>
+                </select>
+              </label>
+              <label>
+                DM Policy
+                <select id="fs_dm_policy">
+                  <option value="pairing">pairing</option>
+                  <option value="allowlist">allowlist</option>
+                  <option value="open">open</option>
+                </select>
+              </label>
+              <label>
+                Group Policy
+                <select id="fs_group_policy">
+                  <option value="allowlist">allowlist</option>
+                  <option value="open">open</option>
+                  <option value="disabled">disabled</option>
+                </select>
+              </label>
+              <label class="inline-check">
+                群消息需 @ 机器人（requireMention）
+                <input id="fs_require_mention" type="checkbox" />
+              </label>
+            </div>
+            <div class="grid">
+              <label>
+                allowFrom（每行一个，`open` 模式必须包含 `*`）
+                <textarea id="fs_allow_from" rows="4"></textarea>
+              </label>
+              <label>
+                groupAllowFrom（每行一个）
+                <textarea id="fs_group_allow_from" rows="4"></textarea>
+              </label>
+            </div>
+            <div class="actions">
+              <button id="test_feishu" class="btn-soft">测试 Feishu</button>
+            </div>
+          </article>
+
+          <article class="card">
+            <h2>Discord（官方字段）</h2>
+            <p class="muted-line">
+              对应 `channels.discord.*`，`requireMention` 映射到 `channels.discord.guilds["*"].requireMention`。
+            </p>
+            <div class="grid">
+              <label class="inline-check">
+                启用 Discord
+                <input id="dc_enabled" type="checkbox" />
+              </label>
+              <label>
+                Bot Token
+                <input id="dc_token" type="password" autocomplete="off" />
+              </label>
+              <label>
+                DM Policy
+                <select id="dc_dm_policy">
+                  <option value="pairing">pairing</option>
+                  <option value="allowlist">allowlist</option>
+                  <option value="open">open</option>
+                  <option value="disabled">disabled</option>
+                </select>
+              </label>
+              <label>
+                Group Policy
+                <select id="dc_group_policy">
+                  <option value="allowlist">allowlist</option>
+                  <option value="open">open</option>
+                  <option value="disabled">disabled</option>
+                </select>
+              </label>
+              <label class="inline-check">
+                允许 Bot 消息触发（allowBots）
+                <input id="dc_allow_bots" type="checkbox" />
+              </label>
+              <label class="inline-check">
+                群消息需 @ 机器人（guilds["*"].requireMention）
+                <input id="dc_require_mention" type="checkbox" />
+              </label>
+            </div>
+            <div class="grid">
+              <label>
+                allowFrom（每行一个，`open` 模式必须包含 `*`）
+                <textarea id="dc_allow_from" rows="4"></textarea>
+              </label>
+            </div>
+            <div class="actions">
+              <button id="test_discord" class="btn-soft">测试 Discord</button>
+            </div>
+          </article>
+
+          <article class="card">
+            <h2>Slack（官方字段）</h2>
+            <p class="muted-line">对应 `channels.slack.*`，支持 socket/http 两种模式。</p>
+            <div class="grid">
+              <label class="inline-check">
+                启用 Slack
+                <input id="sl_enabled" type="checkbox" />
+              </label>
+              <label>
+                连接模式
+                <select id="sl_mode">
+                  <option value="socket">socket</option>
+                  <option value="http">http</option>
+                </select>
+              </label>
+              <label>
+                Bot Token（xoxb-...）
+                <input id="sl_bot_token" type="password" autocomplete="off" />
+              </label>
+              <label>
+                App Token（xapp-...，socket 模式常用）
+                <input id="sl_app_token" type="password" autocomplete="off" />
+              </label>
+              <label>
+                Signing Secret（http 模式必填）
+                <input id="sl_signing_secret" type="password" autocomplete="off" />
+              </label>
+              <label>
+                DM Policy
+                <select id="sl_dm_policy">
+                  <option value="pairing">pairing</option>
+                  <option value="allowlist">allowlist</option>
+                  <option value="open">open</option>
+                  <option value="disabled">disabled</option>
+                </select>
+              </label>
+              <label>
+                Group Policy
+                <select id="sl_group_policy">
+                  <option value="allowlist">allowlist</option>
+                  <option value="open">open</option>
+                  <option value="disabled">disabled</option>
+                </select>
+              </label>
+              <label class="inline-check">
+                允许 Bot 消息触发（allowBots）
+                <input id="sl_allow_bots" type="checkbox" />
+              </label>
+              <label class="inline-check">
+                群消息需 @ 机器人（requireMention）
+                <input id="sl_require_mention" type="checkbox" />
+              </label>
+            </div>
+            <div class="grid">
+              <label>
+                allowFrom（每行一个，`open` 模式必须包含 `*`）
+                <textarea id="sl_allow_from" rows="4"></textarea>
+              </label>
+            </div>
+            <div class="actions">
+              <button id="test_slack" class="btn-soft">测试 Slack</button>
+            </div>
+          </article>
+        </section>
+
+        <section class="panel" data-panel="panel-update">
+          <article class="card">
+            <h2>OpenClaw 版本更新</h2>
+            <p class="muted-line">支持检查上游最新版本，并在失败时自动回滚。</p>
+
+            <div class="status-row">
+              <span class="pill" id="update_state">未检查</span>
+              <span class="muted-line" id="update_hint">建议先点“检查更新”，再执行升级。</span>
+            </div>
+
+            <div class="grid">
+              <label>
+                当前版本
+                <input id="update_current_tag" type="text" readonly />
+              </label>
+              <label>
+                最新版本
+                <input id="update_latest_tag" type="text" readonly />
+              </label>
+              <label>
+                目标版本（支持 v 前缀）
+                <input id="update_target_tag" type="text" placeholder="例如 v2026.2.14" />
+              </label>
+            </div>
+
+            <div class="actions">
+              <button id="check_update">检查更新</button>
+              <button id="upgrade_update">升级到目标版本</button>
+              <button id="rollback_update" class="btn-soft">回滚到目标版本</button>
+            </div>
+          </article>
+        </section>
+
+        <section class="panel" data-panel="panel-service">
+          <article class="card">
+            <h2>服务控制（当前运行时）</h2>
+            <div class="status-row">
+              <span class="pill" id="service_state">未知</span>
+              <span class="muted-line" id="service_hint">建议先点“状态”确认服务可达。</span>
+            </div>
+            <div class="actions">
+              <button data-action="status">状态</button>
+              <button data-action="start">启动</button>
+              <button data-action="stop">停止</button>
+              <button data-action="restart">重启</button>
+            </div>
+            <pre id="service_output" class="output"></pre>
+          </article>
+        </section>
+
+        <section class="panel" data-panel="panel-logs">
+          <article class="card">
+            <h2>日志排障</h2>
+            <div class="actions">
+              <label class="filter">
+                关键字过滤
+                <input id="log_filter" type="text" placeholder="error / timeout / token ..." />
+              </label>
+              <button id="load_tail">加载最近日志</button>
+              <button id="start_stream">启动实时流</button>
+              <button id="stop_stream" class="btn-soft">停止实时流</button>
+              <button id="load_errors" class="btn-soft">最近错误摘要</button>
+            </div>
+            <pre id="log_output" class="output"></pre>
+            <ul id="error_summary" class="error-list"></ul>
+          </article>
+        </section>
+
+        <section class="card">
+          <h2>操作时间线</h2>
+          <p class="muted-line">每次点击后的结果都会记录在这里，方便你定位问题。</p>
+          <pre id="messages" class="output"></pre>
+        </section>
+      </main>
+    </div>
+
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>

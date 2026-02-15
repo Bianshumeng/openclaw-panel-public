@@ -1,0 +1,10 @@
+node_modules
+data
+third_party
+plan
+.git
+.gitignore
+npm-debug.log*
+yarn-error.log*
+pnpm-lock.yaml
+deploy/openclaw-panel.service
