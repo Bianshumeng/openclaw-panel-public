@@ -256,7 +256,8 @@ app.get("/api/update/check", async (request, reply) => {
     const { config: panelConfig } = await loadPanelConfig();
     ensureDockerMode(panelConfig);
     const containerName = panelConfig?.openclaw?.container_name || panelConfig?.openclaw?.service_name || "openclaw-gateway";
-    const result = await checkForUpdates({ containerName });
+    const imageRepo = panelConfig?.openclaw?.image_repo || "ghcr.io/openclaw/openclaw";
+    const result = await checkForUpdates({ containerName, imageRepo });
     return {
       ok: true,
       result

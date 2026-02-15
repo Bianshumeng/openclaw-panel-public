@@ -78,8 +78,36 @@ export function makeImageRef(tag, imageRepo = DEFAULT_IMAGE_REPO) {
   return `${imageRepo}:${normalizeTag(tag)}`;
 }
 
-export async function fetchLatestRelease(fetchImpl = fetch) {
-  const response = await fetchImpl("https://api.github.com/repos/openclaw/openclaw/releases/latest", {
+function resolveGithubRepoFromImageRepo(imageRepo) {
+  const raw = ensureString(imageRepo).trim().replace(/^https?:\/\//, "");
+  if (!raw) {
+    return null;
+  }
+
+  const parts = raw
+    .split("/")
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+  // owner/repo (implicit GitHub repo)
+  if (parts.length === 2 && !/[.:]/.test(parts[0])) {
+    return { owner: parts[0], repo: parts[1] };
+  }
+
+  // ghcr.io/owner/repo
+  if (parts.length >= 3 && parts[0].toLowerCase() === "ghcr.io") {
+    return { owner: parts[1], repo: parts[2] };
+  }
+
+  return null;
+}
+
+export async function fetchLatestRelease({ imageRepo = DEFAULT_IMAGE_REPO, fetchImpl = fetch } = {}) {
+  const githubRepo = resolveGithubRepoFromImageRepo(imageRepo);
+  if (!githubRepo) {
+    throw new Error(`无法从镜像仓库推导 GitHub 仓库: ${imageRepo}`);
+  }
+  const response = await fetchImpl(`https://api.github.com/repos/${githubRepo.owner}/${githubRepo.repo}/releases/latest`, {
     headers: {
       accept: "application/vnd.github+json",
       "user-agent": "openclaw-panel"
@@ -91,6 +119,7 @@ export async function fetchLatestRelease(fetchImpl = fetch) {
   const payload = await response.json();
   const tag = normalizeTag(payload.tag_name || "");
   return {
+    releaseRepo: `${githubRepo.owner}/${githubRepo.repo}`,
     tag,
     publishedAt: payload.published_at || null
   };
@@ -248,6 +277,7 @@ async function recreateContainer(inspect, image, runCmd = runCommand) {
 
 export async function checkForUpdates({
   containerName = "openclaw-gateway",
+  imageRepo = DEFAULT_IMAGE_REPO,
   fetchImpl = fetch,
   runCmd = runCommand
 } = {}) {
@@ -258,9 +288,11 @@ export async function checkForUpdates({
   let latestPublishedAt = null;
   let updateAvailable = false;
   let warning = "";
+  let releaseRepo = "";
 
   try {
-    const latest = await fetchLatestRelease(fetchImpl);
+    const latest = await fetchLatestRelease({ imageRepo, fetchImpl });
+    releaseRepo = latest.releaseRepo || "";
     latestTag = latest.tag;
     latestPublishedAt = latest.publishedAt;
     if (currentTag) {
@@ -273,6 +305,8 @@ export async function checkForUpdates({
   return {
     ok: true,
     containerName,
+    imageRepo,
+    releaseRepo,
     currentImage,
     currentTag,
     latestTag,

@@ -1,3 +1,5 @@
+import { requestJson } from "./app-api.js";
+
 let stream = null;
 const THEME_KEY = "openclaw-panel-theme";
 
@@ -47,17 +49,7 @@ function getInputValue(id) {
 }
 
 async function api(url, options = {}) {
-  const response = await fetch(url, {
-    headers: {
-      "content-type": "application/json"
-    },
-    ...options
-  });
-  const payload = await response.json();
-  if (!response.ok || payload.ok === false) {
-    throw new Error(payload.message || "请求失败");
-  }
-  return payload;
+  return requestJson(fetch, url, options);
 }
 
 function setupTabs() {
@@ -271,9 +263,10 @@ async function mutateVersion(action) {
   }
   const result = await api(`/api/update/${action}`, {
     method: "POST",
-    body: JSON.stringify({ tag })
+    body: JSON.stringify({ tag }),
+    allowBusinessError: true
   });
-  const payload = result.result;
+  const payload = result.result || {};
   if (payload.ok) {
     setUpdateState(action === "upgrade" ? "升级成功" : "回滚成功", "success");
     els.updateHint.textContent = `当前镜像：${payload.targetImage}`;
@@ -285,9 +278,10 @@ async function mutateVersion(action) {
   }
 
   setUpdateState(action === "upgrade" ? "升级失败" : "回滚失败", "fail");
-  const rollbackNote = payload.rolledBack ? `；${payload.rollbackMessage || "已自动回滚"}` : "";
-  els.updateHint.textContent = `${payload.message || "操作失败"}${rollbackNote}`;
-  throw new Error(`${payload.message || "操作失败"}${rollbackNote}`);
+  const rollbackNote = payload.rollbackMessage ? `；${payload.rollbackMessage}` : payload.rolledBack ? "；已自动回滚" : "";
+  const detail = `${payload.message || "操作失败"}${rollbackNote}`;
+  els.updateHint.textContent = detail;
+  setMessage(`${action} 失败：${detail}`, "error");
 }
 
 async function saveSettings() {
@@ -301,10 +295,27 @@ async function saveSettings() {
 }
 
 async function runService(action) {
-  const result = await api(`/api/service/${action}`, { method: "POST" });
-  els.serviceOutput.textContent = result.result.output || "(empty)";
+  const result = await api(`/api/service/${action}`, {
+    method: "POST",
+    allowBusinessError: true
+  });
+  const payload = result.result || {};
+  const output = payload.output || payload.message || "(empty)";
+  els.serviceOutput.textContent = output;
+
+  if (!result.ok) {
+    if (action === "status") {
+      els.serviceState.textContent = "状态异常";
+      els.serviceState.classList.toggle("success", false);
+      els.serviceState.classList.toggle("fail", true);
+      els.serviceHint.textContent = payload.message || "服务状态读取失败，请检查容器或 systemd 权限。";
+    }
+    setMessage(`service ${action}: 失败 - ${payload.message || "未知错误"}`, "error");
+    return;
+  }
+
   if (action === "status") {
-    const active = Boolean(result.result.active);
+    const active = Boolean(payload.active);
     els.serviceState.textContent = active ? "运行中" : "未运行";
     els.serviceState.classList.toggle("success", active);
     els.serviceState.classList.toggle("fail", !active);
@@ -312,7 +323,7 @@ async function runService(action) {
       ? "服务状态正常。你可以继续联调渠道或查看日志。"
       : "服务未运行。请先启动或检查 systemd 权限。";
   }
-  setMessage(`service ${action}: ${result.ok ? "成功" : "失败"}`, result.ok ? "ok" : "error");
+  setMessage(`service ${action}: 成功`, "ok");
 }
 
 async function loadTail() {
@@ -362,7 +373,8 @@ async function testTelegram() {
   };
   const result = await api("/api/test/telegram", {
     method: "POST",
-    body: JSON.stringify(payload)
+    body: JSON.stringify(payload),
+    allowBusinessError: true
   });
   setMessage(`Telegram 测试：${result.message}`, result.ok ? "ok" : "error");
 }
@@ -374,7 +386,8 @@ async function testFeishu() {
   };
   const result = await api("/api/test/feishu", {
     method: "POST",
-    body: JSON.stringify(payload)
+    body: JSON.stringify(payload),
+    allowBusinessError: true
   });
   setMessage(`Feishu 测试：${result.message}`, result.ok ? "ok" : "error");
 }
@@ -385,7 +398,8 @@ async function testDiscord() {
   };
   const result = await api("/api/test/discord", {
     method: "POST",
-    body: JSON.stringify(payload)
+    body: JSON.stringify(payload),
+    allowBusinessError: true
   });
   setMessage(`Discord 测试：${result.message}`, result.ok ? "ok" : "error");
 }
@@ -399,7 +413,8 @@ async function testSlack() {
   };
   const result = await api("/api/test/slack", {
     method: "POST",
-    body: JSON.stringify(payload)
+    body: JSON.stringify(payload),
+    allowBusinessError: true
   });
   setMessage(`Slack 测试：${result.message}`, result.ok ? "ok" : "error");
 }
