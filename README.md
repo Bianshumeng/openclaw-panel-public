@@ -9,6 +9,7 @@
 - 日志面板：最近日志、实时流、错误摘要（支持 `journal`/`file`/`docker`）
 - 渠道测试：Telegram/飞书/Discord/Slack 连通性
 - 版本管理：检查最新版本、一键升级、手动回滚（升级失败自动回滚）
+- 独立路由页面：`/model`、`/channels`、`/update`、`/service`、`/logs`
 
 ## Docker（推荐）
 > 当前生产建议使用受控镜像 tag：`ghcr.io/openclaw/openclaw:2026.2.14`

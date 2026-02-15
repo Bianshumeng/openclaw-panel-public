@@ -1,0 +1,300 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { applySettings, extractSettings } from "../../src/openclaw-config.js";
+
+function makeBasePayload(overrides = {}) {
+  return {
+    model: {
+      primary: "aicodecat-gpt/gpt-5.2",
+      providerId: "aicodecat-gpt",
+      providerApi: "openai-responses",
+      providerBaseUrl: "https://aicode.cat/v1",
+      providerApiKey: "",
+      modelId: "gpt-5.2",
+      modelName: "GPT-5.2",
+      contextWindow: 400000,
+      maxTokens: 128000,
+      providerModels: []
+    },
+    channels: {
+      telegram: {
+        enabled: false,
+        botToken: "",
+        dmPolicy: "pairing",
+        allowFrom: "",
+        groupPolicy: "allowlist",
+        groupAllowFrom: "",
+        requireMention: true,
+        streamMode: "partial"
+      },
+      feishu: {
+        enabled: false,
+        appId: "",
+        appSecret: "",
+        domain: "feishu",
+        connectionMode: "websocket",
+        dmPolicy: "pairing",
+        allowFrom: "",
+        groupPolicy: "allowlist",
+        groupAllowFrom: "",
+        requireMention: true
+      },
+      discord: {
+        enabled: false,
+        token: "",
+        dmPolicy: "pairing",
+        allowFrom: "",
+        groupPolicy: "allowlist",
+        allowBots: false,
+        requireMention: true
+      },
+      slack: {
+        enabled: false,
+        mode: "socket",
+        botToken: "",
+        appToken: "",
+        signingSecret: "",
+        dmPolicy: "pairing",
+        allowFrom: "",
+        groupPolicy: "allowlist",
+        allowBots: false,
+        requireMention: true
+      }
+    },
+    ...overrides
+  };
+}
+
+test("applySettings keeps existing model advanced fields when editing single model", () => {
+  const current = {
+    models: {
+      providers: {
+        "aicodecat-gpt": {
+          baseUrl: "https://aicode.cat/v1",
+          apiKey: "sk-old",
+          api: "openai-responses",
+          models: [
+            {
+              id: "gpt-5.2",
+              name: "GPT-5.2",
+              reasoning: true,
+              input: ["text", "image"],
+              cost: { input: 1.75, output: 14 },
+              contextWindow: 400000,
+              maxTokens: 128000
+            }
+          ]
+        }
+      }
+    },
+    agents: {
+      defaults: {
+        model: {
+          primary: "aicodecat-gpt/gpt-5.2"
+        }
+      }
+    },
+    channels: {}
+  };
+
+  const next = applySettings(
+    current,
+    makeBasePayload({
+      model: {
+        primary: "aicodecat-gpt/gpt-5.2",
+        providerId: "aicodecat-gpt",
+        providerApi: "openai-responses",
+        providerBaseUrl: "https://aicode.cat/v1",
+        providerApiKey: "",
+        modelId: "gpt-5.2",
+        modelName: "GPT-5.2 New Label",
+        contextWindow: 500000,
+        maxTokens: 120000,
+        providerModels: []
+      }
+    })
+  );
+
+  const model = next.models.providers["aicodecat-gpt"].models.find((item) => item.id === "gpt-5.2");
+  assert.equal(model.name, "GPT-5.2 New Label");
+  assert.equal(model.reasoning, true);
+  assert.deepEqual(model.input, ["text", "image"]);
+  assert.deepEqual(model.cost, { input: 1.75, output: 14 });
+  assert.equal(model.contextWindow, 500000);
+  assert.equal(model.maxTokens, 120000);
+});
+
+test("applySettings upserts providerModels list without dropping existing untouched models", () => {
+  const current = {
+    models: {
+      providers: {
+        "aicodecat-claude": {
+          baseUrl: "https://aicode.cat",
+          apiKey: "sk-old",
+          api: "anthropic-messages",
+          models: [
+            {
+              id: "claude-sonnet-4-5-20250929",
+              name: "Claude Sonnet 4.5",
+              reasoning: true,
+              input: ["text", "image"],
+              contextWindow: 200000,
+              maxTokens: 64000
+            }
+          ]
+        }
+      }
+    },
+    agents: {
+      defaults: {
+        model: {
+          primary: "aicodecat-claude/claude-sonnet-4-5-20250929"
+        }
+      }
+    },
+    channels: {}
+  };
+
+  const next = applySettings(
+    current,
+    makeBasePayload({
+      model: {
+        primary: "aicodecat-claude/claude-opus-4-6",
+        providerId: "aicodecat-claude",
+        providerApi: "anthropic-messages",
+        providerBaseUrl: "https://aicode.cat",
+        providerApiKey: "sk-new",
+        modelId: "claude-opus-4-6",
+        modelName: "Claude Opus 4.6",
+        contextWindow: 200000,
+        maxTokens: 64000,
+        providerModels: [
+          {
+            id: "claude-opus-4-6",
+            name: "Claude Opus 4.6",
+            reasoning: true,
+            input: ["text", "image"],
+            contextWindow: 200000,
+            maxTokens: 64000
+          },
+          {
+            id: "claude-haiku-4-5",
+            name: "Claude Haiku 4.5",
+            reasoning: true,
+            input: ["text", "image"],
+            contextWindow: 200000,
+            maxTokens: 64000
+          }
+        ]
+      }
+    })
+  );
+
+  assert.equal(next.agents.defaults.model.primary, "aicodecat-claude/claude-opus-4-6");
+  assert.equal(next.models.providers["aicodecat-claude"].apiKey, "sk-new");
+  assert.equal(next.models.providers["aicodecat-claude"].models.length, 3);
+  assert.ok(next.models.providers["aicodecat-claude"].models.some((item) => item.id === "claude-sonnet-4-5-20250929"));
+  assert.ok(next.models.providers["aicodecat-claude"].models.some((item) => item.id === "claude-opus-4-6"));
+  assert.ok(next.models.providers["aicodecat-claude"].models.some((item) => item.id === "claude-haiku-4-5"));
+});
+
+test("extractSettings returns model catalog for UI selection", () => {
+  const settings = extractSettings({
+    models: {
+      providers: {
+        "aicodecat-gpt": {
+          api: "openai-responses",
+          baseUrl: "https://aicode.cat/v1",
+          models: [
+            {
+              id: "gpt-5.3-codex",
+              name: "GPT-5.3 Codex",
+              contextWindow: 400000,
+              maxTokens: 128000
+            }
+          ]
+        }
+      }
+    },
+    agents: {
+      defaults: {
+        thinkingDefault: "high",
+        model: {
+          primary: "aicodecat-gpt/gpt-5.3-codex"
+        }
+      }
+    },
+    channels: {}
+  });
+
+  assert.equal(settings.model.primary, "aicodecat-gpt/gpt-5.3-codex");
+  assert.equal(settings.model.thinkingStrength, "high");
+  assert.equal(settings.model.catalog.providers.length, 1);
+  assert.equal(settings.model.catalog.modelRefs.length, 1);
+  assert.equal(settings.model.catalog.modelRefs[0].ref, "aicodecat-gpt/gpt-5.3-codex");
+  assert.equal(settings.model.catalog.modelRefs[0].thinkingStrength, "high");
+  assert.equal(settings.model.catalog.providers[0].models[0].thinkingStrength, "high");
+});
+
+test("applySettings supports model-only payload without mutating channels", () => {
+  const current = {
+    models: {
+      providers: {
+        "aicodecat-gpt": {
+          baseUrl: "https://aicode.cat/v1",
+          apiKey: "sk-old",
+          api: "openai-responses",
+          models: [
+            {
+              id: "gpt-5.2",
+              name: "GPT-5.2",
+              contextWindow: 400000,
+              maxTokens: 128000
+            }
+          ]
+        }
+      }
+    },
+    agents: {
+      defaults: {
+        model: {
+          primary: "aicodecat-gpt/gpt-5.2"
+        }
+      }
+    },
+    channels: {
+      telegram: {
+        enabled: true,
+        dmPolicy: "pairing",
+        allowFrom: ["u1"],
+        groupPolicy: "allowlist",
+        groupAllowFrom: [],
+        streamMode: "partial",
+        groups: {
+          "*": {
+            requireMention: true
+          }
+        },
+        botToken: "token-old",
+        token: "token-old"
+      }
+    }
+  };
+
+  const next = applySettings(current, {
+    model: {
+      primary: "aicodecat-gpt/gpt-5.2",
+      providerId: "aicodecat-gpt",
+      providerApi: "openai-responses",
+      providerBaseUrl: "https://aicode.cat/v1",
+      providerApiKey: "",
+      modelId: "gpt-5.2",
+      modelName: "GPT-5.2",
+      contextWindow: 400000,
+      maxTokens: 128000,
+      providerModels: []
+    }
+  });
+
+  assert.deepEqual(next.channels, current.channels);
+});

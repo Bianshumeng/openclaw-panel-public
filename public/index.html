@@ -15,24 +15,14 @@
           <p class="sub">只暴露业务配置，不暴露服务器端点。</p>
         </div>
 
-        <section class="sidebar-group">
-          <h2 class="group-title">系统状态</h2>
-          <div class="status-chip">
-            <span class="dot"></span>
-            <span id="runtime_state">面板已连接</span>
-          </div>
-          <div class="meta">
-            <span id="meta_service_name">service: -</span>
-            <span id="meta_log_source">log: -</span>
-          </div>
-        </section>
-
         <nav class="tabs sidebar-tabs">
-          <button class="tab is-active" data-tab-target="panel-model">AI 模型</button>
-          <button class="tab" data-tab-target="panel-channel">渠道接入</button>
-          <button class="tab" data-tab-target="panel-update">版本更新</button>
-          <button class="tab" data-tab-target="panel-service">服务控制</button>
-          <button class="tab" data-tab-target="panel-logs">日志排障</button>
+          <a class="tab" data-tab-target="panel-dashboard" href="/dashboard">仪表盘</a>
+          <a class="tab is-active" data-tab-target="panel-model" href="/model">模型与提供商配置</a>
+          <a class="tab" data-tab-target="panel-config-generator" href="/config-generator">配置生成器</a>
+          <a class="tab" data-tab-target="panel-channel" href="/channels">渠道接入</a>
+          <a class="tab" data-tab-target="panel-update" href="/update">版本更新</a>
+          <a class="tab" data-tab-target="panel-service" href="/service">服务控制</a>
+          <a class="tab" data-tab-target="panel-logs" href="/logs">日志排障</a>
         </nav>
       </aside>
 
@@ -45,55 +35,307 @@
           <button id="theme_toggle" class="btn-soft" type="button">切换到深夜模式</button>
         </header>
 
-        <section class="panel is-visible" data-panel="panel-model">
+        <section class="panel" data-panel="panel-dashboard">
           <article class="card">
-            <h2>模型与 API</h2>
-            <p class="muted-line">对应 OpenClaw 的 `models.providers.*` 和 `agents.defaults.model.primary`。</p>
+            <h2>系统状态</h2>
+            <div class="status-chip">
+              <span class="dot"></span>
+              <span id="runtime_state">面板已连接</span>
+            </div>
+            <div class="meta">
+              <span id="meta_service_name">service: -</span>
+              <span id="meta_log_source">log: -</span>
+            </div>
+          </article>
+
+          <article class="card">
+            <h2>模型仪表盘</h2>
+            <p class="muted-line">展示当前生效的模型与基础状态信息。</p>
             <div class="grid">
               <label>
-                主模型引用（自动）
-                <input id="model_primary" type="text" readonly />
+                当前使用模型
+                <input id="dashboard_current_model" type="text" readonly />
               </label>
               <label>
-                Provider ID
-                <input id="model_provider_id" type="text" />
+                当前提供商
+                <input id="dashboard_current_provider" type="text" readonly />
               </label>
               <label>
-                API 类型
-                <input id="model_provider_api" type="text" />
+                当前模型上下文上限
+                <input id="dashboard_current_context_window" type="text" readonly />
               </label>
               <label>
-                API Base URL
-                <input id="model_provider_base_url" type="url" />
+                当前模型思考强度
+                <input id="dashboard_current_thinking_strength" type="text" readonly />
               </label>
-              <label>
-                API Key
-                <input id="model_provider_api_key" type="password" autocomplete="off" />
-              </label>
-              <label>
-                Model ID
-                <input id="model_id" type="text" />
-              </label>
-              <label>
-                Model Name
-                <input id="model_name" type="text" />
-              </label>
-              <label>
-                Context Window
-                <input id="model_context_window" type="number" min="1" />
-              </label>
-              <label>
-                Max Tokens
-                <input id="model_max_tokens" type="number" min="1" />
-              </label>
-            </div>
-            <div class="actions">
-              <button id="save_settings">保存全部配置</button>
             </div>
           </article>
         </section>
 
+        <section class="panel is-visible" data-panel="panel-model">
+          <article class="card">
+            <h2>设置当前默认模型</h2>
+            <p class="muted-line">先选“当前默认使用的模型”，再保存。这个操作只改默认模型指向，不会删除其它模型。</p>
+            <div class="grid">
+              <label>
+                当前默认模型
+                <select id="model_default_ref"></select>
+              </label>
+              <label>
+                主模型引用
+                <input id="model_current_primary" type="text" readonly />
+              </label>
+              <label>
+                提供商标识
+                <input id="model_current_provider" type="text" readonly />
+              </label>
+              <label>
+                API 模式
+                <input id="model_current_api" type="text" readonly />
+              </label>
+              <label>
+                API 地址
+                <input id="model_current_baseurl" type="text" readonly />
+              </label>
+              <label>
+                模型 ID
+                <input id="model_current_id" type="text" readonly />
+              </label>
+              <label>
+                模型名称
+                <input id="model_current_name" type="text" readonly />
+              </label>
+              <label>
+                上下文长度
+                <input id="model_current_context_window" type="text" readonly />
+              </label>
+              <label>
+                最大输出长度
+                <input id="model_current_max_tokens" type="text" readonly />
+              </label>
+            </div>
+            <div class="actions">
+              <button id="save_default_model">保存默认模型</button>
+            </div>
+          </article>
+
+          <article class="card">
+            <h2>可用模型（按提供商）</h2>
+            <p class="muted-line">在这里直接按提供商查看并切换模型。切换前建议填写当前会话上下文，系统会在可能超限时提醒你。</p>
+            <div class="grid">
+              <label>
+                当前会话上下文（Token）
+                <input
+                  id="dashboard_context_tokens"
+                  type="number"
+                  min="0"
+                  step="1"
+                  placeholder="用于切换时上下文超限提示"
+                />
+              </label>
+            </div>
+            <p id="dashboard_context_hint" class="muted-line">当目标模型上下文更短，且当前会话上下文超过目标上限时，将弹出风险提示。</p>
+            <div id="model_provider_cards" class="provider-grid"></div>
+          </article>
+
+          <article class="card">
+            <h2>添加新提供商（基础配置）</h2>
+            <p class="muted-line">选模板后只改“提供商名称 / URL / Key”就能直接用，适合小白快速上手。</p>
+            <div class="grid">
+              <label>
+                模板类型
+                <select id="model_template_key">
+                  <option value="aicodecat-gpt">GPT 系列模板</option>
+                  <option value="aicodecat-claude">Claude 系列模板</option>
+                  <option value="aicodecat-gemini">Gemini 系列模板</option>
+                </select>
+              </label>
+              <label>
+                提供商名称（provider key）
+                <input id="template_provider_id" type="text" />
+              </label>
+              <label>
+                API 模式
+                <div class="field-stack">
+                  <select id="template_api">
+                    <option value="openai-responses">openai-responses（GPT Responses）</option>
+                    <option value="openai-completions">openai-completions（GPT 兼容）</option>
+                    <option value="anthropic-messages">anthropic-messages（Claude）</option>
+                    <option value="google-generative-ai">google-generative-ai（Gemini）</option>
+                    <option value="custom">自定义</option>
+                  </select>
+                  <input id="template_api_custom" class="custom-field" type="text" placeholder="输入自定义 API 模式" />
+                </div>
+              </label>
+              <label>
+                API 地址（Base URL）
+                <input id="template_base_url" type="url" />
+              </label>
+              <label>
+                API Key
+                <input id="template_api_key" type="password" autocomplete="off" />
+              </label>
+              <label>
+                设为默认模型
+                <select id="template_default_model_id"></select>
+              </label>
+            </div>
+            <label>
+              模板内置模型（可直接用）
+              <pre id="template_model_preview" class="output"></pre>
+            </label>
+            <div class="actions">
+              <button id="save_provider_template">保存模板提供商</button>
+            </div>
+          </article>
+
+          <article class="card">
+            <h2>自定义模式（高级）</h2>
+            <p class="muted-line">需要完全自定义时，直接编辑模型 JSON 数组。每个模型至少要有 id 和 name。</p>
+            <div class="grid">
+              <label>
+                提供商名称（provider key）
+                <input id="custom_provider_id" type="text" placeholder="例如 my-provider" />
+              </label>
+              <label>
+                API 模式
+                <input id="custom_api" type="text" placeholder="例如 openai-responses" />
+              </label>
+              <label>
+                API 地址（Base URL）
+                <input id="custom_base_url" type="url" placeholder="例如 https://api.example.com/v1" />
+              </label>
+              <label>
+                API Key
+                <input id="custom_api_key" type="password" autocomplete="off" />
+              </label>
+              <label>
+                默认模型 ID
+                <input id="custom_default_model_id" type="text" placeholder="填 models 数组中的某个 id" />
+              </label>
+            </div>
+            <label>
+              models 数组 JSON
+              <textarea id="custom_models_json" rows="10" placeholder='[{"id":"model-id","name":"模型名","reasoning":true,"input":["text","image"],"contextWindow":200000,"maxTokens":64000}]'></textarea>
+            </label>
+            <div class="actions">
+              <button id="save_provider_custom">保存自定义提供商</button>
+            </div>
+          </article>
+        </section>
+
+        <section class="panel" data-panel="panel-config-generator">
+          <article class="card">
+            <h2>OpenClaw 配置生成器</h2>
+            <p class="muted-line">
+              根据你输入的原始 OpenClaw JSON 自动生成 `models.providers.*` 与
+              `agents.defaults.model.primary`。
+            </p>
+
+            <div class="grid">
+              <label>
+                提供商
+                <div class="field-stack">
+                  <select id="cfg_provider">
+                    <option value="aicodecat">aicodecat</option>
+                    <option value="custom">自定义</option>
+                  </select>
+                  <input id="cfg_provider_custom" class="custom-field" type="text" placeholder="输入自定义提供商 ID" />
+                </div>
+              </label>
+
+              <label>
+                API 模式
+                <div class="field-stack">
+                  <select id="cfg_apimode">
+                    <option value="anthropic-messages">anthropic-messages（Claude）</option>
+                    <option value="openai-responses" selected>openai-responses（GPT）</option>
+                    <option value="openai-completions">openai-completions（GPT 兼容）</option>
+                    <option value="google-generative-ai">google-generative-ai（Gemini）</option>
+                    <option value="custom">自定义</option>
+                  </select>
+                  <input id="cfg_apimode_custom" class="custom-field" type="text" placeholder="输入自定义 API 模式" />
+                </div>
+              </label>
+            </div>
+
+            <div class="grid">
+              <label>
+                Base URL
+                <div class="field-stack">
+                  <select id="cfg_baseurl">
+                    <option value="https://aicode.cat/v1" selected>https://aicode.cat/v1 (GPT)</option>
+                    <option value="https://aicode.cat">https://aicode.cat (Claude)</option>
+                    <option value="https://aicode.cat/v1beta">https://aicode.cat/v1beta (Gemini)</option>
+                    <option value="custom">自定义</option>
+                  </select>
+                  <input id="cfg_baseurl_custom" class="custom-field" type="url" placeholder="输入自定义 Base URL" />
+                </div>
+              </label>
+
+              <label>
+                模型 ID
+                <div class="field-stack">
+                  <select id="cfg_model_id">
+                    <option value="gpt-5.2" selected>gpt-5.2</option>
+                    <option value="gpt-5.2-codex">gpt-5.2-codex</option>
+                    <option value="gpt-5.3-codex">gpt-5.3-codex</option>
+                    <option value="claude-opus-4-6">claude-opus-4-6</option>
+                    <option value="claude-sonnet-4-5-20250929">claude-sonnet-4-5-20250929</option>
+                    <option value="claude-haiku-4-5">claude-haiku-4-5</option>
+                    <option value="gemini-3-pro-preview">gemini-3-pro-preview</option>
+                    <option value="gemini-3-flash-preview">gemini-3-flash-preview</option>
+                    <option value="custom">自定义</option>
+                  </select>
+                  <input id="cfg_model_id_custom" class="custom-field" type="text" placeholder="输入自定义模型 ID" />
+                </div>
+              </label>
+            </div>
+
+            <div class="grid">
+              <label>
+                API Key
+                <input id="cfg_apikey" type="password" autocomplete="off" placeholder="输入 API Key" />
+              </label>
+              <label>
+                是否继承当前环境下的其他配置内容
+                <select id="cfg_inherit_existing">
+                  <option value="false" selected>否（只生成当前页面配置）</option>
+                  <option value="true">是（保留当前配置中的其他字段）</option>
+                </select>
+              </label>
+              <label>
+                状态
+                <input id="cfg_status" type="text" value="就绪" readonly />
+              </label>
+            </div>
+
+            <label>
+              Config（原始 JSON）
+              <textarea id="cfg_input" rows="8" placeholder="粘贴你的 ~/.openclaw/openclaw.json"></textarea>
+            </label>
+
+            <div class="actions">
+              <button id="cfg_generate" type="button">生成配置</button>
+              <button id="cfg_copy" class="btn-soft" type="button">复制结果</button>
+            </div>
+
+            <label>
+              转换结果
+              <pre id="cfg_output" class="output">响应将显示在这里</pre>
+            </label>
+          </article>
+        </section>
+
         <section class="panel" data-panel="panel-channel">
+          <article class="card">
+            <h2>渠道配置保存</h2>
+            <p class="muted-line">修改完 Telegram / Feishu / Discord / Slack 配置后，统一点一次保存。</p>
+            <div class="actions">
+              <button id="save_settings">保存渠道与全局配置</button>
+            </div>
+          </article>
+
           <article class="card">
             <h2>Telegram（官方字段）</h2>
             <p class="muted-line">对应 `channels.telegram.*`，默认建议 DM 策略用 `pairing`。</p>
