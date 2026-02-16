@@ -1,5 +1,9 @@
 import { execFile } from "node:child_process";
 
+const DOCKER_STATUS_PROBE_DELAY_MS = 1100;
+const DOCKER_ACTION_VERIFY_DELAY_MS = 1800;
+const DOCKER_STOP_VERIFY_DELAY_MS = 500;
+
 function run(command, args) {
   return new Promise((resolve) => {
     execFile(command, args, { timeout: 15000 }, (error, stdout, stderr) => {
@@ -11,6 +15,12 @@ function run(command, args) {
         message: error?.message || ""
       });
     });
+  });
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
   });
 }
 
@@ -52,33 +62,145 @@ function composeContainerName(panelConfig) {
   return panelConfig?.openclaw?.container_name || panelConfig?.openclaw?.service_name || "openclaw-gateway";
 }
 
-async function runDockerStatus(containerName) {
-  const status = await run("docker", ["inspect", "--format", "{{.State.Status}}", containerName]);
-  const detail = await run("docker", ["ps", "-a", "--filter", `name=^/${containerName}$`]);
-  const inspect = await run("docker", ["inspect", containerName]);
+function parseDockerInspectResult(stdout) {
+  try {
+    const parsed = JSON.parse(stdout || "[]");
+    if (!Array.isArray(parsed) || parsed.length === 0) {
+      return null;
+    }
+    return parsed[0];
+  } catch {
+    return null;
+  }
+}
 
-  const state = status.ok ? status.stdout.trim() : "not-found";
-  const active = state === "running";
+async function inspectDockerState(containerName) {
+  const inspect = await run("docker", ["inspect", containerName]);
+  if (!inspect.ok) {
+    return {
+      ok: false,
+      message: [inspect.stdout, inspect.stderr, inspect.message].filter(Boolean).join("\n").trim() || "容器不存在或不可访问。"
+    };
+  }
+
+  const firstEntry = parseDockerInspectResult(inspect.stdout);
+  if (!firstEntry) {
+    return {
+      ok: false,
+      message: "docker inspect 返回内容无法解析。"
+    };
+  }
+
+  const state = firstEntry?.State && typeof firstEntry.State === "object" ? firstEntry.State : {};
+  const status = String(state.Status || "unknown").trim() || "unknown";
+  const restartCount = Number(firstEntry?.RestartCount ?? 0);
+  const numericRestartCount = Number.isFinite(restartCount) ? restartCount : 0;
+  const exitCode = Number(state?.ExitCode);
+
+  return {
+    ok: true,
+    status,
+    active: status === "running",
+    restarting: Boolean(state?.Restarting),
+    running: Boolean(state?.Running),
+    restartCount: numericRestartCount,
+    exitCode: Number.isFinite(exitCode) ? exitCode : null,
+    error: String(state?.Error || "").trim(),
+    startedAt: String(state?.StartedAt || ""),
+    finishedAt: String(state?.FinishedAt || "")
+  };
+}
+
+function buildDockerStateLines(snapshot) {
+  const lines = [
+    `state: ${snapshot.status}`,
+    `running: ${snapshot.running ? "true" : "false"}`,
+    `restarting: ${snapshot.restarting ? "true" : "false"}`,
+    `restartCount: ${snapshot.restartCount}`
+  ];
+  if (snapshot.exitCode !== null) {
+    lines.push(`exitCode: ${snapshot.exitCode}`);
+  }
+  if (snapshot.error) {
+    lines.push(`error: ${snapshot.error}`);
+  }
+  if (snapshot.startedAt) {
+    lines.push(`startedAt: ${snapshot.startedAt}`);
+  }
+  if (snapshot.finishedAt) {
+    lines.push(`finishedAt: ${snapshot.finishedAt}`);
+  }
+  return lines;
+}
+
+async function runDockerStatus(
+  containerName,
+  { includeFailureLogs = true, probeRestartLoop = true } = {}
+) {
+  const detail = await run("docker", ["ps", "-a", "--filter", `name=^/${containerName}$`]);
+  const firstSnapshot = await inspectDockerState(containerName);
+  if (!firstSnapshot.ok) {
+    const outputParts = [firstSnapshot.message];
+    if (detail.stdout) {
+      outputParts.push(detail.stdout);
+    }
+    return {
+      ok: false,
+      action: "status",
+      runtimeMode: "docker",
+      containerName,
+      active: false,
+      state: "not-found",
+      output: outputParts.filter(Boolean).join("\n").trim() || "容器不存在或不可访问。"
+    };
+  }
+
+  let snapshot = firstSnapshot;
+  let instabilityReason = "";
+  if (probeRestartLoop && firstSnapshot.status === "running") {
+    await sleep(DOCKER_STATUS_PROBE_DELAY_MS);
+    const secondSnapshot = await inspectDockerState(containerName);
+    if (secondSnapshot.ok) {
+      snapshot = secondSnapshot;
+      if (secondSnapshot.status === "restarting") {
+        instabilityReason = "容器处于重启中状态。";
+      } else if (secondSnapshot.restartCount > firstSnapshot.restartCount) {
+        instabilityReason = `检测到容器在短时间内重启次数增长（${firstSnapshot.restartCount} -> ${secondSnapshot.restartCount}）。`;
+      }
+    }
+  }
+
+  const active = snapshot.status === "running" && !instabilityReason;
   const outputParts = [];
-  if (status.stdout) {
-    outputParts.push(`state: ${status.stdout}`);
+  outputParts.push(...buildDockerStateLines(snapshot));
+  if (instabilityReason) {
+    outputParts.push(`statusHint: ${instabilityReason}`);
   }
   if (detail.stdout) {
     outputParts.push(detail.stdout);
   }
-  if (status.stderr) {
-    outputParts.push(status.stderr);
-  }
-  if (inspect.stderr) {
-    outputParts.push(inspect.stderr);
+
+  if (!active && includeFailureLogs) {
+    const logs = await run("docker", ["logs", "--tail", "60", containerName]);
+    const combinedLogs = [logs.stdout, logs.stderr].filter(Boolean).join("\n").trim();
+    if (combinedLogs) {
+      outputParts.push("---- recent logs ----");
+      outputParts.push(combinedLogs);
+    } else if (!logs.ok && logs.message) {
+      outputParts.push(`logs error: ${logs.message}`);
+    }
   }
 
   return {
-    ok: status.ok,
+    ok: true,
     action: "status",
     runtimeMode: "docker",
     containerName,
     active,
+    state: snapshot.status,
+    restartCount: snapshot.restartCount,
+    exitCode: snapshot.exitCode,
+    instabilityReason,
     output: outputParts.join("\n").trim() || "容器不存在或不可访问。"
   };
 }
@@ -89,8 +211,62 @@ async function runDockerAction(action, containerName) {
   }
 
   const result = await run("docker", [action, containerName]);
+  if (!result.ok) {
+    return {
+      ok: false,
+      action,
+      runtimeMode: "docker",
+      containerName,
+      output: [result.stdout, result.stderr, result.message].filter(Boolean).join("\n")
+    };
+  }
+
+  if (action === "start" || action === "restart" || action === "stop") {
+    await sleep(action === "stop" ? DOCKER_STOP_VERIFY_DELAY_MS : DOCKER_ACTION_VERIFY_DELAY_MS);
+    const statusResult = await runDockerStatus(containerName, {
+      includeFailureLogs: action !== "stop",
+      probeRestartLoop: action !== "stop"
+    });
+    const shouldBeActive = action !== "stop";
+    const stateMatchesExpectation = shouldBeActive ? statusResult.active : !statusResult.active;
+    if (!stateMatchesExpectation) {
+      const actionText = action === "stop" ? "停止" : "启动";
+      return {
+        ok: false,
+        action,
+        runtimeMode: "docker",
+        containerName,
+        active: statusResult.active,
+        state: statusResult.state,
+        output: [
+          [result.stdout, result.stderr, result.message].filter(Boolean).join("\n").trim(),
+          `${actionText}后状态校验失败：当前状态 ${statusResult.state || "unknown"}。`,
+          statusResult.output
+        ]
+          .filter(Boolean)
+          .join("\n")
+      };
+    }
+
+    return {
+      ok: true,
+      action,
+      runtimeMode: "docker",
+      containerName,
+      active: statusResult.active,
+      state: statusResult.state,
+      output: [
+        [result.stdout, result.stderr, result.message].filter(Boolean).join("\n").trim(),
+        `状态校验通过：${statusResult.state || "unknown"}。`,
+        statusResult.output
+      ]
+        .filter(Boolean)
+        .join("\n")
+    };
+  }
+
   return {
-    ok: result.ok,
+    ok: true,
     action,
     runtimeMode: "docker",
     containerName,

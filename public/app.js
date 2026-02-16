@@ -3481,8 +3481,15 @@ async function runService(action, { silentMessage = false, autoRefresh = true } 
       els.serviceState.classList.toggle("fail", true);
       els.serviceHint.textContent = payload.message || "服务状态读取失败，请检查容器或 systemd 权限。";
     }
+    if (autoRefresh && action !== "status" && els.serviceState && els.serviceHint) {
+      try {
+        await runService("status", { silentMessage: true, autoRefresh: false });
+      } catch {
+        // ignore refresh errors on failure branch; primary error is already surfaced
+      }
+    }
     if (!silentMessage) {
-      setMessage(`service ${action}: 失败 - ${payload.message || "未知错误"}`, "error");
+      setMessage(`service ${action}: 失败 - ${payload.message || payload.output || "未知错误"}`, "error");
     }
     return;
   }

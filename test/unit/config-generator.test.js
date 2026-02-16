@@ -53,6 +53,7 @@ test("convertConfig defaults to clean output and removes auth", () => {
   });
 
   assert.equal(result.auth, undefined);
+  assert.equal(result.gateway.mode, "local");
   assert.equal(result.models.mode, "merge");
   assert.equal(result.models.providers["aicodecat-gpt"].baseUrl, "https://aicode.cat/v1");
   assert.equal(result.agents.defaults.model.primary, "aicodecat-gpt/gpt-5.2");
@@ -90,6 +91,7 @@ test("convertConfig inherits existing config when inherit_existing is true", () 
   });
 
   assert.equal(result.auth, undefined);
+  assert.equal(result.gateway.mode, "local");
   assert.equal(result.models.mode, "merge");
   assert.equal(result.models.providers["aicodecat-gpt"].baseUrl, "https://aicode.cat/v1");
   assert.equal(result.agents.defaults.model.primary, "aicodecat-gpt/gpt-5.2");

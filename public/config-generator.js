@@ -68,6 +68,7 @@ export function convertConfig(payload) {
   const existingAgents = isRecord(sourceConfig.agents) ? sourceConfig.agents : {};
   const existingDefaults = isRecord(existingAgents.defaults) ? existingAgents.defaults : {};
   const existingDefaultModel = isRecord(existingDefaults.model) ? existingDefaults.model : {};
+  const existingGateway = isRecord(sourceConfig.gateway) ? sourceConfig.gateway : {};
 
   const agents = inheritExisting
     ? {
@@ -90,6 +91,10 @@ export function convertConfig(payload) {
 
   const result = {
     ...(inheritExisting ? sourceConfig : {}),
+    gateway: {
+      ...(inheritExisting ? existingGateway : {}),
+      mode: toTrimmedString(existingGateway.mode) || "local"
+    },
     models: {
       mode: "merge",
       providers: {
