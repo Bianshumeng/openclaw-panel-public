@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "@fastify/static": "^7.0.4",
+    "@shoelace-style/shoelace": "^2.20.1",
     "fastify": "^4.29.1",
     "ws": "^8.19.0",
     "zod": "^3.24.2"

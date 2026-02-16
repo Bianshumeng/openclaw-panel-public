@@ -42,6 +42,12 @@ await app.register(fastifyStatic, {
   prefix: "/"
 });
 
+await app.register(fastifyStatic, {
+  root: path.join(__dirname, "..", "node_modules", "@shoelace-style", "shoelace", "cdn"),
+  prefix: "/shoelace/",
+  decorateReply: false
+});
+
 const actionSchema = z.enum(["start", "stop", "restart", "status"]);
 const tagPayloadSchema = z.object({
   tag: z.string().min(1, "tag 不能为空")

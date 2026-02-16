@@ -277,6 +277,8 @@ function setupTabs() {
 function applyTheme(theme) {
   const value = theme === "dark" ? "dark" : "light";
   document.body.dataset.theme = value;
+  document.documentElement.classList.toggle("sl-theme-dark", value === "dark");
+  document.documentElement.classList.toggle("sl-theme-light", value !== "dark");
   if (els.themeToggle) {
     els.themeToggle.textContent = value === "dark" ? "切换到白色模式" : "切换到深夜模式";
   }
@@ -666,9 +668,18 @@ function setStackListEmpty(container, message) {
   }
   container.innerHTML = "";
   const empty = document.createElement("p");
-  empty.className = "muted-line";
+  empty.className = "dashboard-list-empty";
   empty.textContent = message;
   container.appendChild(empty);
+}
+
+function createDashboardStatusTag(text, variant = "neutral") {
+  const tag = document.createElement("sl-tag");
+  tag.size = "small";
+  tag.pill = true;
+  tag.variant = variant;
+  tag.textContent = text;
+  return tag;
 }
 
 function buildModelEntryFromProvider(providerEntry, providerModel) {
@@ -1219,9 +1230,12 @@ function renderChannelRuntimeList(containerSelector, items = [], emptyText = "�
 
   container.innerHTML = "";
   items.forEach((item) => {
-    const node = document.createElement("article");
-    node.className = "stack-item";
+    const node = document.createElement("sl-card");
+    node.className = "dashboard-runtime-item dashboard-runtime-item-channel";
     node.title = `${item?.name || item?.key || "未命名 Skill"}\nkey: ${item?.key || "-"}\nsource: ${item?.source || "-"}`;
+
+    const body = document.createElement("div");
+    body.className = "dashboard-runtime-item-body";
 
     const top = document.createElement("div");
     top.className = "stack-item-row";
@@ -1233,25 +1247,26 @@ function renderChannelRuntimeList(containerSelector, items = [], emptyText = "�
     const chips = document.createElement("div");
     chips.className = "chip-line";
 
-    const configuredChip = document.createElement("span");
-    configuredChip.className = "mini-chip";
-    configuredChip.textContent = item?.configured ? "已配置" : "未配置";
+    const configuredChip = createDashboardStatusTag(item?.configured ? "已配置" : "未配置", item?.configured ? "success" : "neutral");
     chips.appendChild(configuredChip);
 
-    const runningChip = document.createElement("span");
-    runningChip.className = "mini-chip";
-    runningChip.textContent = item?.running ? "运行中" : "未运行";
+    const runningChip = createDashboardStatusTag(item?.running ? "运行中" : "未运行", item?.running ? "primary" : "warning");
     chips.appendChild(runningChip);
 
+    if (String(item?.lastError || "").trim()) {
+      chips.appendChild(createDashboardStatusTag("最近有报错", "danger"));
+    }
+
     top.appendChild(chips);
-    node.appendChild(top);
+    body.appendChild(top);
 
     const meta = document.createElement("p");
     meta.className = "stack-item-meta";
     const errorText = String(item?.lastError || "").trim();
     const probeText = formatLocalTime(item?.lastProbeAt);
     meta.textContent = errorText ? `最近错误: ${errorText} | 最近探针: ${probeText}` : `最近探针: ${probeText}`;
-    node.appendChild(meta);
+    body.appendChild(meta);
+    node.appendChild(body);
     container.appendChild(node);
   });
 }
@@ -1268,8 +1283,10 @@ function renderSkillsRuntimeList(containerSelector, items = [], emptyText = "暂
 
   container.innerHTML = "";
   items.forEach((item) => {
-    const node = document.createElement("article");
-    node.className = "stack-item";
+    const node = document.createElement("sl-card");
+    node.className = "dashboard-runtime-item dashboard-runtime-item-skill";
+    const body = document.createElement("div");
+    body.className = "dashboard-runtime-item-body";
 
     const top = document.createElement("div");
     top.className = "stack-item-row";
@@ -1281,28 +1298,23 @@ function renderSkillsRuntimeList(containerSelector, items = [], emptyText = "暂
     const chips = document.createElement("div");
     chips.className = "chip-line";
 
-    const enabledChip = document.createElement("span");
-    enabledChip.className = "mini-chip";
-    enabledChip.textContent = item?.enabled ? "已启用" : "已禁用";
+    const enabledChip = createDashboardStatusTag(item?.enabled ? "已启用" : "已禁用", item?.enabled ? "success" : "neutral");
     chips.appendChild(enabledChip);
 
-    const eligibleChip = document.createElement("span");
-    eligibleChip.className = "mini-chip";
-    eligibleChip.textContent = item?.eligible ? "可用" : "不可用";
+    const eligibleChip = createDashboardStatusTag(item?.eligible ? "可用" : "不可用", item?.eligible ? "primary" : "warning");
     chips.appendChild(eligibleChip);
 
-    const blockedChip = document.createElement("span");
-    blockedChip.className = "mini-chip";
-    blockedChip.textContent = item?.blocked ? "受限" : "正常";
+    const blockedChip = createDashboardStatusTag(item?.blocked ? "受限" : "正常", item?.blocked ? "danger" : "success");
     chips.appendChild(blockedChip);
 
     top.appendChild(chips);
-    node.appendChild(top);
+    body.appendChild(top);
 
     const meta = document.createElement("p");
     meta.className = "stack-item-meta";
     meta.textContent = `key: ${item?.key || "-"} | source: ${item?.source || "-"}`;
-    node.appendChild(meta);
+    body.appendChild(meta);
+    node.appendChild(body);
     container.appendChild(node);
   });
 }

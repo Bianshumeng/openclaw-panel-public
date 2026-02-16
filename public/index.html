@@ -4,7 +4,10 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>OpenClaw 龙虾控制台</title>
+    <link rel="stylesheet" href="/shoelace/themes/light.css" />
+    <link rel="stylesheet" href="/shoelace/themes/dark.css" />
     <link rel="stylesheet" href="/styles.css" />
+    <script type="module" src="/shoelace/shoelace-autoloader.js"></script>
   </head>
   <body data-theme="light">
     <div class="layout">
@@ -38,9 +41,17 @@
         </header>
 
         <section class="panel" data-panel="panel-dashboard">
-          <article class="card">
-            <h2>系统状态</h2>
-            <div class="status-chip">
+          <article class="card dashboard-overview-card">
+            <div class="dashboard-overview-row">
+              <div>
+                <h2>仪表盘总览</h2>
+                <p class="muted-line">把模型、渠道、技能和版本状态集中展示在一个页面，减少新手操作路径。</p>
+              </div>
+              <div class="actions dashboard-overview-actions">
+                <sl-button id="dashboard_summary_refresh" variant="primary" size="small">刷新总览</sl-button>
+              </div>
+            </div>
+            <div class="status-chip dashboard-runtime-chip">
               <span class="dot"></span>
               <span id="runtime_state">面板已连接</span>
             </div>
@@ -48,119 +59,114 @@
               <span id="meta_service_name">service: -</span>
               <span id="meta_log_source">log: -</span>
             </div>
-            <div class="grid">
-              <label>
-                面板本地监听地址
-                <input id="dashboard_panel_local_url" type="text" readonly />
-              </label>
-              <label>
-                面板公网访问地址
-                <input id="dashboard_panel_public_url" type="text" readonly />
-              </label>
-              <label>
-                网关公网访问地址
-                <input id="dashboard_gateway_public_url" type="text" readonly />
-              </label>
-              <label>
-                Webhook 回调基地址
-                <input id="dashboard_webhook_base_url" type="text" readonly />
-              </label>
-            </div>
-            <p id="dashboard_public_hint" class="muted-line">
-              若为空，请在 <code>data/panel/panel.config.json</code> 的 <code>reverse_proxy</code> 中填写公网 IP 与端口。
-            </p>
-          </article>
-
-          <article class="card">
-            <h2>模型仪表盘</h2>
-            <p class="muted-line">展示当前生效的模型与基础状态信息。</p>
-            <div class="grid">
-              <label>
-                当前使用模型
-                <input id="dashboard_current_model" type="text" readonly />
-              </label>
-              <label>
-                当前提供商
-                <input id="dashboard_current_provider" type="text" readonly />
-              </label>
-              <label>
-                当前模型上下文上限
-                <input id="dashboard_current_context_window" type="text" readonly />
-              </label>
-              <label>
-                当前模型思考强度
-                <input id="dashboard_current_thinking_strength" type="text" readonly />
-              </label>
-            </div>
-            <div class="grid">
-              <label>
-                当前会话上下文（Token）
-                <input
-                  id="dashboard_quick_context_tokens"
-                  data-dashboard-context-input="1"
-                  type="number"
-                  min="0"
-                  step="1"
-                  placeholder="用于切换时上下文超限提示"
-                />
-              </label>
-              <label>
-                快速切换默认模型
-                <select id="dashboard_quick_model_ref"></select>
-              </label>
-            </div>
-            <div class="actions">
-              <button id="dashboard_quick_switch" class="btn-soft" type="button">切换当前默认模型</button>
-            </div>
-            <p id="dashboard_quick_switch_hint" class="muted-line">选择目标模型后可直接在仪表盘切换，系统会做上下文风险提示。</p>
-          </article>
-
-          <article class="card">
-            <div class="stack-item-row">
-              <div>
-                <h2>状态总览</h2>
-                <p class="muted-line">聚合运行状态、模型、渠道、Skills、错误摘要和版本信息，便于快速巡检。</p>
-              </div>
-              <div class="actions">
-                <button id="dashboard_summary_refresh" class="btn-soft" type="button">刷新总览</button>
-              </div>
-            </div>
             <div class="dashboard-kpi-grid">
-              <article class="dashboard-kpi">
+              <sl-card class="dashboard-kpi" data-tone="default">
                 <p class="dashboard-kpi-label">运行状态</p>
                 <p id="dashboard_summary_runtime" class="dashboard-kpi-value">-</p>
                 <p id="dashboard_summary_runtime_meta" class="dashboard-kpi-meta">等待刷新</p>
-              </article>
-              <article class="dashboard-kpi">
+              </sl-card>
+              <sl-card class="dashboard-kpi" data-tone="default">
                 <p class="dashboard-kpi-label">当前模型</p>
                 <p id="dashboard_summary_model" class="dashboard-kpi-value">-</p>
                 <p id="dashboard_summary_model_meta" class="dashboard-kpi-meta">等待刷新</p>
-              </article>
-              <article class="dashboard-kpi">
+              </sl-card>
+              <sl-card class="dashboard-kpi" data-tone="default">
                 <p class="dashboard-kpi-label">渠道状态</p>
                 <p id="dashboard_summary_channels" class="dashboard-kpi-value">-</p>
                 <p id="dashboard_summary_channels_meta" class="dashboard-kpi-meta">等待刷新</p>
-              </article>
-              <article class="dashboard-kpi">
+              </sl-card>
+              <sl-card class="dashboard-kpi" data-tone="default">
                 <p class="dashboard-kpi-label">Skills 状态</p>
                 <p id="dashboard_summary_skills" class="dashboard-kpi-value">-</p>
                 <p id="dashboard_summary_skills_meta" class="dashboard-kpi-meta">等待刷新</p>
-              </article>
-              <article class="dashboard-kpi">
+              </sl-card>
+              <sl-card class="dashboard-kpi" data-tone="warn">
                 <p class="dashboard-kpi-label">错误摘要</p>
                 <p id="dashboard_summary_errors" class="dashboard-kpi-value">-</p>
                 <p id="dashboard_summary_errors_meta" class="dashboard-kpi-meta">等待刷新</p>
-              </article>
-              <article class="dashboard-kpi">
+              </sl-card>
+              <sl-card class="dashboard-kpi" data-tone="default">
                 <p class="dashboard-kpi-label">版本状态</p>
                 <p id="dashboard_summary_version" class="dashboard-kpi-value">-</p>
                 <p id="dashboard_summary_version_meta" class="dashboard-kpi-meta">等待刷新</p>
-              </article>
+              </sl-card>
             </div>
             <p id="dashboard_summary_hint" class="muted-line">点击“刷新总览”后显示最新状态。</p>
           </article>
 
-          <article class="card">
+          <div class="dashboard-upper-grid">
+            <article class="card dashboard-surface-card">
+              <h2>部署与访问入口</h2>
+              <p class="muted-line">这里展示对外地址和 Webhook 回调地址，复制即可直接去外部平台配置。</p>
+              <div class="grid">
+                <label>
+                  面板本地监听地址
+                  <input id="dashboard_panel_local_url" type="text" readonly />
+                </label>
+                <label>
+                  面板公网访问地址
+                  <input id="dashboard_panel_public_url" type="text" readonly />
+                </label>
+                <label>
+                  网关公网访问地址
+                  <input id="dashboard_gateway_public_url" type="text" readonly />
+                </label>
+                <label>
+                  Webhook 回调基地址
+                  <input id="dashboard_webhook_base_url" type="text" readonly />
+                </label>
+              </div>
+              <p id="dashboard_public_hint" class="muted-line">
+                若为空，请在 <code>data/panel/panel.config.json</code> 的 <code>reverse_proxy</code> 中填写公网 IP 与端口。
+              </p>
+            </article>
+
+            <article class="card dashboard-surface-card">
+              <h2>当前默认模型</h2>
+              <p class="muted-line">可直接在仪表盘里切换当前默认模型，切换前会自动做上下文超限提醒。</p>
+              <div class="grid">
+                <label>
+                  当前使用模型
+                  <input id="dashboard_current_model" type="text" readonly />
+                </label>
+                <label>
+                  当前提供商
+                  <input id="dashboard_current_provider" type="text" readonly />
+                </label>
+                <label>
+                  当前模型上下文上限
+                  <input id="dashboard_current_context_window" type="text" readonly />
+                </label>
+                <label>
+                  当前模型思考强度
+                  <input id="dashboard_current_thinking_strength" type="text" readonly />
+                </label>
+              </div>
+              <div class="grid">
+                <label>
+                  当前会话上下文（Token）
+                  <input
+                    id="dashboard_quick_context_tokens"
+                    data-dashboard-context-input="1"
+                    type="number"
+                    min="0"
+                    step="1"
+                    placeholder="用于切换时上下文超限提示"
+                  />
+                </label>
+                <label>
+                  快速切换默认模型
+                  <select id="dashboard_quick_model_ref"></select>
+                </label>
+              </div>
+              <div class="actions">
+                <button id="dashboard_quick_switch" class="btn-soft" type="button">切换当前默认模型</button>
+              </div>
+              <p id="dashboard_quick_switch_hint" class="muted-line">选择目标模型后可直接在仪表盘切换，系统会做上下文风险提示。</p>
+            </article>
+          </div>
+
+          <article class="card dashboard-surface-card">
             <h2>快捷操作</h2>
             <p class="muted-line">按“你要做的事”直达，不用在侧边栏来回找入口。</p>
             <div class="dashboard-quick-grid">
@@ -173,16 +179,22 @@
             </div>
           </article>
 
-          <article class="card">
+          <article class="card dashboard-surface-card">
             <h2>运行态明细</h2>
             <p class="muted-line">展示当前已配置渠道和已启用技能，便于确认“现在到底在跑什么”。</p>
             <div class="dashboard-runtime-grid">
               <article class="dashboard-runtime-card">
-                <h3>渠道运行态</h3>
+                <div class="dashboard-runtime-head">
+                  <h3>渠道运行态</h3>
+                  <span class="muted-line">按渠道展示最近探针与错误</span>
+                </div>
                 <div id="dashboard_channel_runtime_list" class="stack-list dashboard-channel-runtime-list"></div>
               </article>
               <article class="dashboard-runtime-card">
-                <h3>Skills 运行态</h3>
+                <div class="dashboard-runtime-head">
+                  <h3>Skills 运行态</h3>
+                  <span class="muted-line">按技能展示启用、可用与受限状态</span>
+                </div>
                 <div id="dashboard_skills_runtime_list" class="stack-list dashboard-skills-runtime-list"></div>
               </article>
             </div>
