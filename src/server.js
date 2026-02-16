@@ -19,6 +19,7 @@ import { toPositiveInt } from "./utils.js";
 import { checkForUpdates, rollbackToTag, upgradeToTag } from "./docker-update.js";
 import { buildDashboardSummary } from "./dashboard-service.js";
 import { getSkillConfig, listSkillsStatus, prepareSkillConfigUpdate, setSkillEnabled } from "./skills-service.js";
+import { approveTelegramPairing, setupTelegramBasic } from "./channel-onboarding.js";
 import {
   abortChatRun,
   createChatSession,
@@ -112,6 +113,12 @@ const chatAttachmentStagePayloadSchema = z.object({
   fileName: z.string().min(1, "fileName 不能为空"),
   mimeType: z.string().optional().default("application/octet-stream"),
   base64: z.string().min(1, "base64 不能为空")
+});
+const telegramSetupPayloadSchema = z.object({
+  botToken: z.string().min(1, "Bot Token 不能为空")
+});
+const telegramPairingPayloadSchema = z.object({
+  code: z.string().min(1, "验证码不能为空")
 });
 
 function ensureDockerMode(panelConfig) {
@@ -859,6 +866,62 @@ app.post("/api/test/telegram", async (request, reply) => {
     ok: result.ok,
     message: result.message
   };
+});
+
+app.post("/api/channels/telegram/setup", async (request, reply) => {
+  try {
+    const parsed = telegramSetupPayloadSchema.safeParse(request.body || {});
+    if (!parsed.success) {
+      reply.code(400);
+      return {
+        ok: false,
+        message: parsed.error.issues?.[0]?.message || "请求参数错误"
+      };
+    }
+    const { config: panelConfig } = await loadPanelConfig();
+    const result = await setupTelegramBasic({
+      panelConfig,
+      botToken: parsed.data.botToken
+    });
+    return {
+      ok: result.ok,
+      result
+    };
+  } catch (error) {
+    reply.code(400);
+    return {
+      ok: false,
+      message: error.message
+    };
+  }
+});
+
+app.post("/api/channels/telegram/pairing/approve", async (request, reply) => {
+  try {
+    const parsed = telegramPairingPayloadSchema.safeParse(request.body || {});
+    if (!parsed.success) {
+      reply.code(400);
+      return {
+        ok: false,
+        message: parsed.error.issues?.[0]?.message || "请求参数错误"
+      };
+    }
+    const { config: panelConfig } = await loadPanelConfig();
+    const result = await approveTelegramPairing({
+      panelConfig,
+      code: parsed.data.code
+    });
+    return {
+      ok: result.ok,
+      result
+    };
+  } catch (error) {
+    reply.code(400);
+    return {
+      ok: false,
+      message: error.message
+    };
+  }
 });
 
 app.post("/api/test/feishu", async (request) => {

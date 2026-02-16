@@ -3700,6 +3700,102 @@ function setChannelTestResult(elementId, detail, success) {
   el.classList.toggle("fail", !success);
 }
 
+function setChannelActionResult(elementId, detail, success) {
+  const el = document.querySelector(`#${elementId}`);
+  if (!el) {
+    return;
+  }
+  const timestamp = new Date().toLocaleTimeString();
+  el.textContent = `最近执行（${timestamp}）：${detail}`;
+  el.classList.toggle("success", Boolean(success));
+  el.classList.toggle("fail", !success);
+}
+
+function renderTelegramTrace(elementId, steps = []) {
+  const trace = document.querySelector(`#${elementId}`);
+  if (!trace) {
+    return;
+  }
+  if (!Array.isArray(steps) || steps.length === 0) {
+    trace.textContent = "暂无执行记录";
+    return;
+  }
+
+  const lines = [];
+  steps.forEach((step, index) => {
+    const label = String(step?.label || `步骤 ${index + 1}`).trim();
+    const statusText = step?.ok ? "成功" : "失败";
+    const command = String(step?.command || "").trim();
+    const output = String(step?.output || "").trim() || "(无输出)";
+    lines.push(`[${index + 1}] ${label} - ${statusText}`);
+    if (command) {
+      lines.push(`命令: ${command}`);
+    }
+    lines.push(`输出: ${output}`);
+    lines.push("");
+  });
+  trace.textContent = lines.join("\n").trim();
+}
+
+async function setupTelegramBasicFlow() {
+  const botToken = String(getInputValue("tg_bot_token") || "").trim();
+  if (!botToken) {
+    setChannelActionResult("tg_setup_result", "失败：请先填写 Bot Token", false);
+    throw new Error("Telegram 基础配置失败：Bot Token 不能为空");
+  }
+
+  const result = await api("/api/channels/telegram/setup", {
+    method: "POST",
+    body: JSON.stringify({ botToken }),
+    allowBusinessError: true
+  });
+  const payload = result.result && typeof result.result === "object" ? result.result : {};
+  const steps = Array.isArray(payload.steps) ? payload.steps : [];
+  renderTelegramTrace("tg_setup_trace", steps);
+
+  if (!result.ok || payload.ok === false) {
+    const detail = String(payload.message || result.message || "Telegram 基础配置失败");
+    setChannelActionResult("tg_setup_result", `失败：${detail}`, false);
+    setMessage(`Telegram 基础配置失败：${detail}`, "error");
+    return;
+  }
+
+  const detail = String(payload.message || "Telegram 基础配置完成");
+  setChannelActionResult("tg_setup_result", `成功：${detail}`, true);
+  setMessage(detail, "ok");
+  await loadInitialData();
+}
+
+async function approveTelegramPairingFlow() {
+  const code = String(getInputValue("tg_pairing_code") || "").trim();
+  if (!code) {
+    setChannelActionResult("tg_pairing_result", "失败：请先填写验证码", false);
+    throw new Error("Telegram 配对失败：验证码不能为空");
+  }
+
+  const result = await api("/api/channels/telegram/pairing/approve", {
+    method: "POST",
+    body: JSON.stringify({ code }),
+    allowBusinessError: true
+  });
+  const payload = result.result && typeof result.result === "object" ? result.result : {};
+  const step = payload.step && typeof payload.step === "object" ? payload.step : null;
+  if (step) {
+    renderTelegramTrace("tg_pairing_trace", [step]);
+  }
+
+  if (!result.ok || payload.ok === false) {
+    const detail = String(payload.message || result.message || "验证码验证失败");
+    setChannelActionResult("tg_pairing_result", `失败：${detail}`, false);
+    setMessage(`Telegram 配对失败：${detail}`, "error");
+    return;
+  }
+
+  const detail = String(payload.message || "验证码验证成功");
+  setChannelActionResult("tg_pairing_result", `成功：${detail}`, true);
+  setMessage(detail, "ok");
+}
+
 async function saveAndTestTelegram() {
   const botToken = String(getInputValue("tg_bot_token") || "").trim();
   await saveSettings();
@@ -3825,6 +3921,15 @@ document.querySelector("#start_stream")?.addEventListener("click", startStream);
 document.querySelector("#stop_stream")?.addEventListener("click", stopStream);
 document.querySelector("#test_telegram")?.addEventListener("click", () => {
   testTelegram().catch((error) => setMessage(error.message, "error"));
+});
+document.querySelector("#tg_setup_basic")?.addEventListener("click", () => {
+  setupTelegramBasicFlow().catch((error) => setMessage(error.message, "error"));
+});
+document.querySelector("#tg_pairing_approve")?.addEventListener("click", () => {
+  approveTelegramPairingFlow().catch((error) => setMessage(error.message, "error"));
+});
+document.querySelector("#tg_save_advanced")?.addEventListener("click", () => {
+  saveSettings().catch((error) => setMessage(error.message, "error"));
 });
 document.querySelector("#save_and_test_telegram")?.addEventListener("click", () => {
   saveAndTestTelegram().catch((error) => setMessage(error.message, "error"));
