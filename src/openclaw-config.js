@@ -31,12 +31,44 @@ const settingsSchema = z.object({
       telegram: z.object({
         enabled: z.boolean().default(false),
         botToken: z.string().optional().default(""),
+        tokenFile: z.string().optional().default(""),
         dmPolicy: z.enum(["open", "pairing", "allowlist", "disabled"]).default("pairing"),
         allowFrom: z.string().optional().default(""),
         groupPolicy: z.enum(["open", "allowlist", "disabled"]).default("allowlist"),
         groupAllowFrom: z.string().optional().default(""),
         requireMention: z.boolean().default(true),
-        streamMode: z.enum(["off", "partial", "block"]).default("partial")
+        streamMode: z.enum(["off", "partial", "block"]).default("partial"),
+        chunkMode: z.enum(["length", "newline"]).default("length"),
+        textChunkLimit: z.number().int().positive().nullable().optional().default(null),
+        replyToMode: z.enum(["off", "first", "all"]).default("off"),
+        linkPreview: z.boolean().default(true),
+        blockStreaming: z.boolean().default(false),
+        timeoutSeconds: z.number().int().positive().nullable().optional().default(null),
+        mediaMaxMb: z.number().int().positive().nullable().optional().default(null),
+        dmHistoryLimit: z.number().int().nonnegative().nullable().optional().default(null),
+        historyLimit: z.number().int().nonnegative().nullable().optional().default(null),
+        webhookUrl: z.string().optional().default(""),
+        webhookSecret: z.string().optional().default(""),
+        webhookPath: z.string().optional().default("/telegram-webhook"),
+        proxy: z.string().optional().default(""),
+        configWrites: z.boolean().default(true),
+        reactionLevel: z.enum(["off", "ack", "minimal", "extensive"]).default("minimal"),
+        reactionNotifications: z.enum(["off", "own", "all"]).default("own"),
+        inlineButtons: z.enum(["off", "dm", "group", "all", "allowlist"]).default("allowlist"),
+        actionSendMessage: z.boolean().default(true),
+        actionReactions: z.boolean().default(true),
+        actionDeleteMessage: z.boolean().default(true),
+        actionSticker: z.boolean().default(false),
+        networkAutoSelectFamily: z.boolean().nullable().optional().default(null),
+        retryAttempts: z.number().int().positive().nullable().optional().default(null),
+        retryMinDelayMs: z.number().int().positive().nullable().optional().default(null),
+        retryMaxDelayMs: z.number().int().positive().nullable().optional().default(null),
+        retryJitter: z.boolean().default(true),
+        commandsNative: z.enum(["default", "auto", "true", "false"]).default("default"),
+        groupsJson: z.string().optional().default(""),
+        accountsJson: z.string().optional().default(""),
+        customCommandsJson: z.string().optional().default(""),
+        draftChunkJson: z.string().optional().default("")
       }),
       feishu: z.object({
         enabled: z.boolean().default(false),
@@ -92,6 +124,70 @@ function parseDelimitedText(input) {
     .map((v) => v.trim())
     .filter(Boolean);
   return [...new Set(raw)];
+}
+
+function toOptionalPositiveInt(value) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return null;
+  }
+  return Math.floor(parsed);
+}
+
+function toOptionalNonNegativeInt(value) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    return null;
+  }
+  return Math.floor(parsed);
+}
+
+function normalizeInlineButtons(rawCapabilities) {
+  if (Array.isArray(rawCapabilities)) {
+    return rawCapabilities.map((item) => String(item || "").trim()).includes("inlineButtons") ? "all" : "allowlist";
+  }
+  const value = String(rawCapabilities?.inlineButtons || "").trim();
+  if (["off", "dm", "group", "all", "allowlist"].includes(value)) {
+    return value;
+  }
+  return "allowlist";
+}
+
+function toPrettyJson(value) {
+  if (!value || typeof value !== "object") {
+    return "";
+  }
+  try {
+    if (Array.isArray(value)) {
+      return value.length > 0 ? JSON.stringify(value, null, 2) : "";
+    }
+    return Object.keys(value).length > 0 ? JSON.stringify(value, null, 2) : "";
+  } catch {
+    return "";
+  }
+}
+
+function parseOptionalJson(value, fieldName, expectedType) {
+  const text = String(value || "").trim();
+  if (!text) {
+    return null;
+  }
+  let parsed;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    throw new Error(`${fieldName} 不是有效 JSON`);
+  }
+  if (expectedType === "array") {
+    if (!Array.isArray(parsed)) {
+      throw new Error(`${fieldName} 必须是数组 JSON`);
+    }
+    return parsed;
+  }
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw new Error(`${fieldName} 必须是对象 JSON`);
+  }
+  return parsed;
 }
 
 function firstNonEmptyString(values) {
@@ -177,6 +273,17 @@ export function extractSettings(openclawConfig) {
     ...(slackAccount.account || {})
   };
   const telegramWildcardGroup = telegram?.groups?.["*"] || {};
+  const telegramActions = telegram?.actions && typeof telegram.actions === "object" ? telegram.actions : {};
+  const telegramRetry = telegram?.retry && typeof telegram.retry === "object" ? telegram.retry : {};
+  const telegramNetwork = telegram?.network && typeof telegram.network === "object" ? telegram.network : {};
+  const telegramInlineButtons = normalizeInlineButtons(telegram?.capabilities);
+  const telegramCommands = telegram?.commands && typeof telegram.commands === "object" ? telegram.commands : {};
+  const telegramCommandsNative =
+    typeof telegramCommands.native === "boolean"
+      ? String(telegramCommands.native)
+      : String(telegramCommands.native || "").trim() === "auto"
+      ? "auto"
+      : "default";
   const discordWildcardGuild = discord?.guilds?.["*"] || {};
   const discordDmPolicy = discord.dmPolicy || discord?.dm?.policy || "pairing";
   const discordAllowFrom = discord.allowFrom ?? discord?.dm?.allowFrom ?? [];
@@ -255,12 +362,45 @@ export function extractSettings(openclawConfig) {
       telegram: {
         enabled: Boolean(telegram.enabled),
         botToken: maskSecret(telegram.botToken || telegram.token || ""),
+        tokenFile: telegram.tokenFile || "",
         dmPolicy: telegram.dmPolicy || "pairing",
         allowFrom: toDelimitedList(telegram.allowFrom || []),
         groupPolicy: telegram.groupPolicy || "allowlist",
         groupAllowFrom: toDelimitedList(telegram.groupAllowFrom || []),
         requireMention: telegramWildcardGroup.requireMention !== false,
-        streamMode: telegram.streamMode || "partial"
+        streamMode: telegram.streamMode || "partial",
+        chunkMode: telegram.chunkMode || "length",
+        textChunkLimit: toOptionalPositiveInt(telegram.textChunkLimit),
+        replyToMode: telegram.replyToMode || "off",
+        linkPreview: telegram.linkPreview !== false,
+        blockStreaming: telegram.blockStreaming === true,
+        timeoutSeconds: toOptionalPositiveInt(telegram.timeoutSeconds),
+        mediaMaxMb: toOptionalPositiveInt(telegram.mediaMaxMb),
+        dmHistoryLimit: toOptionalNonNegativeInt(telegram.dmHistoryLimit),
+        historyLimit: toOptionalNonNegativeInt(telegram.historyLimit),
+        webhookUrl: telegram.webhookUrl || "",
+        webhookSecret: maskSecret(telegram.webhookSecret || ""),
+        webhookPath: telegram.webhookPath || "/telegram-webhook",
+        proxy: telegram.proxy || "",
+        configWrites: telegram.configWrites !== false,
+        reactionLevel: telegram.reactionLevel || "minimal",
+        reactionNotifications: telegram.reactionNotifications || "own",
+        inlineButtons: telegramInlineButtons,
+        actionSendMessage: telegramActions.sendMessage !== false,
+        actionReactions: telegramActions.reactions !== false,
+        actionDeleteMessage: telegramActions.deleteMessage !== false,
+        actionSticker: telegramActions.sticker === true,
+        networkAutoSelectFamily:
+          typeof telegramNetwork.autoSelectFamily === "boolean" ? telegramNetwork.autoSelectFamily : null,
+        retryAttempts: toOptionalPositiveInt(telegramRetry.attempts),
+        retryMinDelayMs: toOptionalPositiveInt(telegramRetry.minDelayMs),
+        retryMaxDelayMs: toOptionalPositiveInt(telegramRetry.maxDelayMs),
+        retryJitter: typeof telegramRetry.jitter === "boolean" ? telegramRetry.jitter : true,
+        commandsNative: telegramCommandsNative,
+        groupsJson: toPrettyJson(telegram.groups),
+        accountsJson: toPrettyJson(telegram.accounts),
+        customCommandsJson: toPrettyJson(telegram.customCommands),
+        draftChunkJson: toPrettyJson(telegram.draftChunk)
       },
       feishu: {
         enabled: Boolean(feishu.enabled),
@@ -355,6 +495,25 @@ function normalizeModelDraft(nextDraft, fallbackModel = {}) {
   return normalized;
 }
 
+function setOptionalString(target, key, value) {
+  const text = String(value || "").trim();
+  if (text) {
+    target[key] = text;
+    return;
+  }
+  delete target[key];
+}
+
+function setOptionalNumber(target, key, value, { allowZero = false } = {}) {
+  const parsed = Number(value);
+  const valid = Number.isFinite(parsed) && (allowZero ? parsed >= 0 : parsed > 0);
+  if (!valid) {
+    delete target[key];
+    return;
+  }
+  target[key] = Math.floor(parsed);
+}
+
 export function applySettings(currentConfig, payload) {
   const parsed = settingsSchema.parse(payload);
   const providerId = parsed.model.providerId.trim();
@@ -445,33 +604,136 @@ export function applySettings(currentConfig, payload) {
     if (!next.channels.telegram) {
       next.channels.telegram = {};
     }
-    next.channels.telegram.enabled = parsed.channels.telegram.enabled;
-    next.channels.telegram.dmPolicy = parsed.channels.telegram.dmPolicy;
-    next.channels.telegram.groupPolicy = parsed.channels.telegram.groupPolicy;
-    next.channels.telegram.allowFrom = parseDelimitedText(parsed.channels.telegram.allowFrom);
-    next.channels.telegram.groupAllowFrom = parseDelimitedText(parsed.channels.telegram.groupAllowFrom);
-    next.channels.telegram.streamMode = parsed.channels.telegram.streamMode;
+    const telegram = next.channels.telegram;
+    telegram.enabled = parsed.channels.telegram.enabled;
+    telegram.dmPolicy = parsed.channels.telegram.dmPolicy;
+    telegram.groupPolicy = parsed.channels.telegram.groupPolicy;
+    telegram.allowFrom = parseDelimitedText(parsed.channels.telegram.allowFrom);
+    telegram.groupAllowFrom = parseDelimitedText(parsed.channels.telegram.groupAllowFrom);
+    telegram.streamMode = parsed.channels.telegram.streamMode;
+    telegram.chunkMode = parsed.channels.telegram.chunkMode;
+    telegram.replyToMode = parsed.channels.telegram.replyToMode;
+    telegram.linkPreview = parsed.channels.telegram.linkPreview;
+    telegram.blockStreaming = parsed.channels.telegram.blockStreaming;
+    telegram.configWrites = parsed.channels.telegram.configWrites;
+    telegram.reactionLevel = parsed.channels.telegram.reactionLevel;
+    telegram.reactionNotifications = parsed.channels.telegram.reactionNotifications;
 
-    if (next.channels.telegram.dmPolicy === "open") {
-      const allowFrom = next.channels.telegram.allowFrom || [];
+    setOptionalString(telegram, "tokenFile", parsed.channels.telegram.tokenFile);
+    setOptionalString(telegram, "webhookUrl", parsed.channels.telegram.webhookUrl);
+    setOptionalString(telegram, "webhookPath", parsed.channels.telegram.webhookPath);
+    setOptionalString(telegram, "proxy", parsed.channels.telegram.proxy);
+    setOptionalNumber(telegram, "textChunkLimit", parsed.channels.telegram.textChunkLimit);
+    setOptionalNumber(telegram, "timeoutSeconds", parsed.channels.telegram.timeoutSeconds);
+    setOptionalNumber(telegram, "mediaMaxMb", parsed.channels.telegram.mediaMaxMb);
+    setOptionalNumber(telegram, "dmHistoryLimit", parsed.channels.telegram.dmHistoryLimit, { allowZero: true });
+    setOptionalNumber(telegram, "historyLimit", parsed.channels.telegram.historyLimit, { allowZero: true });
+
+    const groupsOverride = parseOptionalJson(parsed.channels.telegram.groupsJson, "groupsJson", "object");
+    if (groupsOverride !== null) {
+      telegram.groups = groupsOverride;
+    }
+    const accountsOverride = parseOptionalJson(parsed.channels.telegram.accountsJson, "accountsJson", "object");
+    if (accountsOverride !== null) {
+      telegram.accounts = accountsOverride;
+    } else {
+      delete telegram.accounts;
+    }
+    const customCommandsOverride = parseOptionalJson(
+      parsed.channels.telegram.customCommandsJson,
+      "customCommandsJson",
+      "array"
+    );
+    if (customCommandsOverride !== null) {
+      telegram.customCommands = customCommandsOverride;
+    } else {
+      delete telegram.customCommands;
+    }
+    const draftChunkOverride = parseOptionalJson(parsed.channels.telegram.draftChunkJson, "draftChunkJson", "object");
+    if (draftChunkOverride !== null) {
+      telegram.draftChunk = draftChunkOverride;
+    } else {
+      delete telegram.draftChunk;
+    }
+
+    if (telegram.dmPolicy === "open") {
+      const allowFrom = telegram.allowFrom || [];
       if (!allowFrom.includes("*")) {
         throw new Error('telegram 开放模式要求 allowFrom 至少包含 "*"');
       }
     }
 
-    if (!next.channels.telegram.groups || typeof next.channels.telegram.groups !== "object") {
-      next.channels.telegram.groups = {};
+    if (!telegram.groups || typeof telegram.groups !== "object" || Array.isArray(telegram.groups)) {
+      telegram.groups = {};
     }
-    if (!next.channels.telegram.groups["*"] || typeof next.channels.telegram.groups["*"] !== "object") {
-      next.channels.telegram.groups["*"] = {};
+    if (!telegram.groups["*"] || typeof telegram.groups["*"] !== "object") {
+      telegram.groups["*"] = {};
     }
-    next.channels.telegram.groups["*"].requireMention = parsed.channels.telegram.requireMention;
+    telegram.groups["*"].requireMention = parsed.channels.telegram.requireMention;
 
-    const existingTelegramToken = next.channels.telegram.botToken || next.channels.telegram.token || "";
+    if (!telegram.capabilities || typeof telegram.capabilities !== "object" || Array.isArray(telegram.capabilities)) {
+      telegram.capabilities = {};
+    }
+    telegram.capabilities.inlineButtons = parsed.channels.telegram.inlineButtons;
+
+    if (!telegram.actions || typeof telegram.actions !== "object") {
+      telegram.actions = {};
+    }
+    telegram.actions.sendMessage = parsed.channels.telegram.actionSendMessage;
+    telegram.actions.reactions = parsed.channels.telegram.actionReactions;
+    telegram.actions.deleteMessage = parsed.channels.telegram.actionDeleteMessage;
+    telegram.actions.sticker = parsed.channels.telegram.actionSticker;
+
+    if (!telegram.commands || typeof telegram.commands !== "object") {
+      telegram.commands = {};
+    }
+    if (parsed.channels.telegram.commandsNative === "default") {
+      delete telegram.commands.native;
+    } else if (parsed.channels.telegram.commandsNative === "auto") {
+      telegram.commands.native = "auto";
+    } else {
+      telegram.commands.native = parsed.channels.telegram.commandsNative === "true";
+    }
+    if (Object.keys(telegram.commands).length === 0) {
+      delete telegram.commands;
+    }
+
+    if (!telegram.network || typeof telegram.network !== "object") {
+      telegram.network = {};
+    }
+    if (parsed.channels.telegram.networkAutoSelectFamily === null) {
+      delete telegram.network.autoSelectFamily;
+    } else {
+      telegram.network.autoSelectFamily = parsed.channels.telegram.networkAutoSelectFamily;
+    }
+    if (Object.keys(telegram.network).length === 0) {
+      delete telegram.network;
+    }
+
+    if (!telegram.retry || typeof telegram.retry !== "object") {
+      telegram.retry = {};
+    }
+    setOptionalNumber(telegram.retry, "attempts", parsed.channels.telegram.retryAttempts);
+    setOptionalNumber(telegram.retry, "minDelayMs", parsed.channels.telegram.retryMinDelayMs);
+    setOptionalNumber(telegram.retry, "maxDelayMs", parsed.channels.telegram.retryMaxDelayMs);
+    telegram.retry.jitter = parsed.channels.telegram.retryJitter;
+
+    const existingWebhookSecret = telegram.webhookSecret || "";
+    const webhookSecret = resolveSecret(parsed.channels.telegram.webhookSecret, existingWebhookSecret);
+    if (webhookSecret) {
+      telegram.webhookSecret = webhookSecret;
+    } else {
+      delete telegram.webhookSecret;
+    }
+
+    const existingTelegramToken = telegram.botToken || telegram.token || "";
     const telegramToken = resolveSecret(parsed.channels.telegram.botToken, existingTelegramToken);
     if (telegramToken) {
-      next.channels.telegram.botToken = telegramToken;
-      next.channels.telegram.token = telegramToken;
+      telegram.botToken = telegramToken;
+      telegram.token = telegramToken;
+    } else {
+      delete telegram.botToken;
+      delete telegram.token;
     }
 
     if (!next.channels.feishu || typeof next.channels.feishu !== "object") {

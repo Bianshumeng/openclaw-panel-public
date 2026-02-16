@@ -981,6 +981,61 @@ function readChannelBoolean(id, fallback = false) {
   return Boolean(getInputValue(id));
 }
 
+function normalizeOptionalPositiveInt(value) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return null;
+  }
+  return Math.floor(parsed);
+}
+
+function normalizeOptionalNonNegativeInt(value) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    return null;
+  }
+  return Math.floor(parsed);
+}
+
+function readChannelOptionalPositiveInt(id, fallback = null) {
+  const element = document.querySelector(`#${id}`);
+  if (!element) {
+    return normalizeOptionalPositiveInt(fallback);
+  }
+  const raw = String(getInputValue(id) || "").trim();
+  if (!raw) {
+    return null;
+  }
+  return normalizeOptionalPositiveInt(raw);
+}
+
+function readChannelOptionalNonNegativeInt(id, fallback = null) {
+  const element = document.querySelector(`#${id}`);
+  if (!element) {
+    return normalizeOptionalNonNegativeInt(fallback);
+  }
+  const raw = String(getInputValue(id) || "").trim();
+  if (!raw) {
+    return null;
+  }
+  return normalizeOptionalNonNegativeInt(raw);
+}
+
+function readChannelTriStateBoolean(id, fallback = null) {
+  const element = document.querySelector(`#${id}`);
+  if (!element) {
+    return typeof fallback === "boolean" ? fallback : null;
+  }
+  const value = String(getInputValue(id) || "default").trim().toLowerCase();
+  if (value === "true") {
+    return true;
+  }
+  if (value === "false") {
+    return false;
+  }
+  return null;
+}
+
 function getChannelSnapshot() {
   const settings = channelSettingsSnapshot.settings;
   if (!settings || typeof settings !== "object") {
@@ -1004,12 +1059,48 @@ function collectChannelSettings() {
     telegram: {
       enabled: readChannelBoolean("tg_enabled", telegramSnapshot.enabled),
       botToken: readChannelString("tg_bot_token", telegramSnapshot.botToken),
+      tokenFile: readChannelString("tg_token_file", telegramSnapshot.tokenFile),
       dmPolicy: readChannelString("tg_dm_policy", telegramSnapshot.dmPolicy || "pairing") || "pairing",
       allowFrom: readChannelString("tg_allow_from", telegramSnapshot.allowFrom),
       groupPolicy: readChannelString("tg_group_policy", telegramSnapshot.groupPolicy || "allowlist") || "allowlist",
       groupAllowFrom: readChannelString("tg_group_allow_from", telegramSnapshot.groupAllowFrom),
       requireMention: readChannelBoolean("tg_require_mention", telegramSnapshot.requireMention),
-      streamMode: readChannelString("tg_stream_mode", telegramSnapshot.streamMode || "partial") || "partial"
+      streamMode: readChannelString("tg_stream_mode", telegramSnapshot.streamMode || "partial") || "partial",
+      chunkMode: readChannelString("tg_chunk_mode", telegramSnapshot.chunkMode || "length") || "length",
+      textChunkLimit: readChannelOptionalPositiveInt("tg_text_chunk_limit", telegramSnapshot.textChunkLimit),
+      replyToMode: readChannelString("tg_reply_to_mode", telegramSnapshot.replyToMode || "off") || "off",
+      linkPreview: readChannelBoolean("tg_link_preview", telegramSnapshot.linkPreview),
+      blockStreaming: readChannelBoolean("tg_block_streaming", telegramSnapshot.blockStreaming),
+      timeoutSeconds: readChannelOptionalPositiveInt("tg_timeout_seconds", telegramSnapshot.timeoutSeconds),
+      mediaMaxMb: readChannelOptionalPositiveInt("tg_media_max_mb", telegramSnapshot.mediaMaxMb),
+      dmHistoryLimit: readChannelOptionalNonNegativeInt("tg_dm_history_limit", telegramSnapshot.dmHistoryLimit),
+      historyLimit: readChannelOptionalNonNegativeInt("tg_history_limit", telegramSnapshot.historyLimit),
+      webhookUrl: readChannelString("tg_webhook_url", telegramSnapshot.webhookUrl),
+      webhookSecret: readChannelString("tg_webhook_secret", telegramSnapshot.webhookSecret),
+      webhookPath: readChannelString("tg_webhook_path", telegramSnapshot.webhookPath || "/telegram-webhook"),
+      proxy: readChannelString("tg_proxy", telegramSnapshot.proxy),
+      configWrites: readChannelBoolean("tg_config_writes", telegramSnapshot.configWrites),
+      reactionLevel: readChannelString("tg_reaction_level", telegramSnapshot.reactionLevel || "minimal") || "minimal",
+      reactionNotifications:
+        readChannelString("tg_reaction_notifications", telegramSnapshot.reactionNotifications || "own") || "own",
+      inlineButtons: readChannelString("tg_inline_buttons", telegramSnapshot.inlineButtons || "allowlist") || "allowlist",
+      actionSendMessage: readChannelBoolean("tg_action_send_message", telegramSnapshot.actionSendMessage),
+      actionReactions: readChannelBoolean("tg_action_reactions", telegramSnapshot.actionReactions),
+      actionDeleteMessage: readChannelBoolean("tg_action_delete_message", telegramSnapshot.actionDeleteMessage),
+      actionSticker: readChannelBoolean("tg_action_sticker", telegramSnapshot.actionSticker),
+      networkAutoSelectFamily: readChannelTriStateBoolean(
+        "tg_network_auto_select_family",
+        telegramSnapshot.networkAutoSelectFamily
+      ),
+      retryAttempts: readChannelOptionalPositiveInt("tg_retry_attempts", telegramSnapshot.retryAttempts),
+      retryMinDelayMs: readChannelOptionalPositiveInt("tg_retry_min_delay_ms", telegramSnapshot.retryMinDelayMs),
+      retryMaxDelayMs: readChannelOptionalPositiveInt("tg_retry_max_delay_ms", telegramSnapshot.retryMaxDelayMs),
+      retryJitter: readChannelBoolean("tg_retry_jitter", telegramSnapshot.retryJitter),
+      commandsNative: readChannelString("tg_commands_native", telegramSnapshot.commandsNative || "default") || "default",
+      groupsJson: readChannelString("tg_groups_json", telegramSnapshot.groupsJson),
+      accountsJson: readChannelString("tg_accounts_json", telegramSnapshot.accountsJson),
+      customCommandsJson: readChannelString("tg_custom_commands_json", telegramSnapshot.customCommandsJson),
+      draftChunkJson: readChannelString("tg_draft_chunk_json", telegramSnapshot.draftChunkJson)
     },
     feishu: {
       enabled: readChannelBoolean("fs_enabled", feishuSnapshot.enabled),
@@ -3406,12 +3497,51 @@ function fillSettings(settings) {
 
   setInput("tg_enabled", settings.channels.telegram.enabled);
   setInput("tg_bot_token", settings.channels.telegram.botToken);
+  setInput("tg_token_file", settings.channels.telegram.tokenFile);
   setInput("tg_dm_policy", settings.channels.telegram.dmPolicy);
   setInput("tg_allow_from", settings.channels.telegram.allowFrom);
   setInput("tg_group_policy", settings.channels.telegram.groupPolicy);
   setInput("tg_group_allow_from", settings.channels.telegram.groupAllowFrom);
   setInput("tg_require_mention", settings.channels.telegram.requireMention);
   setInput("tg_stream_mode", settings.channels.telegram.streamMode);
+  setInput("tg_chunk_mode", settings.channels.telegram.chunkMode);
+  setInput("tg_text_chunk_limit", settings.channels.telegram.textChunkLimit ?? "");
+  setInput("tg_reply_to_mode", settings.channels.telegram.replyToMode);
+  setInput("tg_link_preview", settings.channels.telegram.linkPreview);
+  setInput("tg_block_streaming", settings.channels.telegram.blockStreaming);
+  setInput("tg_timeout_seconds", settings.channels.telegram.timeoutSeconds ?? "");
+  setInput("tg_media_max_mb", settings.channels.telegram.mediaMaxMb ?? "");
+  setInput("tg_dm_history_limit", settings.channels.telegram.dmHistoryLimit ?? "");
+  setInput("tg_history_limit", settings.channels.telegram.historyLimit ?? "");
+  setInput("tg_webhook_url", settings.channels.telegram.webhookUrl);
+  setInput("tg_webhook_secret", settings.channels.telegram.webhookSecret);
+  setInput("tg_webhook_path", settings.channels.telegram.webhookPath || "/telegram-webhook");
+  setInput("tg_proxy", settings.channels.telegram.proxy);
+  setInput("tg_config_writes", settings.channels.telegram.configWrites);
+  setInput("tg_reaction_level", settings.channels.telegram.reactionLevel);
+  setInput("tg_reaction_notifications", settings.channels.telegram.reactionNotifications);
+  setInput("tg_inline_buttons", settings.channels.telegram.inlineButtons);
+  setInput("tg_action_send_message", settings.channels.telegram.actionSendMessage);
+  setInput("tg_action_reactions", settings.channels.telegram.actionReactions);
+  setInput("tg_action_delete_message", settings.channels.telegram.actionDeleteMessage);
+  setInput("tg_action_sticker", settings.channels.telegram.actionSticker);
+  setInput(
+    "tg_network_auto_select_family",
+    settings.channels.telegram.networkAutoSelectFamily === null
+      ? "default"
+      : settings.channels.telegram.networkAutoSelectFamily
+      ? "true"
+      : "false"
+  );
+  setInput("tg_retry_attempts", settings.channels.telegram.retryAttempts ?? "");
+  setInput("tg_retry_min_delay_ms", settings.channels.telegram.retryMinDelayMs ?? "");
+  setInput("tg_retry_max_delay_ms", settings.channels.telegram.retryMaxDelayMs ?? "");
+  setInput("tg_retry_jitter", settings.channels.telegram.retryJitter);
+  setInput("tg_commands_native", settings.channels.telegram.commandsNative || "default");
+  setInput("tg_groups_json", settings.channels.telegram.groupsJson || "");
+  setInput("tg_accounts_json", settings.channels.telegram.accountsJson || "");
+  setInput("tg_custom_commands_json", settings.channels.telegram.customCommandsJson || "");
+  setInput("tg_draft_chunk_json", settings.channels.telegram.draftChunkJson || "");
 
   setInput("fs_enabled", settings.channels.feishu.enabled);
   setInput("fs_app_id", settings.channels.feishu.appId);

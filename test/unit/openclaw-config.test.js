@@ -298,3 +298,237 @@ test("applySettings supports model-only payload without mutating channels", () =
 
   assert.deepEqual(next.channels, current.channels);
 });
+
+test("extractSettings reads telegram advanced fields from official config shape", () => {
+  const settings = extractSettings({
+    models: {
+      providers: {
+        "aicodecat-gpt": {
+          api: "openai-responses",
+          baseUrl: "https://aicode.cat/v1",
+          models: [{ id: "gpt-5.2", name: "GPT-5.2" }]
+        }
+      }
+    },
+    agents: {
+      defaults: {
+        model: {
+          primary: "aicodecat-gpt/gpt-5.2"
+        }
+      }
+    },
+    channels: {
+      telegram: {
+        enabled: true,
+        botToken: "token-value",
+        tokenFile: "/run/secrets/tg_token",
+        dmPolicy: "allowlist",
+        allowFrom: ["10001"],
+        groupPolicy: "open",
+        groupAllowFrom: ["10001"],
+        streamMode: "block",
+        chunkMode: "newline",
+        textChunkLimit: 3500,
+        replyToMode: "all",
+        linkPreview: false,
+        blockStreaming: true,
+        timeoutSeconds: 120,
+        mediaMaxMb: 8,
+        dmHistoryLimit: 20,
+        historyLimit: 60,
+        webhookUrl: "https://example.com/telegram",
+        webhookSecret: "wh-secret",
+        webhookPath: "/telegram-webhook",
+        proxy: "socks5://127.0.0.1:1080",
+        configWrites: false,
+        reactionLevel: "ack",
+        reactionNotifications: "all",
+        capabilities: {
+          inlineButtons: "group"
+        },
+        actions: {
+          sendMessage: false,
+          reactions: false,
+          deleteMessage: true,
+          sticker: true
+        },
+        network: {
+          autoSelectFamily: false
+        },
+        retry: {
+          attempts: 6,
+          minDelayMs: 300,
+          maxDelayMs: 2500,
+          jitter: false
+        },
+        commands: {
+          native: "auto"
+        },
+        groups: {
+          "*": {
+            requireMention: false
+          }
+        },
+        accounts: {
+          main: {
+            botToken: "x"
+          }
+        },
+        customCommands: [{ command: "backup", description: "Git 备份" }],
+        draftChunk: {
+          minChars: 200,
+          maxChars: 900,
+          breakPreference: "paragraph"
+        }
+      }
+    }
+  });
+
+  const tg = settings.channels.telegram;
+  assert.equal(tg.enabled, true);
+  assert.equal(tg.tokenFile, "/run/secrets/tg_token");
+  assert.equal(tg.chunkMode, "newline");
+  assert.equal(tg.textChunkLimit, 3500);
+  assert.equal(tg.replyToMode, "all");
+  assert.equal(tg.linkPreview, false);
+  assert.equal(tg.configWrites, false);
+  assert.equal(tg.inlineButtons, "group");
+  assert.equal(tg.actionSendMessage, false);
+  assert.equal(tg.actionReactions, false);
+  assert.equal(tg.actionSticker, true);
+  assert.equal(tg.networkAutoSelectFamily, false);
+  assert.equal(tg.retryAttempts, 6);
+  assert.equal(tg.retryJitter, false);
+  assert.equal(tg.commandsNative, "auto");
+  assert.match(tg.groupsJson, /\*"/);
+  assert.match(tg.customCommandsJson, /backup/);
+});
+
+test("applySettings writes telegram advanced fields and json overrides", () => {
+  const next = applySettings(
+    {
+      models: {
+        providers: {
+          "aicodecat-gpt": {
+            baseUrl: "https://aicode.cat/v1",
+            api: "openai-responses",
+            models: [{ id: "gpt-5.2", name: "GPT-5.2" }]
+          }
+        }
+      },
+      agents: {
+        defaults: {
+          model: {
+            primary: "aicodecat-gpt/gpt-5.2"
+          }
+        }
+      },
+      channels: {
+        telegram: {
+          enabled: true,
+          botToken: "token-old",
+          token: "token-old"
+        }
+      }
+    },
+    makeBasePayload({
+      channels: {
+        telegram: {
+          enabled: true,
+          botToken: "token-new",
+          tokenFile: "/run/secrets/tg_token",
+          dmPolicy: "allowlist",
+          allowFrom: "10001",
+          groupPolicy: "open",
+          groupAllowFrom: "10001",
+          requireMention: false,
+          streamMode: "partial",
+          chunkMode: "newline",
+          textChunkLimit: 3000,
+          replyToMode: "first",
+          linkPreview: false,
+          blockStreaming: true,
+          timeoutSeconds: 180,
+          mediaMaxMb: 10,
+          dmHistoryLimit: 0,
+          historyLimit: 100,
+          webhookUrl: "https://example.com/telegram-webhook",
+          webhookSecret: "wh-secret",
+          webhookPath: "/tg-hook",
+          proxy: "socks5://127.0.0.1:1080",
+          configWrites: false,
+          reactionLevel: "minimal",
+          reactionNotifications: "all",
+          inlineButtons: "all",
+          actionSendMessage: true,
+          actionReactions: true,
+          actionDeleteMessage: false,
+          actionSticker: true,
+          networkAutoSelectFamily: true,
+          retryAttempts: 7,
+          retryMinDelayMs: 500,
+          retryMaxDelayMs: 3500,
+          retryJitter: false,
+          commandsNative: "false",
+          groupsJson: "{\"*\":{\"requireMention\":false}}",
+          accountsJson: "{\"main\":{\"botToken\":\"abc\"}}",
+          customCommandsJson: "[{\"command\":\"backup\",\"description\":\"备份\"}]",
+          draftChunkJson: "{\"minChars\":200,\"maxChars\":900}"
+        },
+        feishu: {
+          enabled: false,
+          appId: "",
+          appSecret: "",
+          domain: "feishu",
+          connectionMode: "websocket",
+          dmPolicy: "pairing",
+          allowFrom: "",
+          groupPolicy: "allowlist",
+          groupAllowFrom: "",
+          requireMention: true
+        },
+        discord: {
+          enabled: false,
+          token: "",
+          dmPolicy: "pairing",
+          allowFrom: "",
+          groupPolicy: "allowlist",
+          allowBots: false,
+          requireMention: true
+        },
+        slack: {
+          enabled: false,
+          mode: "socket",
+          botToken: "",
+          appToken: "",
+          signingSecret: "",
+          dmPolicy: "pairing",
+          allowFrom: "",
+          groupPolicy: "allowlist",
+          allowBots: false,
+          requireMention: true
+        }
+      }
+    })
+  );
+
+  const tg = next.channels.telegram;
+  assert.equal(tg.tokenFile, "/run/secrets/tg_token");
+  assert.equal(tg.chunkMode, "newline");
+  assert.equal(tg.textChunkLimit, 3000);
+  assert.equal(tg.replyToMode, "first");
+  assert.equal(tg.linkPreview, false);
+  assert.equal(tg.blockStreaming, true);
+  assert.equal(tg.dmHistoryLimit, 0);
+  assert.equal(tg.historyLimit, 100);
+  assert.equal(tg.capabilities.inlineButtons, "all");
+  assert.equal(tg.actions.deleteMessage, false);
+  assert.equal(tg.actions.sticker, true);
+  assert.equal(tg.network.autoSelectFamily, true);
+  assert.equal(tg.retry.attempts, 7);
+  assert.equal(tg.retry.jitter, false);
+  assert.equal(tg.commands.native, false);
+  assert.equal(tg.botToken, "token-new");
+  assert.equal(tg.token, "token-new");
+  assert.equal(Array.isArray(tg.customCommands), true);
+});
