@@ -324,6 +324,17 @@ button:hover {
   gap: 12px;
 }
 
+.model-flow-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 10px;
+}
+
+.model-flow-btn {
+  text-align: left;
+  justify-content: flex-start;
+}
+
 .provider-card {
   border: 1px solid var(--border);
   border-radius: 10px;

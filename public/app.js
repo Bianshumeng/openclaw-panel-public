@@ -722,6 +722,18 @@ function confirmModelSwitchRisk(modelSettings, modelEntry) {
   return true;
 }
 
+function resolveProviderSavePrimaryRef(targetPrimaryRef, toggleInputId) {
+  const targetRef = String(targetPrimaryRef || "").trim();
+  const currentPrimary = String(
+    modelEditorState.currentModelSettings?.primary || modelEditorState.currentModelPayload?.primary || ""
+  ).trim();
+  const shouldSwitchPrimary = Boolean(getInputValue(toggleInputId));
+  if (shouldSwitchPrimary) {
+    return targetRef || currentPrimary;
+  }
+  return currentPrimary || targetRef;
+}
+
 async function switchDefaultModelByEntry(modelSettings, modelEntry, successPrefix = "已切换默认模型到") {
   if (!modelEntry?.ref || !modelEntry?.modelId) {
     throw new Error("目标模型无效，请重新选择");
@@ -2683,6 +2695,8 @@ function fillModelEditor(modelSettings) {
     maxTokens: modelSettings.maxTokens || selectedEntry.maxTokens,
     providerModels: []
   });
+  setInput("template_set_as_primary", false);
+  setInput("custom_set_as_primary", false);
 
   fillDashboardQuickSwitch(modelSettings);
 }
@@ -2693,6 +2707,21 @@ function setupModelEditor() {
     return;
   }
   defaultSelect.dataset.bound = "1";
+
+  document.querySelectorAll("[data-model-flow-jump]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const targetId = String(button.getAttribute("data-model-flow-jump") || "").trim();
+      if (!targetId) {
+        return;
+      }
+      const target = document.getElementById(targetId);
+      if (!target) {
+        return;
+      }
+      target.scrollIntoView({ behavior: "smooth", block: "start" });
+      setMessage(`已定位到：${target.querySelector("h2")?.textContent || targetId}`, "info");
+    });
+  });
 
   const templateSelect = document.querySelector("#model_template_key");
   templateSelect?.addEventListener("change", () => {
@@ -2821,8 +2850,15 @@ function setupModelEditor() {
     }
 
     const providerModels = template.models.map((item) => ({ ...item }));
+    const targetPrimaryRef = `${providerId}/${defaultModel.id}`;
+    const primaryRef = resolveProviderSavePrimaryRef(targetPrimaryRef, "template_set_as_primary");
+    if (!primaryRef) {
+      setMessage("无法确定默认模型指向，请先在路径 1 设置默认模型或勾选“保存后设为当前默认模型”", "error");
+      return;
+    }
+
     const payload = buildModelPayload({
-      primary: `${providerId}/${defaultModel.id}`,
+      primary: primaryRef,
       providerId,
       providerApi,
       providerBaseUrl,
@@ -2833,7 +2869,9 @@ function setupModelEditor() {
       maxTokens: defaultModel.maxTokens,
       providerModels
     });
-    saveModelSettings(payload, "模板提供商已写入").catch((error) => setMessage(error.message, "error"));
+    const shouldSwitchPrimary = Boolean(getInputValue("template_set_as_primary"));
+    const actionLabel = shouldSwitchPrimary ? "模板提供商已写入，默认模型已切换" : "模板提供商已写入（默认模型未变）";
+    saveModelSettings(payload, actionLabel).catch((error) => setMessage(error.message, "error"));
   });
 
   document.querySelector("#save_provider_custom")?.addEventListener("click", () => {
@@ -2868,8 +2906,15 @@ function setupModelEditor() {
       return;
     }
 
+    const targetPrimaryRef = `${providerId}/${defaultModel.id}`;
+    const primaryRef = resolveProviderSavePrimaryRef(targetPrimaryRef, "custom_set_as_primary");
+    if (!primaryRef) {
+      setMessage("无法确定默认模型指向，请先在路径 1 设置默认模型或勾选“保存后设为当前默认模型”", "error");
+      return;
+    }
+
     const payload = buildModelPayload({
-      primary: `${providerId}/${defaultModel.id}`,
+      primary: primaryRef,
       providerId,
       providerApi,
       providerBaseUrl,
@@ -2880,7 +2925,9 @@ function setupModelEditor() {
       maxTokens: defaultModel.maxTokens,
       providerModels: normalizedModels
     });
-    saveModelSettings(payload, "自定义提供商已写入").catch((error) => setMessage(error.message, "error"));
+    const shouldSwitchPrimary = Boolean(getInputValue("custom_set_as_primary"));
+    const actionLabel = shouldSwitchPrimary ? "自定义提供商已写入，默认模型已切换" : "自定义提供商已写入（默认模型未变）";
+    saveModelSettings(payload, actionLabel).catch((error) => setMessage(error.message, "error"));
   });
 
   renderTemplatePreset(String(getInputValue("model_template_key") || "aicodecat-gpt"));
