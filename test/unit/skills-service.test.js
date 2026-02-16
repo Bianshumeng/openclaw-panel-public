@@ -15,6 +15,7 @@ test("listSkillsStatus normalizes skills payload", async () => {
             {
               skillKey: "skill-a",
               name: "Skill A",
+              updatedAt: "2026-02-16T18:00:00Z",
               disabled: false,
               eligible: true,
               blockedByAllowlist: false
@@ -36,6 +37,7 @@ test("listSkillsStatus normalizes skills payload", async () => {
   assert.equal(result.enabled, 1);
   assert.equal(result.disabled, 1);
   assert.equal(result.skills[0].key, "skill-a");
+  assert.equal(result.skills[0].updatedAt, "2026-02-16T18:00:00Z");
   assert.equal(result.skills[1].blocked, true);
 });
 

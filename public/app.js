@@ -1389,8 +1389,13 @@ function renderSkillsList(skills = []) {
     meta.className = "stack-item-meta";
     meta.textContent = `key: ${skill?.key || "-"} | source: ${skill?.source || "-"} | bundled: ${
       skill?.bundled ? "是" : "否"
-    }`;
+    } | 最近更新: ${skill?.updatedAt || "无"}`;
     node.appendChild(meta);
+
+    const description = document.createElement("p");
+    description.className = "stack-item-meta";
+    description.textContent = `说明：${skill?.description || "无"}`;
+    node.appendChild(description);
 
     const chips = document.createElement("div");
     chips.className = "chip-line";

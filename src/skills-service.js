@@ -11,10 +11,14 @@ function trimString(value) {
 }
 
 function normalizeSkillItem(skill = {}) {
+  const updatedAt = trimString(
+    skill?.updatedAt || skill?.updated_at || skill?.lastUpdatedAt || skill?.last_updated_at || skill?.mtime
+  );
   return {
     key: trimString(skill?.skillKey || skill?.name),
     name: trimString(skill?.name),
     description: trimString(skill?.description),
+    updatedAt,
     enabled: skill?.disabled !== true,
     eligible: skill?.eligible === true,
     blocked: skill?.blockedByAllowlist === true,
