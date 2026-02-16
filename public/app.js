@@ -3355,26 +3355,45 @@ async function testDiscord() {
   const payload = {
     token: String(getInputValue("dc_token") || "")
   };
+  if (!payload.token) {
+    setChannelTestResult("dc_test_result", "失败：请先填写 Discord Bot Token", false);
+    throw new Error("Discord 测试失败：Bot Token 不能为空");
+  }
   const result = await api("/api/test/discord", {
     method: "POST",
     body: JSON.stringify(payload),
     allowBusinessError: true
   });
+  setChannelTestResult("dc_test_result", result.message || "-", result.ok);
   setMessage(`Discord 测试：${result.message}`, result.ok ? "ok" : "error");
 }
 
 async function testSlack() {
+  const mode = String(getInputValue("sl_mode") || "socket");
   const payload = {
-    mode: String(getInputValue("sl_mode") || "socket"),
+    mode,
     botToken: String(getInputValue("sl_bot_token") || ""),
     appToken: String(getInputValue("sl_app_token") || ""),
     signingSecret: String(getInputValue("sl_signing_secret") || "")
   };
+  if (!payload.botToken) {
+    setChannelTestResult("sl_test_result", "失败：请先填写 Slack Bot Token", false);
+    throw new Error("Slack 测试失败：Bot Token 不能为空");
+  }
+  if (mode === "socket" && !payload.appToken) {
+    setChannelTestResult("sl_test_result", "失败：socket 模式需要 App Token", false);
+    throw new Error("Slack 测试失败：socket 模式需要 App Token");
+  }
+  if (mode === "http" && !payload.signingSecret) {
+    setChannelTestResult("sl_test_result", "失败：http 模式需要 Signing Secret", false);
+    throw new Error("Slack 测试失败：http 模式需要 Signing Secret");
+  }
   const result = await api("/api/test/slack", {
     method: "POST",
     body: JSON.stringify(payload),
     allowBusinessError: true
   });
+  setChannelTestResult("sl_test_result", result.message || "-", result.ok);
   setMessage(`Slack 测试：${result.message}`, result.ok ? "ok" : "error");
 }
 
@@ -3411,10 +3430,16 @@ document.querySelector("#save_and_test_feishu")?.addEventListener("click", () =>
   saveAndTestFeishu().catch((error) => setMessage(error.message, "error"));
 });
 document.querySelector("#test_discord").addEventListener("click", () => {
-  testDiscord().catch((error) => setMessage(error.message, "error"));
+  testDiscord().catch((error) => {
+    setChannelTestResult("dc_test_result", `接口不可用或测试失败：${error.message || "未知错误"}`, false);
+    setMessage(error.message, "error");
+  });
 });
 document.querySelector("#test_slack").addEventListener("click", () => {
-  testSlack().catch((error) => setMessage(error.message, "error"));
+  testSlack().catch((error) => {
+    setChannelTestResult("sl_test_result", `接口不可用或测试失败：${error.message || "未知错误"}`, false);
+    setMessage(error.message, "error");
+  });
 });
 document.querySelector("#check_update").addEventListener("click", () => {
   checkUpdate().catch((error) => setMessage(error.message, "error"));
