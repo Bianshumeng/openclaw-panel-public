@@ -196,6 +196,14 @@ body {
   font-size: 13px;
 }
 
+.muted-line.success {
+  color: var(--success);
+}
+
+.muted-line.fail {
+  color: var(--danger);
+}
+
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));

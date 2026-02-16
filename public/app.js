@@ -3283,15 +3283,53 @@ function startStream() {
   setMessage("实时日志流已启动", "ok");
 }
 
+function setChannelTestResult(elementId, detail, success) {
+  const el = document.querySelector(`#${elementId}`);
+  if (!el) {
+    return;
+  }
+  const timestamp = new Date().toLocaleTimeString();
+  el.textContent = `最近测试（${timestamp}）：${success ? "成功" : "失败"} - ${detail}`;
+  el.classList.toggle("success", Boolean(success));
+  el.classList.toggle("fail", !success);
+}
+
+async function saveAndTestTelegram() {
+  const botToken = String(getInputValue("tg_bot_token") || "").trim();
+  await saveSettings();
+  if (botToken) {
+    setInput("tg_bot_token", botToken);
+  }
+  await testTelegram();
+}
+
+async function saveAndTestFeishu() {
+  const appId = String(getInputValue("fs_app_id") || "").trim();
+  const appSecret = String(getInputValue("fs_app_secret") || "").trim();
+  await saveSettings();
+  if (appId) {
+    setInput("fs_app_id", appId);
+  }
+  if (appSecret) {
+    setInput("fs_app_secret", appSecret);
+  }
+  await testFeishu();
+}
+
 async function testTelegram() {
   const payload = {
     botToken: String(getInputValue("tg_bot_token") || "")
   };
+  if (!payload.botToken) {
+    setChannelTestResult("tg_test_result", "失败：请先填写 Bot Token", false);
+    throw new Error("Telegram 测试失败：Bot Token 不能为空");
+  }
   const result = await api("/api/test/telegram", {
     method: "POST",
     body: JSON.stringify(payload),
     allowBusinessError: true
   });
+  setChannelTestResult("tg_test_result", result.message || "-", result.ok);
   setMessage(`Telegram 测试：${result.message}`, result.ok ? "ok" : "error");
 }
 
@@ -3300,11 +3338,16 @@ async function testFeishu() {
     appId: String(getInputValue("fs_app_id") || ""),
     appSecret: String(getInputValue("fs_app_secret") || "")
   };
+  if (!payload.appId || !payload.appSecret) {
+    setChannelTestResult("fs_test_result", "失败：请先填写 App ID 与 App Secret", false);
+    throw new Error("Feishu 测试失败：App ID / App Secret 不能为空");
+  }
   const result = await api("/api/test/feishu", {
     method: "POST",
     body: JSON.stringify(payload),
     allowBusinessError: true
   });
+  setChannelTestResult("fs_test_result", result.message || "-", result.ok);
   setMessage(`Feishu 测试：${result.message}`, result.ok ? "ok" : "error");
 }
 
@@ -3358,8 +3401,14 @@ document.querySelector("#stop_stream").addEventListener("click", stopStream);
 document.querySelector("#test_telegram").addEventListener("click", () => {
   testTelegram().catch((error) => setMessage(error.message, "error"));
 });
+document.querySelector("#save_and_test_telegram")?.addEventListener("click", () => {
+  saveAndTestTelegram().catch((error) => setMessage(error.message, "error"));
+});
 document.querySelector("#test_feishu").addEventListener("click", () => {
   testFeishu().catch((error) => setMessage(error.message, "error"));
+});
+document.querySelector("#save_and_test_feishu")?.addEventListener("click", () => {
+  saveAndTestFeishu().catch((error) => setMessage(error.message, "error"));
 });
 document.querySelector("#test_discord").addEventListener("click", () => {
   testDiscord().catch((error) => setMessage(error.message, "error"));
