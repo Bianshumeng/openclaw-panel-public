@@ -8,6 +8,10 @@ test("panelByPath maps known routes", () => {
   assert.equal(panelByPath("/model"), "panel-model");
   assert.equal(panelByPath("/config-generator"), "panel-config-generator");
   assert.equal(panelByPath("/channels"), "panel-channel");
+  assert.equal(panelByPath("/channels/telegram"), "panel-channel");
+  assert.equal(panelByPath("/channels/feishu"), "panel-channel");
+  assert.equal(panelByPath("/channels/discord"), "panel-channel");
+  assert.equal(panelByPath("/channels/slack"), "panel-channel");
   assert.equal(panelByPath("/update"), "panel-update");
   assert.equal(panelByPath("/service"), "panel-service");
   assert.equal(panelByPath("/logs"), "panel-logs");
@@ -23,6 +27,10 @@ test("isKnownPanelPath validates route list", () => {
   assert.equal(isKnownPanelPath("/"), true);
   assert.equal(isKnownPanelPath("/dashboard"), true);
   assert.equal(isKnownPanelPath("/status-overview"), true);
+  assert.equal(isKnownPanelPath("/channels/telegram"), true);
+  assert.equal(isKnownPanelPath("/channels/feishu"), true);
+  assert.equal(isKnownPanelPath("/channels/discord"), true);
+  assert.equal(isKnownPanelPath("/channels/slack"), true);
   assert.equal(isKnownPanelPath("/logs"), true);
   assert.equal(isKnownPanelPath("/nothing"), false);
 });

@@ -972,6 +972,10 @@ const PAGE_FILE_BY_PATH = {
   "/model": "pages/model.html",
   "/config-generator": "pages/config-generator.html",
   "/channels": "pages/channels.html",
+  "/channels/telegram": "pages/channels-telegram.html",
+  "/channels/feishu": "pages/channels-feishu.html",
+  "/channels/discord": "pages/channels-discord.html",
+  "/channels/slack": "pages/channels-slack.html",
   "/update": "pages/update.html",
   "/service": "pages/service.html",
   "/logs": "pages/logs.html"

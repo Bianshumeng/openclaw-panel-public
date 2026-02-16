@@ -180,6 +180,10 @@ const chatConsoleState = {
   staging: false
 };
 
+const channelSettingsSnapshot = {
+  settings: null
+};
+
 const els = {
   messages: document.querySelector("#messages"),
   serviceOutput: document.querySelector("#service_output"),
@@ -885,50 +889,160 @@ function setModelProviderMode(mode) {
   });
 }
 
+function hasNonEmptyChannelValue(value) {
+  return String(value ?? "").trim().length > 0;
+}
+
+function isChannelConfigured(channelKey, channelSettings = {}) {
+  if (!channelSettings || typeof channelSettings !== "object") {
+    return false;
+  }
+  if (channelKey === "telegram") {
+    return hasNonEmptyChannelValue(channelSettings.botToken);
+  }
+  if (channelKey === "feishu") {
+    return hasNonEmptyChannelValue(channelSettings.appId) && hasNonEmptyChannelValue(channelSettings.appSecret);
+  }
+  if (channelKey === "discord") {
+    return hasNonEmptyChannelValue(channelSettings.token);
+  }
+  if (channelKey === "slack") {
+    const mode = String(channelSettings.mode || "socket").trim().toLowerCase();
+    if (!hasNonEmptyChannelValue(channelSettings.botToken)) {
+      return false;
+    }
+    return mode === "http"
+      ? hasNonEmptyChannelValue(channelSettings.signingSecret)
+      : hasNonEmptyChannelValue(channelSettings.appToken);
+  }
+  return false;
+}
+
+function setChannelAccessStatusTag(elementId, text, variant) {
+  const tag = document.querySelector(`#${elementId}`);
+  if (!tag) {
+    return;
+  }
+  tag.textContent = text;
+  if ("variant" in tag) {
+    tag.variant = variant;
+  } else {
+    tag.className = `status-pill ${variant}`;
+  }
+}
+
+function renderChannelAccessOverview(channels = {}) {
+  const channelKeys = ["telegram", "feishu", "discord", "slack"];
+  channelKeys.forEach((channelKey) => {
+    const channelSettings = channels?.[channelKey] && typeof channels[channelKey] === "object" ? channels[channelKey] : {};
+    const enabled = Boolean(channelSettings.enabled);
+    const configured = isChannelConfigured(channelKey, channelSettings);
+    const summary = document.querySelector(`#channel_status_${channelKey}_summary`);
+    const card = document.querySelector(`[data-channel-card="${channelKey}"]`);
+
+    setChannelAccessStatusTag(`channel_status_${channelKey}_enabled`, enabled ? "已启用" : "未启用", enabled ? "success" : "neutral");
+    setChannelAccessStatusTag(
+      `channel_status_${channelKey}_configured`,
+      configured ? "已配置" : "未配置",
+      configured ? "success" : "warning"
+    );
+
+    if (summary) {
+      if (configured && enabled) {
+        summary.textContent = "配置完整，可直接使用。";
+      } else if (configured) {
+        summary.textContent = "配置已填，但当前处于未启用状态。";
+      } else {
+        summary.textContent = "还没填完关键凭证，点进去补齐即可。";
+      }
+    }
+
+    if (card) {
+      card.classList.toggle("is-ready", configured && enabled);
+      card.classList.toggle("is-partial", configured && !enabled);
+      card.classList.toggle("is-missing", !configured);
+    }
+  });
+}
+
+function readChannelString(id, fallback = "") {
+  const element = document.querySelector(`#${id}`);
+  if (!element) {
+    return String(fallback ?? "");
+  }
+  return String(getInputValue(id) || "");
+}
+
+function readChannelBoolean(id, fallback = false) {
+  const element = document.querySelector(`#${id}`);
+  if (!element) {
+    return Boolean(fallback);
+  }
+  return Boolean(getInputValue(id));
+}
+
+function getChannelSnapshot() {
+  const settings = channelSettingsSnapshot.settings;
+  if (!settings || typeof settings !== "object") {
+    return {};
+  }
+  const channels = settings.channels;
+  if (!channels || typeof channels !== "object") {
+    return {};
+  }
+  return channels;
+}
+
 function collectChannelSettings() {
+  const snapshot = getChannelSnapshot();
+  const telegramSnapshot = snapshot.telegram && typeof snapshot.telegram === "object" ? snapshot.telegram : {};
+  const feishuSnapshot = snapshot.feishu && typeof snapshot.feishu === "object" ? snapshot.feishu : {};
+  const discordSnapshot = snapshot.discord && typeof snapshot.discord === "object" ? snapshot.discord : {};
+  const slackSnapshot = snapshot.slack && typeof snapshot.slack === "object" ? snapshot.slack : {};
+
   return {
     telegram: {
-      enabled: Boolean(getInputValue("tg_enabled")),
-      botToken: String(getInputValue("tg_bot_token") || ""),
-      dmPolicy: String(getInputValue("tg_dm_policy") || "pairing"),
-      allowFrom: String(getInputValue("tg_allow_from") || ""),
-      groupPolicy: String(getInputValue("tg_group_policy") || "allowlist"),
-      groupAllowFrom: String(getInputValue("tg_group_allow_from") || ""),
-      requireMention: Boolean(getInputValue("tg_require_mention")),
-      streamMode: String(getInputValue("tg_stream_mode") || "partial")
+      enabled: readChannelBoolean("tg_enabled", telegramSnapshot.enabled),
+      botToken: readChannelString("tg_bot_token", telegramSnapshot.botToken),
+      dmPolicy: readChannelString("tg_dm_policy", telegramSnapshot.dmPolicy || "pairing") || "pairing",
+      allowFrom: readChannelString("tg_allow_from", telegramSnapshot.allowFrom),
+      groupPolicy: readChannelString("tg_group_policy", telegramSnapshot.groupPolicy || "allowlist") || "allowlist",
+      groupAllowFrom: readChannelString("tg_group_allow_from", telegramSnapshot.groupAllowFrom),
+      requireMention: readChannelBoolean("tg_require_mention", telegramSnapshot.requireMention),
+      streamMode: readChannelString("tg_stream_mode", telegramSnapshot.streamMode || "partial") || "partial"
     },
     feishu: {
-      enabled: Boolean(getInputValue("fs_enabled")),
-      appId: String(getInputValue("fs_app_id") || ""),
-      appSecret: String(getInputValue("fs_app_secret") || ""),
-      domain: String(getInputValue("fs_domain") || "feishu"),
-      connectionMode: String(getInputValue("fs_connection_mode") || "websocket"),
-      dmPolicy: String(getInputValue("fs_dm_policy") || "pairing"),
-      allowFrom: String(getInputValue("fs_allow_from") || ""),
-      groupPolicy: String(getInputValue("fs_group_policy") || "allowlist"),
-      groupAllowFrom: String(getInputValue("fs_group_allow_from") || ""),
-      requireMention: Boolean(getInputValue("fs_require_mention"))
+      enabled: readChannelBoolean("fs_enabled", feishuSnapshot.enabled),
+      appId: readChannelString("fs_app_id", feishuSnapshot.appId),
+      appSecret: readChannelString("fs_app_secret", feishuSnapshot.appSecret),
+      domain: readChannelString("fs_domain", feishuSnapshot.domain || "feishu") || "feishu",
+      connectionMode: readChannelString("fs_connection_mode", feishuSnapshot.connectionMode || "websocket") || "websocket",
+      dmPolicy: readChannelString("fs_dm_policy", feishuSnapshot.dmPolicy || "pairing") || "pairing",
+      allowFrom: readChannelString("fs_allow_from", feishuSnapshot.allowFrom),
+      groupPolicy: readChannelString("fs_group_policy", feishuSnapshot.groupPolicy || "allowlist") || "allowlist",
+      groupAllowFrom: readChannelString("fs_group_allow_from", feishuSnapshot.groupAllowFrom),
+      requireMention: readChannelBoolean("fs_require_mention", feishuSnapshot.requireMention)
     },
     discord: {
-      enabled: Boolean(getInputValue("dc_enabled")),
-      token: String(getInputValue("dc_token") || ""),
-      dmPolicy: String(getInputValue("dc_dm_policy") || "pairing"),
-      allowFrom: String(getInputValue("dc_allow_from") || ""),
-      groupPolicy: String(getInputValue("dc_group_policy") || "allowlist"),
-      allowBots: Boolean(getInputValue("dc_allow_bots")),
-      requireMention: Boolean(getInputValue("dc_require_mention"))
+      enabled: readChannelBoolean("dc_enabled", discordSnapshot.enabled),
+      token: readChannelString("dc_token", discordSnapshot.token),
+      dmPolicy: readChannelString("dc_dm_policy", discordSnapshot.dmPolicy || "pairing") || "pairing",
+      allowFrom: readChannelString("dc_allow_from", discordSnapshot.allowFrom),
+      groupPolicy: readChannelString("dc_group_policy", discordSnapshot.groupPolicy || "allowlist") || "allowlist",
+      allowBots: readChannelBoolean("dc_allow_bots", discordSnapshot.allowBots),
+      requireMention: readChannelBoolean("dc_require_mention", discordSnapshot.requireMention)
     },
     slack: {
-      enabled: Boolean(getInputValue("sl_enabled")),
-      mode: String(getInputValue("sl_mode") || "socket"),
-      botToken: String(getInputValue("sl_bot_token") || ""),
-      appToken: String(getInputValue("sl_app_token") || ""),
-      signingSecret: String(getInputValue("sl_signing_secret") || ""),
-      dmPolicy: String(getInputValue("sl_dm_policy") || "pairing"),
-      allowFrom: String(getInputValue("sl_allow_from") || ""),
-      groupPolicy: String(getInputValue("sl_group_policy") || "allowlist"),
-      allowBots: Boolean(getInputValue("sl_allow_bots")),
-      requireMention: Boolean(getInputValue("sl_require_mention"))
+      enabled: readChannelBoolean("sl_enabled", slackSnapshot.enabled),
+      mode: readChannelString("sl_mode", slackSnapshot.mode || "socket") || "socket",
+      botToken: readChannelString("sl_bot_token", slackSnapshot.botToken),
+      appToken: readChannelString("sl_app_token", slackSnapshot.appToken),
+      signingSecret: readChannelString("sl_signing_secret", slackSnapshot.signingSecret),
+      dmPolicy: readChannelString("sl_dm_policy", slackSnapshot.dmPolicy || "pairing") || "pairing",
+      allowFrom: readChannelString("sl_allow_from", slackSnapshot.allowFrom),
+      groupPolicy: readChannelString("sl_group_policy", slackSnapshot.groupPolicy || "allowlist") || "allowlist",
+      allowBots: readChannelBoolean("sl_allow_bots", slackSnapshot.allowBots),
+      requireMention: readChannelBoolean("sl_require_mention", slackSnapshot.requireMention)
     }
   };
 }
@@ -3288,6 +3402,7 @@ function setupModelEditor() {
 function fillSettings(settings) {
   renderDashboardModelCards(settings.model);
   fillModelEditor(settings.model);
+  renderChannelAccessOverview(settings.channels || {});
 
   setInput("tg_enabled", settings.channels.telegram.enabled);
   setInput("tg_bot_token", settings.channels.telegram.botToken);
@@ -3331,6 +3446,7 @@ function fillSettings(settings) {
 
 async function loadInitialData() {
   const [panelConfig, settings] = await Promise.all([api("/api/panel-config"), api("/api/settings")]);
+  channelSettingsSnapshot.settings = settings.settings || null;
   fillPanelMeta(panelConfig.config, panelConfig.deployment || {});
   fillSettings(settings.settings);
 }
@@ -3459,7 +3575,7 @@ async function saveSettings() {
     method: "PUT",
     body: JSON.stringify(payload)
   });
-  setMessage(`渠道配置写入成功（模型保持当前值）：${result.path}`, "ok");
+  setMessage(`平台接入配置写入成功（模型保持当前值）：${result.path}`, "ok");
   await loadInitialData();
 }
 
