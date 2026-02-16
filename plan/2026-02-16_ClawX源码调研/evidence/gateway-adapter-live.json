@@ -1,0 +1,11 @@
+{
+  "probe": {
+    "ok": true,
+    "count": 14,
+    "sessionCount": 14
+  },
+  "target": "openclaw-gateway",
+  "runtime": "docker",
+  "container": "openclaw-panel",
+  "testedAt": "2026-02-16 15:07:15 +08:00"
+}

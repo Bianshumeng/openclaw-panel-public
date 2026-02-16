@@ -1,0 +1,14 @@
+{
+  "summary": {
+    "runtimeActive": true,
+    "runtimeChannelsRunning": 0,
+    "modelTotal": 7,
+    "skillsTotal": 53,
+    "configuredChannelsEnabled": 0,
+    "modelProviders": 4
+  },
+  "endpoint": "/api/dashboard/summary",
+  "statusCode": 200,
+  "ok": true,
+  "testedAt": "2026-02-16 15:12:07 +08:00"
+}

@@ -1,0 +1,2498 @@
+{
+  "startedAt": "2026-02-16T05:36:47.181Z",
+  "finishedAt": "2026-02-16T05:36:55.184Z",
+  "wsUrl": "ws://127.0.0.1:18789/ws",
+  "probeId": "panel-stream-probe-1771220207181",
+  "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+  "clientDistFile": "client-B5KEYk4h.js",
+  "hello": {
+    "type": "hello-ok",
+    "protocol": 3,
+    "server": {
+      "version": "dev",
+      "host": "3fdf9e7221c0",
+      "connId": "81a6a324-4428-4e09-afcc-c9d02cece6b4"
+    },
+    "features": {
+      "methods": [
+        "health",
+        "logs.tail",
+        "channels.status",
+        "channels.logout",
+        "status",
+        "usage.status",
+        "usage.cost",
+        "tts.status",
+        "tts.providers",
+        "tts.enable",
+        "tts.disable",
+        "tts.convert",
+        "tts.setProvider",
+        "config.get",
+        "config.set",
+        "config.apply",
+        "config.patch",
+        "config.schema",
+        "exec.approvals.get",
+        "exec.approvals.set",
+        "exec.approvals.node.get",
+        "exec.approvals.node.set",
+        "exec.approval.request",
+        "exec.approval.waitDecision",
+        "exec.approval.resolve",
+        "wizard.start",
+        "wizard.next",
+        "wizard.cancel",
+        "wizard.status",
+        "talk.config",
+        "talk.mode",
+        "models.list",
+        "agents.list",
+        "agents.create",
+        "agents.update",
+        "agents.delete",
+        "agents.files.list",
+        "agents.files.get",
+        "agents.files.set",
+        "skills.status",
+        "skills.bins",
+        "skills.install",
+        "skills.update",
+        "update.run",
+        "voicewake.get",
+        "voicewake.set",
+        "sessions.list",
+        "sessions.preview",
+        "sessions.patch",
+        "sessions.reset",
+        "sessions.delete",
+        "sessions.compact",
+        "last-heartbeat",
+        "set-heartbeats",
+        "wake",
+        "node.pair.request",
+        "node.pair.list",
+        "node.pair.approve",
+        "node.pair.reject",
+        "node.pair.verify",
+        "device.pair.list",
+        "device.pair.approve",
+        "device.pair.reject",
+        "device.token.rotate",
+        "device.token.revoke",
+        "node.rename",
+        "node.list",
+        "node.describe",
+        "node.invoke",
+        "node.invoke.result",
+        "node.event",
+        "cron.list",
+        "cron.status",
+        "cron.add",
+        "cron.update",
+        "cron.remove",
+        "cron.run",
+        "cron.runs",
+        "system-presence",
+        "system-event",
+        "send",
+        "agent",
+        "agent.identity.get",
+        "agent.wait",
+        "browser.request",
+        "chat.history",
+        "chat.abort",
+        "chat.send"
+      ],
+      "events": [
+        "connect.challenge",
+        "agent",
+        "chat",
+        "presence",
+        "tick",
+        "talk.mode",
+        "shutdown",
+        "health",
+        "heartbeat",
+        "cron",
+        "node.pair.requested",
+        "node.pair.resolved",
+        "node.invoke.request",
+        "device.pair.requested",
+        "device.pair.resolved",
+        "voicewake.changed",
+        "exec.approval.requested",
+        "exec.approval.resolved"
+      ]
+    },
+    "snapshot": {
+      "presence": [
+        {
+          "host": "3fdf9e7221c0",
+          "ip": "172.21.0.2",
+          "version": "unknown",
+          "platform": "linux 5.15.167.4-microsoft-standard-WSL2",
+          "deviceFamily": "Linux",
+          "modelIdentifier": "x64",
+          "mode": "gateway",
+          "reason": "self",
+          "text": "Gateway: 3fdf9e7221c0 (172.21.0.2) · app unknown · mode gateway · reason self",
+          "ts": 1771220207477
+        }
+      ],
+      "health": {
+        "ok": true,
+        "ts": 1771220154130,
+        "durationMs": 0,
+        "channels": {},
+        "channelOrder": [],
+        "channelLabels": {},
+        "heartbeatSeconds": 1800,
+        "defaultAgentId": "main",
+        "agents": [
+          {
+            "agentId": "main",
+            "isDefault": true,
+            "heartbeat": {
+              "enabled": true,
+              "every": "30m",
+              "everyMs": 1800000,
+              "prompt": "Read HEARTBEAT.md if it exists (workspace context). Follow it strictly. Do not infer or repeat old tasks from prior chats. If nothing needs attention, reply HEARTBEAT_OK.",
+              "target": "last",
+              "ackMaxChars": 300
+            },
+            "sessions": {
+              "path": "/home/node/.openclaw/agents/main/sessions/sessions.json",
+              "count": 11,
+              "recent": [
+                {
+                  "key": "agent:main:panel-stream-abort-1771220040840",
+                  "updatedAt": 1771220041435,
+                  "age": 112695
+                },
+                {
+                  "key": "agent:main:panel-stream-probe-config-error-1771220021125",
+                  "updatedAt": 1771220024782,
+                  "age": 129348
+                },
+                {
+                  "key": "agent:main:panel-stream-probe-force-error-1771219989545",
+                  "updatedAt": 1771219993304,
+                  "age": 160826
+                },
+                {
+                  "key": "agent:main:panel-stream-probe-timeout-1771219935181",
+                  "updatedAt": 1771219943170,
+                  "age": 210960
+                },
+                {
+                  "key": "agent:main:panel-stream-probe-error-1771219915722",
+                  "updatedAt": 1771219919467,
+                  "age": 234663
+                }
+              ]
+            }
+          }
+        ],
+        "sessions": {
+          "path": "/home/node/.openclaw/agents/main/sessions/sessions.json",
+          "count": 11,
+          "recent": [
+            {
+              "key": "agent:main:panel-stream-abort-1771220040840",
+              "updatedAt": 1771220041435,
+              "age": 112695
+            },
+            {
+              "key": "agent:main:panel-stream-probe-config-error-1771220021125",
+              "updatedAt": 1771220024782,
+              "age": 129348
+            },
+            {
+              "key": "agent:main:panel-stream-probe-force-error-1771219989545",
+              "updatedAt": 1771219993304,
+              "age": 160826
+            },
+            {
+              "key": "agent:main:panel-stream-probe-timeout-1771219935181",
+              "updatedAt": 1771219943170,
+              "age": 210960
+            },
+            {
+              "key": "agent:main:panel-stream-probe-error-1771219915722",
+              "updatedAt": 1771219919467,
+              "age": 234663
+            }
+          ]
+        }
+      },
+      "stateVersion": {
+        "presence": 1,
+        "health": 828
+      },
+      "uptimeMs": 45675507,
+      "configPath": "/home/node/.openclaw/openclaw.json",
+      "stateDir": "/home/node/.openclaw",
+      "sessionDefaults": {
+        "defaultAgentId": "main",
+        "mainKey": "main",
+        "mainSessionKey": "agent:main:main",
+        "scope": "per-sender"
+      },
+      "authMode": "token"
+    },
+    "canvasHostUrl": "http://127.0.0.1:18789",
+    "auth": {
+      "deviceToken": "uVkW2idRtbd2z2lBYyAF9QuM_Er9W79ib7TwWbqv0mA",
+      "role": "operator",
+      "scopes": [
+        "operator.admin",
+        "operator.approvals",
+        "operator.pairing"
+      ],
+      "issuedAtMs": 1771219284921
+    },
+    "policy": {
+      "maxPayload": 8388608,
+      "maxBufferedBytes": 16777216,
+      "tickIntervalMs": 30000
+    }
+  },
+  "connected": true,
+  "lastClose": null,
+  "scenarios": {
+    "normal": {
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "ack": {
+        "runId": "panel-stream-probe-1771220207181-normal",
+        "status": "started"
+      },
+      "states": [
+        "delta",
+        "delta",
+        "delta",
+        "delta",
+        "delta",
+        "delta",
+        "delta",
+        "delta",
+        "delta",
+        "delta",
+        "delta",
+        "delta",
+        "delta",
+        "delta",
+        "delta",
+        "final"
+      ],
+      "terminal": {
+        "timeout": false,
+        "terminalState": "final",
+        "terminalAtMs": 1771220212480
+      },
+      "events": [
+        {
+          "atMs": 1771220209996,
+          "runId": "panel-stream-probe-1771220207181-normal",
+          "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+          "state": "delta",
+          "seq": 2,
+          "stopReason": null,
+          "text": "我"
+        },
+        {
+          "atMs": 1771220210150,
+          "runId": "panel-stream-probe-1771220207181-normal",
+          "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+          "state": "delta",
+          "seq": 9,
+          "stopReason": null,
+          "text": "我是在 OpenClaw 里运行的"
+        },
+        {
+          "atMs": 1771220210312,
+          "runId": "panel-stream-probe-1771220207181-normal",
+          "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+          "state": "delta",
+          "seq": 18,
+          "stopReason": null,
+          "text": "我是在 OpenClaw 里运行的个人助理型 AI，也可以当作"
+        },
+        {
+          "atMs": 1771220210481,
+          "runId": "panel-stream-probe-1771220207181-normal",
+          "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+          "state": "delta",
+          "seq": 27,
+          "stopReason": null,
+          "text": "我是在 OpenClaw 里运行的个人助理型 AI，也可以当作很强的“编码搭子”：能"
+        },
+        {
+          "atMs": 1771220210634,
+          "runId": "panel-stream-probe-1771220207181-normal",
+          "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+          "state": "delta",
+          "seq": 36,
+          "stopReason": null,
+          "text": "我是在 OpenClaw 里运行的个人助理型 AI，也可以当作很强的“编码搭子”：能读写项目文件、跑命令、"
+        },
+        {
+          "atMs": 1771220210791,
+          "runId": "panel-stream-probe-1771220207181-normal",
+          "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+          "state": "delta",
+          "seq": 45,
+          "stopReason": null,
+          "text": "我是在 OpenClaw 里运行的个人助理型 AI，也可以当作很强的“编码搭子”：能读写项目文件、跑命令、排查报错、改代码、写"
+        },
+        {
+          "atMs": 1771220210949,
+          "runId": "panel-stream-probe-1771220207181-normal",
+          "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+          "state": "delta",
+          "seq": 54,
+          "stopReason": null,
+          "text": "我是在 OpenClaw 里运行的个人助理型 AI，也可以当作很强的“编码搭子”：能读写项目文件、跑命令、排查报错、改代码、写脚本、查资料，并把结果整理"
+        },
+        {
+          "atMs": 1771220211106,
+          "runId": "panel-stream-probe-1771220207181-normal",
+          "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+          "state": "delta",
+          "seq": 63,
+          "stopReason": null,
+          "text": "我是在 OpenClaw 里运行的个人助理型 AI，也可以当作很强的“编码搭子”：能读写项目文件、跑命令、排查报错、改代码、写脚本、查资料，并把结果整理成你能直接用的步骤或改"
+        },
+        {
+          "atMs": 1771220211271,
+          "runId": "panel-stream-probe-1771220207181-normal",
+          "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+          "state": "delta",
+          "seq": 71,
+          "stopReason": null,
+          "text": "我是在 OpenClaw 里运行的个人助理型 AI，也可以当作很强的“编码搭子”：能读写项目文件、跑命令、排查报错、改代码、写脚本、查资料，并把结果整理成你能直接用的步骤或改动说明。\n\n我偏向少废"
+        },
+        {
+          "atMs": 1771220211424,
+          "runId": "panel-stream-probe-1771220207181-normal",
+          "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+          "state": "delta",
+          "seq": 80,
+          "stopReason": null,
+          "text": "我是在 OpenClaw 里运行的个人助理型 AI，也可以当作很强的“编码搭子”：能读写项目文件、跑命令、排查报错、改代码、写脚本、查资料，并把结果整理成你能直接用的步骤或改动说明。\n\n我偏向少废话、先动手再汇报；"
+        },
+        {
+          "atMs": 1771220211601,
+          "runId": "panel-stream-probe-1771220207181-normal",
+          "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+          "state": "delta",
+          "seq": 89,
+          "stopReason": null,
+          "text": "我是在 OpenClaw 里运行的个人助理型 AI，也可以当作很强的“编码搭子”：能读写项目文件、跑命令、排查报错、改代码、写脚本、查资料，并把结果整理成你能直接用的步骤或改动说明。\n\n我偏向少废话、先动手再汇报；遇到会影响方向/安全的关键"
+        },
+        {
+          "atMs": 1771220211757,
+          "runId": "panel-stream-probe-1771220207181-normal",
+          "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+          "state": "delta",
+          "seq": 98,
+          "stopReason": null,
+          "text": "我是在 OpenClaw 里运行的个人助理型 AI，也可以当作很强的“编码搭子”：能读写项目文件、跑命令、排查报错、改代码、写脚本、查资料，并把结果整理成你能直接用的步骤或改动说明。\n\n我偏向少废话、先动手再汇报；遇到会影响方向/安全的关键歧义才会追问。你可以"
+        },
+        {
+          "atMs": 1771220211923,
+          "runId": "panel-stream-probe-1771220207181-normal",
+          "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+          "state": "delta",
+          "seq": 106,
+          "stopReason": null,
+          "text": "我是在 OpenClaw 里运行的个人助理型 AI，也可以当作很强的“编码搭子”：能读写项目文件、跑命令、排查报错、改代码、写脚本、查资料，并把结果整理成你能直接用的步骤或改动说明。\n\n我偏向少废话、先动手再汇报；遇到会影响方向/安全的关键歧义才会追问。你可以直接丢需求、报错日志、"
+        },
+        {
+          "atMs": 1771220212073,
+          "runId": "panel-stream-probe-1771220207181-normal",
+          "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+          "state": "delta",
+          "seq": 115,
+          "stopReason": null,
+          "text": "我是在 OpenClaw 里运行的个人助理型 AI，也可以当作很强的“编码搭子”：能读写项目文件、跑命令、排查报错、改代码、写脚本、查资料，并把结果整理成你能直接用的步骤或改动说明。\n\n我偏向少废话、先动手再汇报；遇到会影响方向/安全的关键歧义才会追问。你可以直接丢需求、报错日志、仓库路径或截图，我会尽量"
+        },
+        {
+          "atMs": 1771220212230,
+          "runId": "panel-stream-probe-1771220207181-normal",
+          "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+          "state": "delta",
+          "seq": 123,
+          "stopReason": null,
+          "text": "我是在 OpenClaw 里运行的个人助理型 AI，也可以当作很强的“编码搭子”：能读写项目文件、跑命令、排查报错、改代码、写脚本、查资料，并把结果整理成你能直接用的步骤或改动说明。\n\n我偏向少废话、先动手再汇报；遇到会影响方向/安全的关键歧义才会追问。你可以直接丢需求、报错日志、仓库路径或截图，我会尽量用最短路径把事情推进到"
+        },
+        {
+          "atMs": 1771220212480,
+          "runId": "panel-stream-probe-1771220207181-normal",
+          "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+          "state": "final",
+          "seq": 129,
+          "stopReason": null,
+          "text": "我是在 OpenClaw 里运行的个人助理型 AI，也可以当作很强的“编码搭子”：能读写项目文件、跑命令、排查报错、改代码、写脚本、查资料，并把结果整理成你能直接用的步骤或改动说明。\n\n我偏向少废话、先动手再汇报；遇到会影响方向/安全的关键歧义才会追问。你可以直接丢需求、报错日志、仓库路径或截图，我会尽量用最短路径把事情推进到可验证的结果。"
+        }
+      ]
+    },
+    "abort": {
+      "runId": "panel-stream-probe-1771220207181-abort",
+      "ack": {
+        "runId": "panel-stream-probe-1771220207181-abort",
+        "status": "started"
+      },
+      "abortRes": {
+        "ok": true,
+        "aborted": true,
+        "runIds": [
+          "panel-stream-probe-1771220207181-abort"
+        ]
+      },
+      "states": [
+        "aborted"
+      ],
+      "terminal": {
+        "timeout": false,
+        "terminalState": "aborted",
+        "terminalAtMs": 1771220212999
+      },
+      "events": [
+        {
+          "atMs": 1771220212999,
+          "runId": "panel-stream-probe-1771220207181-abort",
+          "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+          "state": "aborted",
+          "seq": 2,
+          "stopReason": "rpc"
+        }
+      ]
+    },
+    "invalidRequest": {
+      "runId": "panel-stream-probe-1771220207181-invalid",
+      "ok": true,
+      "error": "invalid chat.send params: must have required property 'message'"
+    },
+    "forcedRuntimeErrorAttempt": {
+      "runId": "panel-stream-probe-1771220207181-forced-error",
+      "patch": {
+        "ok": true,
+        "path": "/home/node/.openclaw/agents/main/sessions/sessions.json",
+        "key": "agent:main:panel-stream-probe-1771220207181",
+        "entry": {
+          "sessionId": "2727320e-1716-40f1-a1a5-288c9771465c",
+          "updatedAt": 1771220213083,
+          "systemSent": true,
+          "abortedLastRun": false,
+          "chatType": "direct",
+          "deliveryContext": {
+            "channel": "webchat"
+          },
+          "lastChannel": "webchat",
+          "origin": {
+            "label": "panel-stream-probe",
+            "provider": "webchat",
+            "surface": "webchat",
+            "chatType": "direct"
+          },
+          "sessionFile": "/home/node/.openclaw/agents/main/sessions/2727320e-1716-40f1-a1a5-288c9771465c.jsonl",
+          "compactionCount": 0,
+          "skillsSnapshot": {
+            "prompt": "\n\nThe following skills provide specialized instructions for specific tasks.\nUse the read tool to load a skill's file when the task matches its description.\nWhen a skill file references a relative path, resolve it against the skill directory (parent of SKILL.md / dirname of the path) and use that absolute path in tool commands.\n\n<available_skills>\n  <skill>\n    <name>healthcheck</name>\n    <description>Host security hardening and risk-tolerance configuration for OpenClaw deployments. Use when a user asks for security audits, firewall/SSH/update hardening, risk posture, exposure review, OpenClaw cron scheduling for periodic checks, or version status checks on a machine running OpenClaw (laptop, workstation, Pi, VPS).</description>\n    <location>/app/skills/healthcheck/SKILL.md</location>\n  </skill>\n  <skill>\n    <name>skill-creator</name>\n    <description>Create or update AgentSkills. Use when designing, structuring, or packaging skills with scripts, references, and assets.</description>\n    <location>/app/skills/skill-creator/SKILL.md</location>\n  </skill>\n  <skill>\n    <name>slack</name>\n    <description>Use when you need to control Slack from OpenClaw via the slack tool, including reacting to messages or pinning/unpinning items in Slack channels or DMs.</description>\n    <location>/app/skills/slack/SKILL.md</location>\n  </skill>\n  <skill>\n    <name>weather</name>\n    <description>Get current weather and forecasts (no API key required).</description>\n    <location>/app/skills/weather/SKILL.md</location>\n  </skill>\n</available_skills>",
+            "skills": [
+              {
+                "name": "healthcheck"
+              },
+              {
+                "name": "skill-creator"
+              },
+              {
+                "name": "slack"
+              },
+              {
+                "name": "weather"
+              }
+            ],
+            "resolvedSkills": [
+              {
+                "name": "healthcheck",
+                "description": "Host security hardening and risk-tolerance configuration for OpenClaw deployments. Use when a user asks for security audits, firewall/SSH/update hardening, risk posture, exposure review, OpenClaw cron scheduling for periodic checks, or version status checks on a machine running OpenClaw (laptop, workstation, Pi, VPS).",
+                "filePath": "/app/skills/healthcheck/SKILL.md",
+                "baseDir": "/app/skills/healthcheck",
+                "source": "openclaw-bundled",
+                "disableModelInvocation": false
+              },
+              {
+                "name": "skill-creator",
+                "description": "Create or update AgentSkills. Use when designing, structuring, or packaging skills with scripts, references, and assets.",
+                "filePath": "/app/skills/skill-creator/SKILL.md",
+                "baseDir": "/app/skills/skill-creator",
+                "source": "openclaw-bundled",
+                "disableModelInvocation": false
+              },
+              {
+                "name": "slack",
+                "description": "Use when you need to control Slack from OpenClaw via the slack tool, including reacting to messages or pinning/unpinning items in Slack channels or DMs.",
+                "filePath": "/app/skills/slack/SKILL.md",
+                "baseDir": "/app/skills/slack",
+                "source": "openclaw-bundled",
+                "disableModelInvocation": false
+              },
+              {
+                "name": "weather",
+                "description": "Get current weather and forecasts (no API key required).",
+                "filePath": "/app/skills/weather/SKILL.md",
+                "baseDir": "/app/skills/weather",
+                "source": "openclaw-bundled",
+                "disableModelInvocation": false
+              }
+            ],
+            "version": 0
+          },
+          "inputTokens": 236,
+          "outputTokens": 134,
+          "totalTokens": 11372,
+          "totalTokensFresh": true,
+          "modelProvider": "aicodecat-gpt",
+          "model": "gpt-5.2",
+          "contextTokens": 400000,
+          "systemPromptReport": {
+            "source": "run",
+            "generatedAt": 1771220207804,
+            "sessionId": "2727320e-1716-40f1-a1a5-288c9771465c",
+            "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+            "provider": "aicodecat-gpt",
+            "model": "gpt-5.2",
+            "workspaceDir": "/home/node/.openclaw/workspace",
+            "bootstrapMaxChars": 20000,
+            "sandbox": {
+              "mode": "off",
+              "sandboxed": false
+            },
+            "systemPrompt": {
+              "chars": 24101,
+              "projectContextChars": 13582,
+              "nonProjectContextChars": 10519
+            },
+            "injectedWorkspaceFiles": [
+              {
+                "name": "AGENTS.md",
+                "path": "/home/node/.openclaw/workspace/AGENTS.md",
+                "missing": false,
+                "rawChars": 7804,
+                "injectedChars": 7804,
+                "truncated": false
+              },
+              {
+                "name": "SOUL.md",
+                "path": "/home/node/.openclaw/workspace/SOUL.md",
+                "missing": false,
+                "rawChars": 1664,
+                "injectedChars": 1664,
+                "truncated": false
+              },
+              {
+                "name": "TOOLS.md",
+                "path": "/home/node/.openclaw/workspace/TOOLS.md",
+                "missing": false,
+                "rawChars": 850,
+                "injectedChars": 850,
+                "truncated": false
+              },
+              {
+                "name": "IDENTITY.md",
+                "path": "/home/node/.openclaw/workspace/IDENTITY.md",
+                "missing": false,
+                "rawChars": 633,
+                "injectedChars": 633,
+                "truncated": false
+              },
+              {
+                "name": "USER.md",
+                "path": "/home/node/.openclaw/workspace/USER.md",
+                "missing": false,
+                "rawChars": 474,
+                "injectedChars": 474,
+                "truncated": false
+              },
+              {
+                "name": "HEARTBEAT.md",
+                "path": "/home/node/.openclaw/workspace/HEARTBEAT.md",
+                "missing": false,
+                "rawChars": 167,
+                "injectedChars": 167,
+                "truncated": false
+              },
+              {
+                "name": "BOOTSTRAP.md",
+                "path": "/home/node/.openclaw/workspace/BOOTSTRAP.md",
+                "missing": false,
+                "rawChars": 1449,
+                "injectedChars": 1449,
+                "truncated": false
+              }
+            ],
+            "skills": {
+              "promptChars": 1557,
+              "entries": [
+                {
+                  "name": "healthcheck",
+                  "blockChars": 456
+                },
+                {
+                  "name": "skill-creator",
+                  "blockChars": 261
+                },
+                {
+                  "name": "slack",
+                  "blockChars": 277
+                },
+                {
+                  "name": "weather",
+                  "blockChars": 185
+                }
+              ]
+            },
+            "tools": {
+              "listChars": 1926,
+              "schemaChars": 14669,
+              "entries": [
+                {
+                  "name": "read",
+                  "summaryChars": 298,
+                  "schemaChars": 392,
+                  "propertiesCount": 4
+                },
+                {
+                  "name": "edit",
+                  "summaryChars": 129,
+                  "schemaChars": 591,
+                  "propertiesCount": 6
+                },
+                {
+                  "name": "write",
+                  "summaryChars": 127,
+                  "schemaChars": 313,
+                  "propertiesCount": 3
+                },
+                {
+                  "name": "exec",
+                  "summaryChars": 181,
+                  "schemaChars": 1037,
+                  "propertiesCount": 12
+                },
+                {
+                  "name": "process",
+                  "summaryChars": 85,
+                  "schemaChars": 844,
+                  "propertiesCount": 11
+                },
+                {
+                  "name": "browser",
+                  "summaryChars": 1251,
+                  "schemaChars": 1869,
+                  "propertiesCount": 28
+                },
+                {
+                  "name": "canvas",
+                  "summaryChars": 106,
+                  "schemaChars": 661,
+                  "propertiesCount": 18
+                },
+                {
+                  "name": "nodes",
+                  "summaryChars": 101,
+                  "schemaChars": 1479,
+                  "propertiesCount": 33
+                },
+                {
+                  "name": "cron",
+                  "summaryChars": 2444,
+                  "schemaChars": 581,
+                  "propertiesCount": 13
+                },
+                {
+                  "name": "message",
+                  "summaryChars": 89,
+                  "schemaChars": 3897,
+                  "propertiesCount": 84
+                },
+                {
+                  "name": "tts",
+                  "summaryChars": 129,
+                  "schemaChars": 223,
+                  "propertiesCount": 2
+                },
+                {
+                  "name": "gateway",
+                  "summaryChars": 354,
+                  "schemaChars": 465,
+                  "propertiesCount": 11
+                },
+                {
+                  "name": "agents_list",
+                  "summaryChars": 72,
+                  "schemaChars": 33,
+                  "propertiesCount": 0
+                },
+                {
+                  "name": "sessions_list",
+                  "summaryChars": 54,
+                  "schemaChars": 176,
+                  "propertiesCount": 4
+                },
+                {
+                  "name": "sessions_history",
+                  "summaryChars": 36,
+                  "schemaChars": 149,
+                  "propertiesCount": 3
+                },
+                {
+                  "name": "sessions_send",
+                  "summaryChars": 84,
+                  "schemaChars": 203,
+                  "propertiesCount": 5
+                },
+                {
+                  "name": "sessions_spawn",
+                  "summaryChars": 107,
+                  "schemaChars": 312,
+                  "propertiesCount": 8
+                },
+                {
+                  "name": "session_status",
+                  "summaryChars": 207,
+                  "schemaChars": 89,
+                  "propertiesCount": 2
+                },
+                {
+                  "name": "web_search",
+                  "summaryChars": 175,
+                  "schemaChars": 728,
+                  "propertiesCount": 6
+                },
+                {
+                  "name": "web_fetch",
+                  "summaryChars": 129,
+                  "schemaChars": 360,
+                  "propertiesCount": 3
+                },
+                {
+                  "name": "memory_search",
+                  "summaryChars": 235,
+                  "schemaChars": 139,
+                  "propertiesCount": 3
+                },
+                {
+                  "name": "memory_get",
+                  "summaryChars": 151,
+                  "schemaChars": 128,
+                  "propertiesCount": 3
+                }
+              ]
+            }
+          },
+          "providerOverride": "aicodecat-gpt",
+          "modelOverride": "__panel_invalid_model__"
+        },
+        "resolved": {
+          "modelProvider": "aicodecat-gpt",
+          "model": "__panel_invalid_model__"
+        }
+      },
+      "ack": {
+        "runId": "panel-stream-probe-1771220207181-forced-error",
+        "status": "started"
+      },
+      "states": [
+        "delta",
+        "final"
+      ],
+      "terminal": {
+        "timeout": false,
+        "terminalState": "final",
+        "terminalAtMs": 1771220215146
+      },
+      "events": [
+        {
+          "atMs": 1771220214999,
+          "runId": "panel-stream-probe-1771220207181-forced-error",
+          "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+          "state": "delta",
+          "seq": 2,
+          "stopReason": null,
+          "text": "hello"
+        },
+        {
+          "atMs": 1771220215146,
+          "runId": "panel-stream-probe-1771220207181-forced-error",
+          "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+          "state": "final",
+          "seq": 3,
+          "stopReason": null,
+          "text": "hello"
+        }
+      ]
+    }
+  },
+  "rpcTrace": [
+    {
+      "at": "2026-02-16T05:36:47.499Z",
+      "method": "chat.send",
+      "ok": true,
+      "latencyMs": 10,
+      "params": {
+        "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+        "message": "请简短介绍你自己，并用两段输出。",
+        "idempotencyKey": "panel-stream-probe-1771220207181-normal"
+      },
+      "payload": {
+        "runId": "panel-stream-probe-1771220207181-normal",
+        "status": "started"
+      }
+    },
+    {
+      "at": "2026-02-16T05:36:52.545Z",
+      "method": "chat.send",
+      "ok": true,
+      "latencyMs": 21,
+      "params": {
+        "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+        "message": "请连续输出一份很长的技术报告，至少分成100个小节，不要提前结束。",
+        "idempotencyKey": "panel-stream-probe-1771220207181-abort",
+        "timeoutMs": 60000
+      },
+      "payload": {
+        "runId": "panel-stream-probe-1771220207181-abort",
+        "status": "started"
+      }
+    },
+    {
+      "at": "2026-02-16T05:36:52.999Z",
+      "method": "chat.abort",
+      "ok": true,
+      "latencyMs": 3,
+      "params": {
+        "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+        "runId": "panel-stream-probe-1771220207181-abort"
+      },
+      "payload": {
+        "ok": true,
+        "aborted": true,
+        "runIds": [
+          "panel-stream-probe-1771220207181-abort"
+        ]
+      }
+    },
+    {
+      "at": "2026-02-16T05:36:53.031Z",
+      "method": "chat.send",
+      "ok": false,
+      "latencyMs": 32,
+      "params": {
+        "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+        "idempotencyKey": "panel-stream-probe-1771220207181-invalid"
+      },
+      "error": "invalid chat.send params: must have required property 'message'"
+    },
+    {
+      "at": "2026-02-16T05:36:53.119Z",
+      "method": "sessions.patch",
+      "ok": true,
+      "latencyMs": 88,
+      "params": {
+        "key": "agent:main:panel-stream-probe-1771220207181",
+        "model": "__panel_invalid_model__"
+      },
+      "payload": {
+        "ok": true,
+        "path": "/home/node/.openclaw/agents/main/sessions/sessions.json",
+        "key": "agent:main:panel-stream-probe-1771220207181",
+        "entry": {
+          "sessionId": "2727320e-1716-40f1-a1a5-288c9771465c",
+          "updatedAt": 1771220213083,
+          "systemSent": true,
+          "abortedLastRun": false,
+          "chatType": "direct",
+          "deliveryContext": {
+            "channel": "webchat"
+          },
+          "lastChannel": "webchat",
+          "origin": {
+            "label": "panel-stream-probe",
+            "provider": "webchat",
+            "surface": "webchat",
+            "chatType": "direct"
+          },
+          "sessionFile": "/home/node/.openclaw/agents/main/sessions/2727320e-1716-40f1-a1a5-288c9771465c.jsonl",
+          "compactionCount": 0,
+          "skillsSnapshot": {
+            "prompt": "\n\nThe following skills provide specialized instructions for specific tasks.\nUse the read tool to load a skill's file when the task matches its description.\nWhen a skill file references a relative path, resolve it against the skill directory (parent of SKILL.md / dirname of the path) and use that absolute path in tool commands.\n\n<available_skills>\n  <skill>\n    <name>healthcheck</name>\n    <description>Host security hardening and risk-tolerance configuration for OpenClaw deployments. Use when a user asks for security audits, firewall/SSH/update hardening, risk posture, exposure review, OpenClaw cron scheduling for periodic checks, or version status checks on a machine running OpenClaw (laptop, workstation, Pi, VPS).</description>\n    <location>/app/skills/healthcheck/SKILL.md</location>\n  </skill>\n  <skill>\n    <name>skill-creator</name>\n    <description>Create or update AgentSkills. Use when designing, structuring, or packaging skills with scripts, references, and assets.</description>\n    <location>/app/skills/skill-creator/SKILL.md</location>\n  </skill>\n  <skill>\n    <name>slack</name>\n    <description>Use when you need to control Slack from OpenClaw via the slack tool, including reacting to messages or pinning/unpinning items in Slack channels or DMs.</description>\n    <location>/app/skills/slack/SKILL.md</location>\n  </skill>\n  <skill>\n    <name>weather</name>\n    <description>Get current weather and forecasts (no API key required).</description>\n    <location>/app/skills/weather/SKILL.md</location>\n  </skill>\n</available_skills>",
+            "skills": [
+              {
+                "name": "healthcheck"
+              },
+              {
+                "name": "skill-creator"
+              },
+              {
+                "name": "slack"
+              },
+              {
+                "name": "weather"
+              }
+            ],
+            "resolvedSkills": [
+              {
+                "name": "healthcheck",
+                "description": "Host security hardening and risk-tolerance configuration for OpenClaw deployments. Use when a user asks for security audits, firewall/SSH/update hardening, risk posture, exposure review, OpenClaw cron scheduling for periodic checks, or version status checks on a machine running OpenClaw (laptop, workstation, Pi, VPS).",
+                "filePath": "/app/skills/healthcheck/SKILL.md",
+                "baseDir": "/app/skills/healthcheck",
+                "source": "openclaw-bundled",
+                "disableModelInvocation": false
+              },
+              {
+                "name": "skill-creator",
+                "description": "Create or update AgentSkills. Use when designing, structuring, or packaging skills with scripts, references, and assets.",
+                "filePath": "/app/skills/skill-creator/SKILL.md",
+                "baseDir": "/app/skills/skill-creator",
+                "source": "openclaw-bundled",
+                "disableModelInvocation": false
+              },
+              {
+                "name": "slack",
+                "description": "Use when you need to control Slack from OpenClaw via the slack tool, including reacting to messages or pinning/unpinning items in Slack channels or DMs.",
+                "filePath": "/app/skills/slack/SKILL.md",
+                "baseDir": "/app/skills/slack",
+                "source": "openclaw-bundled",
+                "disableModelInvocation": false
+              },
+              {
+                "name": "weather",
+                "description": "Get current weather and forecasts (no API key required).",
+                "filePath": "/app/skills/weather/SKILL.md",
+                "baseDir": "/app/skills/weather",
+                "source": "openclaw-bundled",
+                "disableModelInvocation": false
+              }
+            ],
+            "version": 0
+          },
+          "inputTokens": 236,
+          "outputTokens": 134,
+          "totalTokens": 11372,
+          "totalTokensFresh": true,
+          "modelProvider": "aicodecat-gpt",
+          "model": "gpt-5.2",
+          "contextTokens": 400000,
+          "systemPromptReport": {
+            "source": "run",
+            "generatedAt": 1771220207804,
+            "sessionId": "2727320e-1716-40f1-a1a5-288c9771465c",
+            "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+            "provider": "aicodecat-gpt",
+            "model": "gpt-5.2",
+            "workspaceDir": "/home/node/.openclaw/workspace",
+            "bootstrapMaxChars": 20000,
+            "sandbox": {
+              "mode": "off",
+              "sandboxed": false
+            },
+            "systemPrompt": {
+              "chars": 24101,
+              "projectContextChars": 13582,
+              "nonProjectContextChars": 10519
+            },
+            "injectedWorkspaceFiles": [
+              {
+                "name": "AGENTS.md",
+                "path": "/home/node/.openclaw/workspace/AGENTS.md",
+                "missing": false,
+                "rawChars": 7804,
+                "injectedChars": 7804,
+                "truncated": false
+              },
+              {
+                "name": "SOUL.md",
+                "path": "/home/node/.openclaw/workspace/SOUL.md",
+                "missing": false,
+                "rawChars": 1664,
+                "injectedChars": 1664,
+                "truncated": false
+              },
+              {
+                "name": "TOOLS.md",
+                "path": "/home/node/.openclaw/workspace/TOOLS.md",
+                "missing": false,
+                "rawChars": 850,
+                "injectedChars": 850,
+                "truncated": false
+              },
+              {
+                "name": "IDENTITY.md",
+                "path": "/home/node/.openclaw/workspace/IDENTITY.md",
+                "missing": false,
+                "rawChars": 633,
+                "injectedChars": 633,
+                "truncated": false
+              },
+              {
+                "name": "USER.md",
+                "path": "/home/node/.openclaw/workspace/USER.md",
+                "missing": false,
+                "rawChars": 474,
+                "injectedChars": 474,
+                "truncated": false
+              },
+              {
+                "name": "HEARTBEAT.md",
+                "path": "/home/node/.openclaw/workspace/HEARTBEAT.md",
+                "missing": false,
+                "rawChars": 167,
+                "injectedChars": 167,
+                "truncated": false
+              },
+              {
+                "name": "BOOTSTRAP.md",
+                "path": "/home/node/.openclaw/workspace/BOOTSTRAP.md",
+                "missing": false,
+                "rawChars": 1449,
+                "injectedChars": 1449,
+                "truncated": false
+              }
+            ],
+            "skills": {
+              "promptChars": 1557,
+              "entries": [
+                {
+                  "name": "healthcheck",
+                  "blockChars": 456
+                },
+                {
+                  "name": "skill-creator",
+                  "blockChars": 261
+                },
+                {
+                  "name": "slack",
+                  "blockChars": 277
+                },
+                {
+                  "name": "weather",
+                  "blockChars": 185
+                }
+              ]
+            },
+            "tools": {
+              "listChars": 1926,
+              "schemaChars": 14669,
+              "entries": [
+                {
+                  "name": "read",
+                  "summaryChars": 298,
+                  "schemaChars": 392,
+                  "propertiesCount": 4
+                },
+                {
+                  "name": "edit",
+                  "summaryChars": 129,
+                  "schemaChars": 591,
+                  "propertiesCount": 6
+                },
+                {
+                  "name": "write",
+                  "summaryChars": 127,
+                  "schemaChars": 313,
+                  "propertiesCount": 3
+                },
+                {
+                  "name": "exec",
+                  "summaryChars": 181,
+                  "schemaChars": 1037,
+                  "propertiesCount": 12
+                },
+                {
+                  "name": "process",
+                  "summaryChars": 85,
+                  "schemaChars": 844,
+                  "propertiesCount": 11
+                },
+                {
+                  "name": "browser",
+                  "summaryChars": 1251,
+                  "schemaChars": 1869,
+                  "propertiesCount": 28
+                },
+                {
+                  "name": "canvas",
+                  "summaryChars": 106,
+                  "schemaChars": 661,
+                  "propertiesCount": 18
+                },
+                {
+                  "name": "nodes",
+                  "summaryChars": 101,
+                  "schemaChars": 1479,
+                  "propertiesCount": 33
+                },
+                {
+                  "name": "cron",
+                  "summaryChars": 2444,
+                  "schemaChars": 581,
+                  "propertiesCount": 13
+                },
+                {
+                  "name": "message",
+                  "summaryChars": 89,
+                  "schemaChars": 3897,
+                  "propertiesCount": 84
+                },
+                {
+                  "name": "tts",
+                  "summaryChars": 129,
+                  "schemaChars": 223,
+                  "propertiesCount": 2
+                },
+                {
+                  "name": "gateway",
+                  "summaryChars": 354,
+                  "schemaChars": 465,
+                  "propertiesCount": 11
+                },
+                {
+                  "name": "agents_list",
+                  "summaryChars": 72,
+                  "schemaChars": 33,
+                  "propertiesCount": 0
+                },
+                {
+                  "name": "sessions_list",
+                  "summaryChars": 54,
+                  "schemaChars": 176,
+                  "propertiesCount": 4
+                },
+                {
+                  "name": "sessions_history",
+                  "summaryChars": 36,
+                  "schemaChars": 149,
+                  "propertiesCount": 3
+                },
+                {
+                  "name": "sessions_send",
+                  "summaryChars": 84,
+                  "schemaChars": 203,
+                  "propertiesCount": 5
+                },
+                {
+                  "name": "sessions_spawn",
+                  "summaryChars": 107,
+                  "schemaChars": 312,
+                  "propertiesCount": 8
+                },
+                {
+                  "name": "session_status",
+                  "summaryChars": 207,
+                  "schemaChars": 89,
+                  "propertiesCount": 2
+                },
+                {
+                  "name": "web_search",
+                  "summaryChars": 175,
+                  "schemaChars": 728,
+                  "propertiesCount": 6
+                },
+                {
+                  "name": "web_fetch",
+                  "summaryChars": 129,
+                  "schemaChars": 360,
+                  "propertiesCount": 3
+                },
+                {
+                  "name": "memory_search",
+                  "summaryChars": 235,
+                  "schemaChars": 139,
+                  "propertiesCount": 3
+                },
+                {
+                  "name": "memory_get",
+                  "summaryChars": 151,
+                  "schemaChars": 128,
+                  "propertiesCount": 3
+                }
+              ]
+            }
+          },
+          "providerOverride": "aicodecat-gpt",
+          "modelOverride": "__panel_invalid_model__"
+        },
+        "resolved": {
+          "modelProvider": "aicodecat-gpt",
+          "model": "__panel_invalid_model__"
+        }
+      }
+    },
+    {
+      "at": "2026-02-16T05:36:53.138Z",
+      "method": "chat.send",
+      "ok": true,
+      "latencyMs": 19,
+      "params": {
+        "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+        "message": "hello",
+        "idempotencyKey": "panel-stream-probe-1771220207181-forced-error"
+      },
+      "payload": {
+        "runId": "panel-stream-probe-1771220207181-forced-error",
+        "status": "started"
+      }
+    }
+  ],
+  "stats": {
+    "totalChatEvents": 19,
+    "totalAgentLifecycleEvents": 133
+  },
+  "chatEvents": [
+    {
+      "atMs": 1771220209996,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "state": "delta",
+      "seq": 2,
+      "stopReason": null,
+      "text": "我"
+    },
+    {
+      "atMs": 1771220210150,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "state": "delta",
+      "seq": 9,
+      "stopReason": null,
+      "text": "我是在 OpenClaw 里运行的"
+    },
+    {
+      "atMs": 1771220210312,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "state": "delta",
+      "seq": 18,
+      "stopReason": null,
+      "text": "我是在 OpenClaw 里运行的个人助理型 AI，也可以当作"
+    },
+    {
+      "atMs": 1771220210481,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "state": "delta",
+      "seq": 27,
+      "stopReason": null,
+      "text": "我是在 OpenClaw 里运行的个人助理型 AI，也可以当作很强的“编码搭子”：能"
+    },
+    {
+      "atMs": 1771220210634,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "state": "delta",
+      "seq": 36,
+      "stopReason": null,
+      "text": "我是在 OpenClaw 里运行的个人助理型 AI，也可以当作很强的“编码搭子”：能读写项目文件、跑命令、"
+    },
+    {
+      "atMs": 1771220210791,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "state": "delta",
+      "seq": 45,
+      "stopReason": null,
+      "text": "我是在 OpenClaw 里运行的个人助理型 AI，也可以当作很强的“编码搭子”：能读写项目文件、跑命令、排查报错、改代码、写"
+    },
+    {
+      "atMs": 1771220210949,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "state": "delta",
+      "seq": 54,
+      "stopReason": null,
+      "text": "我是在 OpenClaw 里运行的个人助理型 AI，也可以当作很强的“编码搭子”：能读写项目文件、跑命令、排查报错、改代码、写脚本、查资料，并把结果整理"
+    },
+    {
+      "atMs": 1771220211106,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "state": "delta",
+      "seq": 63,
+      "stopReason": null,
+      "text": "我是在 OpenClaw 里运行的个人助理型 AI，也可以当作很强的“编码搭子”：能读写项目文件、跑命令、排查报错、改代码、写脚本、查资料，并把结果整理成你能直接用的步骤或改"
+    },
+    {
+      "atMs": 1771220211271,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "state": "delta",
+      "seq": 71,
+      "stopReason": null,
+      "text": "我是在 OpenClaw 里运行的个人助理型 AI，也可以当作很强的“编码搭子”：能读写项目文件、跑命令、排查报错、改代码、写脚本、查资料，并把结果整理成你能直接用的步骤或改动说明。\n\n我偏向少废"
+    },
+    {
+      "atMs": 1771220211424,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "state": "delta",
+      "seq": 80,
+      "stopReason": null,
+      "text": "我是在 OpenClaw 里运行的个人助理型 AI，也可以当作很强的“编码搭子”：能读写项目文件、跑命令、排查报错、改代码、写脚本、查资料，并把结果整理成你能直接用的步骤或改动说明。\n\n我偏向少废话、先动手再汇报；"
+    },
+    {
+      "atMs": 1771220211601,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "state": "delta",
+      "seq": 89,
+      "stopReason": null,
+      "text": "我是在 OpenClaw 里运行的个人助理型 AI，也可以当作很强的“编码搭子”：能读写项目文件、跑命令、排查报错、改代码、写脚本、查资料，并把结果整理成你能直接用的步骤或改动说明。\n\n我偏向少废话、先动手再汇报；遇到会影响方向/安全的关键"
+    },
+    {
+      "atMs": 1771220211757,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "state": "delta",
+      "seq": 98,
+      "stopReason": null,
+      "text": "我是在 OpenClaw 里运行的个人助理型 AI，也可以当作很强的“编码搭子”：能读写项目文件、跑命令、排查报错、改代码、写脚本、查资料，并把结果整理成你能直接用的步骤或改动说明。\n\n我偏向少废话、先动手再汇报；遇到会影响方向/安全的关键歧义才会追问。你可以"
+    },
+    {
+      "atMs": 1771220211923,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "state": "delta",
+      "seq": 106,
+      "stopReason": null,
+      "text": "我是在 OpenClaw 里运行的个人助理型 AI，也可以当作很强的“编码搭子”：能读写项目文件、跑命令、排查报错、改代码、写脚本、查资料，并把结果整理成你能直接用的步骤或改动说明。\n\n我偏向少废话、先动手再汇报；遇到会影响方向/安全的关键歧义才会追问。你可以直接丢需求、报错日志、"
+    },
+    {
+      "atMs": 1771220212073,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "state": "delta",
+      "seq": 115,
+      "stopReason": null,
+      "text": "我是在 OpenClaw 里运行的个人助理型 AI，也可以当作很强的“编码搭子”：能读写项目文件、跑命令、排查报错、改代码、写脚本、查资料，并把结果整理成你能直接用的步骤或改动说明。\n\n我偏向少废话、先动手再汇报；遇到会影响方向/安全的关键歧义才会追问。你可以直接丢需求、报错日志、仓库路径或截图，我会尽量"
+    },
+    {
+      "atMs": 1771220212230,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "state": "delta",
+      "seq": 123,
+      "stopReason": null,
+      "text": "我是在 OpenClaw 里运行的个人助理型 AI，也可以当作很强的“编码搭子”：能读写项目文件、跑命令、排查报错、改代码、写脚本、查资料，并把结果整理成你能直接用的步骤或改动说明。\n\n我偏向少废话、先动手再汇报；遇到会影响方向/安全的关键歧义才会追问。你可以直接丢需求、报错日志、仓库路径或截图，我会尽量用最短路径把事情推进到"
+    },
+    {
+      "atMs": 1771220212480,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "state": "final",
+      "seq": 129,
+      "stopReason": null,
+      "text": "我是在 OpenClaw 里运行的个人助理型 AI，也可以当作很强的“编码搭子”：能读写项目文件、跑命令、排查报错、改代码、写脚本、查资料，并把结果整理成你能直接用的步骤或改动说明。\n\n我偏向少废话、先动手再汇报；遇到会影响方向/安全的关键歧义才会追问。你可以直接丢需求、报错日志、仓库路径或截图，我会尽量用最短路径把事情推进到可验证的结果。"
+    },
+    {
+      "atMs": 1771220212999,
+      "runId": "panel-stream-probe-1771220207181-abort",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "state": "aborted",
+      "seq": 2,
+      "stopReason": "rpc"
+    },
+    {
+      "atMs": 1771220214999,
+      "runId": "panel-stream-probe-1771220207181-forced-error",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "state": "delta",
+      "seq": 2,
+      "stopReason": null,
+      "text": "hello"
+    },
+    {
+      "atMs": 1771220215146,
+      "runId": "panel-stream-probe-1771220207181-forced-error",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "state": "final",
+      "seq": 3,
+      "stopReason": null,
+      "text": "hello"
+    }
+  ],
+  "agentLifecycleEvents": [
+    {
+      "atMs": 1771220207859,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "lifecycle",
+      "phase": "start",
+      "seq": 1
+    },
+    {
+      "atMs": 1771220209996,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 2
+    },
+    {
+      "atMs": 1771220210031,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 3
+    },
+    {
+      "atMs": 1771220210032,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 4
+    },
+    {
+      "atMs": 1771220210054,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 5
+    },
+    {
+      "atMs": 1771220210072,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 6
+    },
+    {
+      "atMs": 1771220210110,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 7
+    },
+    {
+      "atMs": 1771220210131,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 8
+    },
+    {
+      "atMs": 1771220210150,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 9
+    },
+    {
+      "atMs": 1771220210174,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 10
+    },
+    {
+      "atMs": 1771220210176,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 11
+    },
+    {
+      "atMs": 1771220210194,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 12
+    },
+    {
+      "atMs": 1771220210212,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 13
+    },
+    {
+      "atMs": 1771220210231,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 14
+    },
+    {
+      "atMs": 1771220210251,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 15
+    },
+    {
+      "atMs": 1771220210269,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 16
+    },
+    {
+      "atMs": 1771220210295,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 17
+    },
+    {
+      "atMs": 1771220210312,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 18
+    },
+    {
+      "atMs": 1771220210345,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 19
+    },
+    {
+      "atMs": 1771220210345,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 20
+    },
+    {
+      "atMs": 1771220210354,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 21
+    },
+    {
+      "atMs": 1771220210374,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 22
+    },
+    {
+      "atMs": 1771220210394,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 23
+    },
+    {
+      "atMs": 1771220210414,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 24
+    },
+    {
+      "atMs": 1771220210433,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 25
+    },
+    {
+      "atMs": 1771220210457,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 26
+    },
+    {
+      "atMs": 1771220210481,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 27
+    },
+    {
+      "atMs": 1771220210525,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 28
+    },
+    {
+      "atMs": 1771220210526,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 29
+    },
+    {
+      "atMs": 1771220210526,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 30
+    },
+    {
+      "atMs": 1771220210538,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 31
+    },
+    {
+      "atMs": 1771220210554,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 32
+    },
+    {
+      "atMs": 1771220210585,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 33
+    },
+    {
+      "atMs": 1771220210593,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 34
+    },
+    {
+      "atMs": 1771220210615,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 35
+    },
+    {
+      "atMs": 1771220210634,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 36
+    },
+    {
+      "atMs": 1771220210651,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 37
+    },
+    {
+      "atMs": 1771220210673,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 38
+    },
+    {
+      "atMs": 1771220210692,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 39
+    },
+    {
+      "atMs": 1771220210692,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 40
+    },
+    {
+      "atMs": 1771220210711,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 41
+    },
+    {
+      "atMs": 1771220210735,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 42
+    },
+    {
+      "atMs": 1771220210750,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 43
+    },
+    {
+      "atMs": 1771220210773,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 44
+    },
+    {
+      "atMs": 1771220210791,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 45
+    },
+    {
+      "atMs": 1771220210814,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 46
+    },
+    {
+      "atMs": 1771220210831,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 47
+    },
+    {
+      "atMs": 1771220210852,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 48
+    },
+    {
+      "atMs": 1771220210870,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 49
+    },
+    {
+      "atMs": 1771220210870,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 50
+    },
+    {
+      "atMs": 1771220210890,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 51
+    },
+    {
+      "atMs": 1771220210910,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 52
+    },
+    {
+      "atMs": 1771220210928,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 53
+    },
+    {
+      "atMs": 1771220210949,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 54
+    },
+    {
+      "atMs": 1771220210968,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 55
+    },
+    {
+      "atMs": 1771220210995,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 56
+    },
+    {
+      "atMs": 1771220211008,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 57
+    },
+    {
+      "atMs": 1771220211027,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 58
+    },
+    {
+      "atMs": 1771220211048,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 59
+    },
+    {
+      "atMs": 1771220211067,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 60
+    },
+    {
+      "atMs": 1771220211068,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 61
+    },
+    {
+      "atMs": 1771220211086,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 62
+    },
+    {
+      "atMs": 1771220211106,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 63
+    },
+    {
+      "atMs": 1771220211129,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 64
+    },
+    {
+      "atMs": 1771220211147,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 65
+    },
+    {
+      "atMs": 1771220211167,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 66
+    },
+    {
+      "atMs": 1771220211190,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 67
+    },
+    {
+      "atMs": 1771220211207,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 68
+    },
+    {
+      "atMs": 1771220211228,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 69
+    },
+    {
+      "atMs": 1771220211254,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 70
+    },
+    {
+      "atMs": 1771220211270,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 71
+    },
+    {
+      "atMs": 1771220211271,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 72
+    },
+    {
+      "atMs": 1771220211289,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 73
+    },
+    {
+      "atMs": 1771220211318,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 74
+    },
+    {
+      "atMs": 1771220211342,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 75
+    },
+    {
+      "atMs": 1771220211345,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 76
+    },
+    {
+      "atMs": 1771220211365,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 77
+    },
+    {
+      "atMs": 1771220211384,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 78
+    },
+    {
+      "atMs": 1771220211404,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 79
+    },
+    {
+      "atMs": 1771220211424,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 80
+    },
+    {
+      "atMs": 1771220211445,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 81
+    },
+    {
+      "atMs": 1771220211464,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 82
+    },
+    {
+      "atMs": 1771220211465,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 83
+    },
+    {
+      "atMs": 1771220211485,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 84
+    },
+    {
+      "atMs": 1771220211503,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 85
+    },
+    {
+      "atMs": 1771220211559,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 86
+    },
+    {
+      "atMs": 1771220211559,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 87
+    },
+    {
+      "atMs": 1771220211565,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 88
+    },
+    {
+      "atMs": 1771220211601,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 89
+    },
+    {
+      "atMs": 1771220211620,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 90
+    },
+    {
+      "atMs": 1771220211643,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 91
+    },
+    {
+      "atMs": 1771220211667,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 92
+    },
+    {
+      "atMs": 1771220211667,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 93
+    },
+    {
+      "atMs": 1771220211682,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 94
+    },
+    {
+      "atMs": 1771220211705,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 95
+    },
+    {
+      "atMs": 1771220211723,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 96
+    },
+    {
+      "atMs": 1771220211740,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 97
+    },
+    {
+      "atMs": 1771220211757,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 98
+    },
+    {
+      "atMs": 1771220211799,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 99
+    },
+    {
+      "atMs": 1771220211817,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 100
+    },
+    {
+      "atMs": 1771220211836,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 101
+    },
+    {
+      "atMs": 1771220211857,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 102
+    },
+    {
+      "atMs": 1771220211859,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 103
+    },
+    {
+      "atMs": 1771220211889,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 104
+    },
+    {
+      "atMs": 1771220211899,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 105
+    },
+    {
+      "atMs": 1771220211923,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 106
+    },
+    {
+      "atMs": 1771220211943,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 107
+    },
+    {
+      "atMs": 1771220211964,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 108
+    },
+    {
+      "atMs": 1771220211983,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 109
+    },
+    {
+      "atMs": 1771220211994,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 110
+    },
+    {
+      "atMs": 1771220212016,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 111
+    },
+    {
+      "atMs": 1771220212034,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 112
+    },
+    {
+      "atMs": 1771220212053,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 113
+    },
+    {
+      "atMs": 1771220212057,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 114
+    },
+    {
+      "atMs": 1771220212073,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 115
+    },
+    {
+      "atMs": 1771220212099,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 116
+    },
+    {
+      "atMs": 1771220212115,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 117
+    },
+    {
+      "atMs": 1771220212136,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 118
+    },
+    {
+      "atMs": 1771220212151,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 119
+    },
+    {
+      "atMs": 1771220212171,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 120
+    },
+    {
+      "atMs": 1771220212192,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 121
+    },
+    {
+      "atMs": 1771220212211,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 122
+    },
+    {
+      "atMs": 1771220212230,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 123
+    },
+    {
+      "atMs": 1771220212251,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 124
+    },
+    {
+      "atMs": 1771220212252,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 125
+    },
+    {
+      "atMs": 1771220212272,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 126
+    },
+    {
+      "atMs": 1771220212290,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 127
+    },
+    {
+      "atMs": 1771220212310,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 128
+    },
+    {
+      "atMs": 1771220212480,
+      "runId": "panel-stream-probe-1771220207181-normal",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "lifecycle",
+      "phase": "end",
+      "seq": 129
+    },
+    {
+      "atMs": 1771220212918,
+      "runId": "panel-stream-probe-1771220207181-abort",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "lifecycle",
+      "phase": "start",
+      "seq": 1
+    },
+    {
+      "atMs": 1771220213579,
+      "runId": "panel-stream-probe-1771220207181-forced-error",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "lifecycle",
+      "phase": "start",
+      "seq": 1
+    },
+    {
+      "atMs": 1771220214999,
+      "runId": "panel-stream-probe-1771220207181-forced-error",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "assistant",
+      "phase": null,
+      "seq": 2
+    },
+    {
+      "atMs": 1771220215146,
+      "runId": "panel-stream-probe-1771220207181-forced-error",
+      "sessionKey": "agent:main:panel-stream-probe-1771220207181",
+      "stream": "lifecycle",
+      "phase": "end",
+      "seq": 3
+    }
+  ],
+  "observations": [
+    "normal 流程出现 delta -> final。",
+    "abort 流程出现 aborted，stopReason=rpc。",
+    "invalidRequest 走 RPC 错误返回（无 run 启动）。",
+    "forcedRuntimeErrorAttempt 中，invalid model 仍走到 final，未复现 chat.state=error。"
+  ]
+}

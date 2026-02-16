@@ -1,0 +1,20 @@
+{
+  "sessionsOk": true,
+  "historyOk": true,
+  "sessionsTotal": 16,
+  "abortAborted": true,
+  "sendOk": true,
+  "historyCount": 0,
+  "resetOk": true,
+  "abortOk": true,
+  "endpoints": {
+    "abort": "/api/chat/abort",
+    "sessions": "/api/chat/sessions",
+    "send": "/api/chat/send",
+    "reset": "/api/chat/session/reset",
+    "history": "/api/chat/history"
+  },
+  "sendRunId": "1703d082-1d08-47a8-91ec-0b0cf062962a",
+  "testedAt": "2026-02-16 15:19:29 +08:00",
+  "resetKey": "agent:main:panel-chat-service-api-probe"
+}

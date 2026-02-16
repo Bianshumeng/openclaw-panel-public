@@ -7,13 +7,21 @@
     "mode": "docker"
   },
   "reverse_proxy": {
-    "enabled": false
+    "enabled": false,
+    "public_scheme": "http",
+    "public_host": "",
+    "panel_public_port": 18080,
+    "gateway_public_port": 18789,
+    "panel_public_base_url": "",
+    "webhook_public_base_url": ""
   },
   "openclaw": {
     "config_path": "/data/openclaw/openclaw.json",
     "service_name": "openclaw-gateway",
     "container_name": "openclaw-gateway",
-    "image_repo": "ghcr.io/openclaw/openclaw"
+    "image_repo": "ghcr.io/openclaw/openclaw",
+    "gateway_port": 18789,
+    "gateway_ws_url": ""
   },
   "docker": {
     "enabled": true

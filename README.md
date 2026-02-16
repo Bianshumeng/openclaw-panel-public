@@ -9,7 +9,7 @@
 - 日志面板：最近日志、实时流、错误摘要（支持 `journal`/`file`/`docker`）
 - 渠道测试：Telegram/飞书/Discord/Slack 连通性
 - 版本管理：检查最新版本、一键升级、手动回滚（升级失败自动回滚）
-- 独立路由页面：`/model`、`/channels`、`/update`、`/service`、`/logs`
+- 独立路由页面：`/dashboard`、`/model`、`/config-generator`、`/channels`、`/update`、`/service`、`/logs`
 
 ## Docker（推荐）
 > 当前生产建议使用受控镜像 tag：`ghcr.io/openclaw/openclaw:2026.2.14`
@@ -24,12 +24,23 @@ bash deploy/docker-init.sh
 - 生成 `.env`（含随机 `OPENCLAW_GATEWAY_TOKEN`）
 - 初始化 `data/openclaw/openclaw.json`
 - 初始化 `data/panel/panel.config.json`（runtime=docker）
+- 自动清理“同名但不同 compose 项目”的旧容器（避免网络/命名冲突）
 - `docker compose pull/build/up -d`
 
 ### 目录说明
 - `docker-compose.yml`: 双容器编排（`openclaw-gateway` + `openclaw-panel`）
 - `data/openclaw`: OpenClaw 配置与工作区持久化
 - `data/panel`: 面板运行配置持久化
+
+### 单公网 IP + 端口映射部署（必须）
+- 所有对外端口通过 `.env` 配置，不写死 `80/443/3000`：
+  - `PANEL_BIND_IP` / `PANEL_PORT` / `PANEL_CONTAINER_PORT`
+  - `OPENCLAW_GATEWAY_BIND_IP` / `OPENCLAW_GATEWAY_PORT` / `OPENCLAW_GATEWAY_CONTAINER_PORT`
+- 面板启动监听地址支持环境变量覆盖：`PANEL_LISTEN_HOST` / `PANEL_LISTEN_PORT`
+- 容器内部通信固定走 Docker 内部网络 `OPENCLAW_INTERNAL_NETWORK`，不依赖公网入口。
+- 前端展示的“公网访问地址 / Webhook 回调基地址”来自 `data/panel/panel.config.json` 的 `reverse_proxy` 字段：
+  - `public_host` + `panel_public_port` / `gateway_public_port`
+  - 或直接填写 `panel_public_base_url`、`webhook_public_base_url`
 
 ### 升级与回滚
 ```bash
@@ -52,7 +63,7 @@ npm start
 ```
 
 默认配置文件：`~/.openclaw-panel/panel.config.json`  
-默认监听：`127.0.0.1:18080`
+默认监听：可通过 `panel.listen_host/panel.listen_port`（配置文件）或 `PANEL_LISTEN_HOST/PANEL_LISTEN_PORT`（环境变量）控制
 
 ## 运行检查
 ```bash

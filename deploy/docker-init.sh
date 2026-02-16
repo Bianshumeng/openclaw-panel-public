@@ -36,6 +36,23 @@ pull_with_retry() {
   return 1
 }
 
+cleanup_conflict_container() {
+  local name="$1"
+  local existing_project
+
+  if ! docker ps -a --format '{{.Names}}' | grep -qx "$name"; then
+    return 0
+  fi
+
+  existing_project="$(docker inspect -f '{{ index .Config.Labels "com.docker.compose.project" }}' "$name" 2>/dev/null || true)"
+  if [[ -z "$existing_project" || "$existing_project" == "$COMPOSE_PROJECT_NAME" ]]; then
+    return 0
+  fi
+
+  echo "检测到旧容器 ${name}（compose 项目: ${existing_project}），为避免命名冲突将自动移除。"
+  docker rm -f "$name" >/dev/null
+}
+
 mkdir -p ./data/openclaw ./data/openclaw/workspace ./data/panel
 
 if [[ ! -f ./.env ]]; then
@@ -102,14 +119,33 @@ if ! pull_with_retry openclaw-gateway 5; then
   exit 1
 fi
 
+cleanup_conflict_container openclaw-gateway
+cleanup_conflict_container openclaw-panel
+
 echo "构建面板镜像..."
 docker compose build panel
 
 echo "启动服务..."
 docker compose up -d
 
+panel_bind_ip="$(grep -E '^PANEL_BIND_IP=' ./.env | head -n1 | cut -d'=' -f2- || true)"
+panel_port="$(grep -E '^PANEL_PORT=' ./.env | head -n1 | cut -d'=' -f2- || true)"
+gateway_bind_ip="$(grep -E '^OPENCLAW_GATEWAY_BIND_IP=' ./.env | head -n1 | cut -d'=' -f2- || true)"
+gateway_port="$(grep -E '^OPENCLAW_GATEWAY_PORT=' ./.env | head -n1 | cut -d'=' -f2- || true)"
+panel_bind_ip="${panel_bind_ip:-127.0.0.1}"
+panel_port="${panel_port:-18080}"
+gateway_bind_ip="${gateway_bind_ip:-0.0.0.0}"
+gateway_port="${gateway_port:-18789}"
+
+panel_hint_host="$panel_bind_ip"
+if [[ "$panel_hint_host" == "0.0.0.0" ]]; then
+  panel_hint_host="127.0.0.1"
+fi
+
 echo ""
 echo "启动完成："
-echo "  面板: http://127.0.0.1:18080"
+echo "  面板(映射地址): http://${panel_hint_host}:${panel_port}"
+echo "  网关(映射地址): http://${gateway_bind_ip}:${gateway_port}"
+echo "  如需展示公网地址/Webhook地址，请编辑 data/panel/panel.config.json 的 reverse_proxy 字段。"
 echo "  查看容器: docker compose ps"
 echo "  查看网关日志: docker logs -f openclaw-gateway"

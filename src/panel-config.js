@@ -17,7 +17,13 @@ const panelConfigSchema = z.object({
     .default({}),
   reverse_proxy: z
     .object({
-      enabled: z.boolean().default(false)
+      enabled: z.boolean().default(false),
+      public_scheme: z.enum(["http", "https"]).default("http"),
+      public_host: z.string().default(""),
+      panel_public_port: z.number().int().positive().default(18080),
+      gateway_public_port: z.number().int().positive().default(18789),
+      panel_public_base_url: z.string().default(""),
+      webhook_public_base_url: z.string().default("")
     })
     .default({}),
   openclaw: z
@@ -25,7 +31,9 @@ const panelConfigSchema = z.object({
       config_path: z.string().default("~/.openclaw/openclaw.json"),
       service_name: z.string().default("openclaw-gateway"),
       container_name: z.string().default("openclaw-gateway"),
-      image_repo: z.string().default("ghcr.io/openclaw/openclaw")
+      image_repo: z.string().default("ghcr.io/openclaw/openclaw"),
+      gateway_port: z.number().int().positive().default(18789),
+      gateway_ws_url: z.string().default("")
     })
     .default({}),
   docker: z
@@ -64,9 +72,19 @@ export async function loadPanelConfig() {
     log: { ...defaults.log, ...(raw.log || {}) }
   };
   const parsed = panelConfigSchema.parse(merged);
+  const envListenHost = String(process.env.PANEL_LISTEN_HOST || "").trim();
+  const envListenPort = Number.parseInt(String(process.env.PANEL_LISTEN_PORT || ""), 10);
+  const panelWithEnv = {
+    ...parsed.panel,
+    ...(envListenHost ? { listen_host: envListenHost } : {}),
+    ...(Number.isFinite(envListenPort) && envListenPort > 0 ? { listen_port: envListenPort } : {})
+  };
   return {
     filePath,
-    config: parsed
+    config: {
+      ...parsed,
+      panel: panelWithEnv
+    }
   };
 }
 

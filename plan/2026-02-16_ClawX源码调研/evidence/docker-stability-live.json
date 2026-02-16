@@ -1,0 +1,1293 @@
+{
+  "startedAt": "2026-02-16T06:49:16.283Z",
+  "baseline": {
+    "panelHealth": {
+      "ok": true,
+      "status": 200,
+      "elapsedMs": 29,
+      "body": {
+        "ok": true,
+        "service": "openclaw-panel",
+        "timestamp": "2026-02-16T06:49:16.308Z"
+      }
+    },
+    "serviceStatus": {
+      "ok": true,
+      "status": 200,
+      "elapsedMs": 87,
+      "body": {
+        "ok": true,
+        "result": {
+          "ok": true,
+          "action": "status",
+          "runtimeMode": "docker",
+          "containerName": "openclaw-gateway",
+          "active": true,
+          "output": "state: running\nCONTAINER ID   IMAGE                                 COMMAND                  CREATED          STATUS          PORTS                                             NAMES\na7a4c15cfee7   ghcr.io/openclaw/openclaw:2026.2.14   \"docker-entrypoint.s…\"   20 seconds ago   Up 19 seconds   0.0.0.0:18789->18789/tcp, [::]:18789->18789/tcp   openclaw-gateway"
+        }
+      }
+    },
+    "updateCheck": {
+      "ok": true,
+      "status": 200,
+      "elapsedMs": 339,
+      "body": {
+        "ok": true,
+        "result": {
+          "ok": true,
+          "containerName": "openclaw-gateway",
+          "imageRepo": "ghcr.io/openclaw/openclaw",
+          "releaseRepo": "openclaw/openclaw",
+          "currentImage": "ghcr.io/openclaw/openclaw:2026.2.14",
+          "currentTag": "2026.2.14",
+          "latestTag": "2026.2.15",
+          "latestPublishedAt": "2026-02-16T04:43:47Z",
+          "updateAvailable": true,
+          "warning": ""
+        }
+      }
+    },
+    "gatewayHome": {
+      "ok": true,
+      "status": 200,
+      "elapsedMs": 30,
+      "textPreview": "<!doctype html>\n<html lang=\"en\">\n  <head>\n    <meta charset=\"UTF-8\" />\n    <meta name=\"viewport\" content=\"width=device-w"
+    },
+    "containerState": {
+      "ok": true,
+      "command": "docker inspect -f \"{{.State.Status}}\" openclaw-gateway",
+      "elapsedMs": 110,
+      "stdout": "running"
+    },
+    "internalDnsProbe": {
+      "ok": true,
+      "command": "docker exec openclaw-panel node -e \"fetch('http://openclaw-gateway:18789/').then(r=>{console.log('status='+r.status);process.exit(r.ok?0:1)}).catch(e=>{console.error(String(e));process.exit(2)})\"",
+      "elapsedMs": 255,
+      "stdout": "status=200"
+    }
+  },
+  "restart": {
+    "command": {
+      "ok": true,
+      "command": "docker restart openclaw-gateway",
+      "elapsedMs": 1209,
+      "stdout": "openclaw-gateway"
+    },
+    "durationMs": 1209,
+    "recovery": {
+      "recovered": true,
+      "attempts": [
+        {
+          "attempt": 1,
+          "recovered": false,
+          "probe": {
+            "panelHealth": {
+              "ok": true,
+              "status": 200,
+              "elapsedMs": 2,
+              "body": {
+                "ok": true,
+                "service": "openclaw-panel",
+                "timestamp": "2026-02-16T06:49:18.346Z"
+              }
+            },
+            "serviceStatus": {
+              "ok": true,
+              "status": 200,
+              "elapsedMs": 78,
+              "body": {
+                "ok": true,
+                "result": {
+                  "ok": true,
+                  "action": "status",
+                  "runtimeMode": "docker",
+                  "containerName": "openclaw-gateway",
+                  "active": true,
+                  "output": "state: running\nCONTAINER ID   IMAGE                                 COMMAND                  CREATED          STATUS                  PORTS                                             NAMES\na7a4c15cfee7   ghcr.io/openclaw/openclaw:2026.2.14   \"docker-entrypoint.s…\"   22 seconds ago   Up Less than a second   0.0.0.0:18789->18789/tcp, [::]:18789->18789/tcp   openclaw-gateway"
+                }
+              }
+            },
+            "updateCheck": {
+              "ok": true,
+              "status": 200,
+              "elapsedMs": 135,
+              "body": {
+                "ok": true,
+                "result": {
+                  "ok": true,
+                  "containerName": "openclaw-gateway",
+                  "imageRepo": "ghcr.io/openclaw/openclaw",
+                  "releaseRepo": "openclaw/openclaw",
+                  "currentImage": "ghcr.io/openclaw/openclaw:2026.2.14",
+                  "currentTag": "2026.2.14",
+                  "latestTag": "2026.2.15",
+                  "latestPublishedAt": "2026-02-16T04:43:47Z",
+                  "updateAvailable": true,
+                  "warning": ""
+                }
+              }
+            },
+            "gatewayHome": {
+              "ok": true,
+              "status": 200,
+              "elapsedMs": 31,
+              "textPreview": "<!doctype html>\n<html lang=\"en\">\n  <head>\n    <meta charset=\"UTF-8\" />\n    <meta name=\"viewport\" content=\"width=device-w"
+            },
+            "containerState": {
+              "ok": true,
+              "command": "docker inspect -f \"{{.State.Status}}\" openclaw-gateway",
+              "elapsedMs": 94,
+              "stdout": "running"
+            },
+            "internalDnsProbe": {
+              "ok": false,
+              "command": "docker exec openclaw-panel node -e \"fetch('http://openclaw-gateway:18789/').then(r=>{console.log('status='+r.status);process.exit(r.ok?0:1)}).catch(e=>{console.error(String(e));process.exit(2)})\"",
+              "elapsedMs": 201,
+              "stdout": "",
+              "stderr": "TypeError: fetch failed",
+              "message": "Command failed: docker exec openclaw-panel node -e \"fetch('http://openclaw-gateway:18789/').then(r=>{console.log('status='+r.status);process.exit(r.ok?0:1)}).catch(e=>{console.error(String(e));process.exit(2)})\"\nTypeError: fetch failed\n"
+            }
+          }
+        },
+        {
+          "attempt": 2,
+          "recovered": false,
+          "probe": {
+            "panelHealth": {
+              "ok": true,
+              "status": 200,
+              "elapsedMs": 3,
+              "body": {
+                "ok": true,
+                "service": "openclaw-panel",
+                "timestamp": "2026-02-16T06:49:19.904Z"
+              }
+            },
+            "serviceStatus": {
+              "ok": true,
+              "status": 200,
+              "elapsedMs": 74,
+              "body": {
+                "ok": true,
+                "result": {
+                  "ok": true,
+                  "action": "status",
+                  "runtimeMode": "docker",
+                  "containerName": "openclaw-gateway",
+                  "active": true,
+                  "output": "state: running\nCONTAINER ID   IMAGE                                 COMMAND                  CREATED          STATUS        PORTS                                             NAMES\na7a4c15cfee7   ghcr.io/openclaw/openclaw:2026.2.14   \"docker-entrypoint.s…\"   23 seconds ago   Up 1 second   0.0.0.0:18789->18789/tcp, [::]:18789->18789/tcp   openclaw-gateway"
+                }
+              }
+            },
+            "updateCheck": {
+              "ok": true,
+              "status": 200,
+              "elapsedMs": 212,
+              "body": {
+                "ok": true,
+                "result": {
+                  "ok": true,
+                  "containerName": "openclaw-gateway",
+                  "imageRepo": "ghcr.io/openclaw/openclaw",
+                  "releaseRepo": "openclaw/openclaw",
+                  "currentImage": "ghcr.io/openclaw/openclaw:2026.2.14",
+                  "currentTag": "2026.2.14",
+                  "latestTag": "2026.2.15",
+                  "latestPublishedAt": "2026-02-16T04:43:47Z",
+                  "updateAvailable": true,
+                  "warning": ""
+                }
+              }
+            },
+            "gatewayHome": {
+              "ok": true,
+              "status": 200,
+              "elapsedMs": 30,
+              "textPreview": "<!doctype html>\n<html lang=\"en\">\n  <head>\n    <meta charset=\"UTF-8\" />\n    <meta name=\"viewport\" content=\"width=device-w"
+            },
+            "containerState": {
+              "ok": true,
+              "command": "docker inspect -f \"{{.State.Status}}\" openclaw-gateway",
+              "elapsedMs": 90,
+              "stdout": "running"
+            },
+            "internalDnsProbe": {
+              "ok": false,
+              "command": "docker exec openclaw-panel node -e \"fetch('http://openclaw-gateway:18789/').then(r=>{console.log('status='+r.status);process.exit(r.ok?0:1)}).catch(e=>{console.error(String(e));process.exit(2)})\"",
+              "elapsedMs": 210,
+              "stdout": "",
+              "stderr": "TypeError: fetch failed",
+              "message": "Command failed: docker exec openclaw-panel node -e \"fetch('http://openclaw-gateway:18789/').then(r=>{console.log('status='+r.status);process.exit(r.ok?0:1)}).catch(e=>{console.error(String(e));process.exit(2)})\"\nTypeError: fetch failed\n"
+            }
+          }
+        },
+        {
+          "attempt": 3,
+          "recovered": true,
+          "probe": {
+            "panelHealth": {
+              "ok": true,
+              "status": 200,
+              "elapsedMs": 3,
+              "body": {
+                "ok": true,
+                "service": "openclaw-panel",
+                "timestamp": "2026-02-16T06:49:21.531Z"
+              }
+            },
+            "serviceStatus": {
+              "ok": true,
+              "status": 200,
+              "elapsedMs": 75,
+              "body": {
+                "ok": true,
+                "result": {
+                  "ok": true,
+                  "action": "status",
+                  "runtimeMode": "docker",
+                  "containerName": "openclaw-gateway",
+                  "active": true,
+                  "output": "state: running\nCONTAINER ID   IMAGE                                 COMMAND                  CREATED          STATUS         PORTS                                             NAMES\na7a4c15cfee7   ghcr.io/openclaw/openclaw:2026.2.14   \"docker-entrypoint.s…\"   25 seconds ago   Up 3 seconds   0.0.0.0:18789->18789/tcp, [::]:18789->18789/tcp   openclaw-gateway"
+                }
+              }
+            },
+            "updateCheck": {
+              "ok": true,
+              "status": 200,
+              "elapsedMs": 211,
+              "body": {
+                "ok": true,
+                "result": {
+                  "ok": true,
+                  "containerName": "openclaw-gateway",
+                  "imageRepo": "ghcr.io/openclaw/openclaw",
+                  "releaseRepo": "openclaw/openclaw",
+                  "currentImage": "ghcr.io/openclaw/openclaw:2026.2.14",
+                  "currentTag": "2026.2.14",
+                  "latestTag": "2026.2.15",
+                  "latestPublishedAt": "2026-02-16T04:43:47Z",
+                  "updateAvailable": true,
+                  "warning": ""
+                }
+              }
+            },
+            "gatewayHome": {
+              "ok": true,
+              "status": 200,
+              "elapsedMs": 27,
+              "textPreview": "<!doctype html>\n<html lang=\"en\">\n  <head>\n    <meta charset=\"UTF-8\" />\n    <meta name=\"viewport\" content=\"width=device-w"
+            },
+            "containerState": {
+              "ok": true,
+              "command": "docker inspect -f \"{{.State.Status}}\" openclaw-gateway",
+              "elapsedMs": 103,
+              "stdout": "running"
+            },
+            "internalDnsProbe": {
+              "ok": true,
+              "command": "docker exec openclaw-panel node -e \"fetch('http://openclaw-gateway:18789/').then(r=>{console.log('status='+r.status);process.exit(r.ok?0:1)}).catch(e=>{console.error(String(e));process.exit(2)})\"",
+              "elapsedMs": 219,
+              "stdout": "status=200"
+            }
+          }
+        }
+      ]
+    }
+  },
+  "networkIsolation": {
+    "networkNameResult": {
+      "ok": true,
+      "command": "docker inspect -f \"{{range $k, $v := .NetworkSettings.Networks}}{{$k}}{{end}}\" openclaw-gateway",
+      "elapsedMs": 92,
+      "stdout": "openclaw-internal"
+    },
+    "networkName": "openclaw-internal",
+    "disconnect": {
+      "ok": true,
+      "command": "docker network disconnect -f openclaw-internal openclaw-gateway",
+      "elapsedMs": 512,
+      "stdout": ""
+    },
+    "probeDuringIsolation": {
+      "panelHealth": {
+        "ok": true,
+        "status": 200,
+        "elapsedMs": 3,
+        "body": {
+          "ok": true,
+          "service": "openclaw-panel",
+          "timestamp": "2026-02-16T06:49:22.777Z"
+        }
+      },
+      "serviceStatus": {
+        "ok": true,
+        "status": 200,
+        "elapsedMs": 80,
+        "body": {
+          "ok": true,
+          "result": {
+            "ok": true,
+            "action": "status",
+            "runtimeMode": "docker",
+            "containerName": "openclaw-gateway",
+            "active": true,
+            "output": "state: running\nCONTAINER ID   IMAGE                                 COMMAND                  CREATED          STATUS         PORTS                                             NAMES\na7a4c15cfee7   ghcr.io/openclaw/openclaw:2026.2.14   \"docker-entrypoint.s…\"   26 seconds ago   Up 4 seconds   0.0.0.0:18789->18789/tcp, [::]:18789->18789/tcp   openclaw-gateway"
+          }
+        }
+      },
+      "updateCheck": {
+        "ok": true,
+        "status": 200,
+        "elapsedMs": 127,
+        "body": {
+          "ok": true,
+          "result": {
+            "ok": true,
+            "containerName": "openclaw-gateway",
+            "imageRepo": "ghcr.io/openclaw/openclaw",
+            "releaseRepo": "openclaw/openclaw",
+            "currentImage": "ghcr.io/openclaw/openclaw:2026.2.14",
+            "currentTag": "2026.2.14",
+            "latestTag": "2026.2.15",
+            "latestPublishedAt": "2026-02-16T04:43:47Z",
+            "updateAvailable": true,
+            "warning": ""
+          }
+        }
+      },
+      "gatewayHome": {
+        "ok": true,
+        "status": 200,
+        "elapsedMs": 30,
+        "textPreview": "<!doctype html>\n<html lang=\"en\">\n  <head>\n    <meta charset=\"UTF-8\" />\n    <meta name=\"viewport\" content=\"width=device-w"
+      },
+      "containerState": {
+        "ok": true,
+        "command": "docker inspect -f \"{{.State.Status}}\" openclaw-gateway",
+        "elapsedMs": 96,
+        "stdout": "running"
+      },
+      "internalDnsProbe": {
+        "ok": false,
+        "command": "docker exec openclaw-panel node -e \"fetch('http://openclaw-gateway:18789/').then(r=>{console.log('status='+r.status);process.exit(r.ok?0:1)}).catch(e=>{console.error(String(e));process.exit(2)})\"",
+        "elapsedMs": 1494,
+        "stdout": "",
+        "stderr": "TypeError: fetch failed",
+        "message": "Command failed: docker exec openclaw-panel node -e \"fetch('http://openclaw-gateway:18789/').then(r=>{console.log('status='+r.status);process.exit(r.ok?0:1)}).catch(e=>{console.error(String(e));process.exit(2)})\"\nTypeError: fetch failed\n"
+      }
+    },
+    "reconnect": {
+      "ok": true,
+      "command": "docker network connect openclaw-internal openclaw-gateway",
+      "elapsedMs": 232,
+      "stdout": ""
+    },
+    "recovery": {
+      "recovered": true,
+      "attempts": [
+        {
+          "attempt": 1,
+          "recovered": true,
+          "probe": {
+            "panelHealth": {
+              "ok": true,
+              "status": 200,
+              "elapsedMs": 2,
+              "body": {
+                "ok": true,
+                "service": "openclaw-panel",
+                "timestamp": "2026-02-16T06:49:24.844Z"
+              }
+            },
+            "serviceStatus": {
+              "ok": true,
+              "status": 200,
+              "elapsedMs": 77,
+              "body": {
+                "ok": true,
+                "result": {
+                  "ok": true,
+                  "action": "status",
+                  "runtimeMode": "docker",
+                  "containerName": "openclaw-gateway",
+                  "active": true,
+                  "output": "state: running\nCONTAINER ID   IMAGE                                 COMMAND                  CREATED          STATUS         PORTS                                             NAMES\na7a4c15cfee7   ghcr.io/openclaw/openclaw:2026.2.14   \"docker-entrypoint.s…\"   28 seconds ago   Up 6 seconds   0.0.0.0:18789->18789/tcp, [::]:18789->18789/tcp   openclaw-gateway"
+                }
+              }
+            },
+            "updateCheck": {
+              "ok": true,
+              "status": 200,
+              "elapsedMs": 126,
+              "body": {
+                "ok": true,
+                "result": {
+                  "ok": true,
+                  "containerName": "openclaw-gateway",
+                  "imageRepo": "ghcr.io/openclaw/openclaw",
+                  "releaseRepo": "openclaw/openclaw",
+                  "currentImage": "ghcr.io/openclaw/openclaw:2026.2.14",
+                  "currentTag": "2026.2.14",
+                  "latestTag": "2026.2.15",
+                  "latestPublishedAt": "2026-02-16T04:43:47Z",
+                  "updateAvailable": true,
+                  "warning": ""
+                }
+              }
+            },
+            "gatewayHome": {
+              "ok": true,
+              "status": 200,
+              "elapsedMs": 31,
+              "textPreview": "<!doctype html>\n<html lang=\"en\">\n  <head>\n    <meta charset=\"UTF-8\" />\n    <meta name=\"viewport\" content=\"width=device-w"
+            },
+            "containerState": {
+              "ok": true,
+              "command": "docker inspect -f \"{{.State.Status}}\" openclaw-gateway",
+              "elapsedMs": 92,
+              "stdout": "running"
+            },
+            "internalDnsProbe": {
+              "ok": true,
+              "command": "docker exec openclaw-panel node -e \"fetch('http://openclaw-gateway:18789/').then(r=>{console.log('status='+r.status);process.exit(r.ok?0:1)}).catch(e=>{console.error(String(e));process.exit(2)})\"",
+              "elapsedMs": 227,
+              "stdout": "status=200"
+            }
+          }
+        }
+      ]
+    }
+  },
+  "upgradeDrill": {
+    "checkBeforeUpgrade": {
+      "ok": true,
+      "status": 200,
+      "elapsedMs": 244,
+      "body": {
+        "ok": true,
+        "result": {
+          "ok": true,
+          "containerName": "openclaw-gateway",
+          "imageRepo": "ghcr.io/openclaw/openclaw",
+          "releaseRepo": "openclaw/openclaw",
+          "currentImage": "ghcr.io/openclaw/openclaw:2026.2.14",
+          "currentTag": "2026.2.14",
+          "latestTag": "2026.2.15",
+          "latestPublishedAt": "2026-02-16T04:43:47Z",
+          "updateAvailable": true,
+          "warning": ""
+        }
+      }
+    },
+    "currentTag": "2026.2.14",
+    "upgrade": {
+      "ok": true,
+      "status": 200,
+      "elapsedMs": 2059,
+      "body": {
+        "ok": true,
+        "result": {
+          "ok": true,
+          "action": "upgrade",
+          "containerName": "openclaw-gateway",
+          "targetImage": "ghcr.io/openclaw/openclaw:2026.2.14",
+          "oldImage": "ghcr.io/openclaw/openclaw:2026.2.14",
+          "rolledBack": false,
+          "message": "upgrade 成功"
+        }
+      }
+    },
+    "afterUpgradeProbe": {
+      "panelHealth": {
+        "ok": true,
+        "status": 200,
+        "elapsedMs": 2,
+        "body": {
+          "ok": true,
+          "service": "openclaw-panel",
+          "timestamp": "2026-02-16T06:49:27.712Z"
+        }
+      },
+      "serviceStatus": {
+        "ok": true,
+        "status": 200,
+        "elapsedMs": 97,
+        "body": {
+          "ok": true,
+          "result": {
+            "ok": true,
+            "action": "status",
+            "runtimeMode": "docker",
+            "containerName": "openclaw-gateway",
+            "active": true,
+            "output": "state: running\nCONTAINER ID   IMAGE                                 COMMAND                  CREATED                  STATUS                  PORTS                                             NAMES\n1066146bd00c   ghcr.io/openclaw/openclaw:2026.2.14   \"docker-entrypoint.s…\"   Less than a second ago   Up Less than a second   0.0.0.0:18789->18789/tcp, [::]:18789->18789/tcp   openclaw-gateway"
+          }
+        }
+      },
+      "updateCheck": {
+        "ok": true,
+        "status": 200,
+        "elapsedMs": 171,
+        "body": {
+          "ok": true,
+          "result": {
+            "ok": true,
+            "containerName": "openclaw-gateway",
+            "imageRepo": "ghcr.io/openclaw/openclaw",
+            "releaseRepo": "openclaw/openclaw",
+            "currentImage": "ghcr.io/openclaw/openclaw:2026.2.14",
+            "currentTag": "2026.2.14",
+            "latestTag": "2026.2.15",
+            "latestPublishedAt": "2026-02-16T04:43:47Z",
+            "updateAvailable": true,
+            "warning": ""
+          }
+        }
+      },
+      "gatewayHome": {
+        "ok": true,
+        "status": 200,
+        "elapsedMs": 26,
+        "textPreview": "<!doctype html>\n<html lang=\"en\">\n  <head>\n    <meta charset=\"UTF-8\" />\n    <meta name=\"viewport\" content=\"width=device-w"
+      },
+      "containerState": {
+        "ok": true,
+        "command": "docker inspect -f \"{{.State.Status}}\" openclaw-gateway",
+        "elapsedMs": 101,
+        "stdout": "running"
+      },
+      "internalDnsProbe": {
+        "ok": false,
+        "command": "docker exec openclaw-panel node -e \"fetch('http://openclaw-gateway:18789/').then(r=>{console.log('status='+r.status);process.exit(r.ok?0:1)}).catch(e=>{console.error(String(e));process.exit(2)})\"",
+        "elapsedMs": 203,
+        "stdout": "",
+        "stderr": "TypeError: fetch failed",
+        "message": "Command failed: docker exec openclaw-panel node -e \"fetch('http://openclaw-gateway:18789/').then(r=>{console.log('status='+r.status);process.exit(r.ok?0:1)}).catch(e=>{console.error(String(e));process.exit(2)})\"\nTypeError: fetch failed\n"
+      }
+    },
+    "afterUpgradeRecovery": {
+      "recovered": true,
+      "attempts": [
+        {
+          "attempt": 1,
+          "recovered": false,
+          "probe": {
+            "panelHealth": {
+              "ok": true,
+              "status": 200,
+              "elapsedMs": 3,
+              "body": {
+                "ok": true,
+                "service": "openclaw-panel",
+                "timestamp": "2026-02-16T06:49:28.315Z"
+              }
+            },
+            "serviceStatus": {
+              "ok": true,
+              "status": 200,
+              "elapsedMs": 87,
+              "body": {
+                "ok": true,
+                "result": {
+                  "ok": true,
+                  "action": "status",
+                  "runtimeMode": "docker",
+                  "containerName": "openclaw-gateway",
+                  "active": true,
+                  "output": "state: running\nCONTAINER ID   IMAGE                                 COMMAND                  CREATED        STATUS                  PORTS                                             NAMES\n1066146bd00c   ghcr.io/openclaw/openclaw:2026.2.14   \"docker-entrypoint.s…\"   1 second ago   Up Less than a second   0.0.0.0:18789->18789/tcp, [::]:18789->18789/tcp   openclaw-gateway"
+                }
+              }
+            },
+            "updateCheck": {
+              "ok": true,
+              "status": 200,
+              "elapsedMs": 211,
+              "body": {
+                "ok": true,
+                "result": {
+                  "ok": true,
+                  "containerName": "openclaw-gateway",
+                  "imageRepo": "ghcr.io/openclaw/openclaw",
+                  "releaseRepo": "openclaw/openclaw",
+                  "currentImage": "ghcr.io/openclaw/openclaw:2026.2.14",
+                  "currentTag": "2026.2.14",
+                  "latestTag": "2026.2.15",
+                  "latestPublishedAt": "2026-02-16T04:43:47Z",
+                  "updateAvailable": true,
+                  "warning": ""
+                }
+              }
+            },
+            "gatewayHome": {
+              "ok": true,
+              "status": 200,
+              "elapsedMs": 31,
+              "textPreview": "<!doctype html>\n<html lang=\"en\">\n  <head>\n    <meta charset=\"UTF-8\" />\n    <meta name=\"viewport\" content=\"width=device-w"
+            },
+            "containerState": {
+              "ok": true,
+              "command": "docker inspect -f \"{{.State.Status}}\" openclaw-gateway",
+              "elapsedMs": 95,
+              "stdout": "running"
+            },
+            "internalDnsProbe": {
+              "ok": false,
+              "command": "docker exec openclaw-panel node -e \"fetch('http://openclaw-gateway:18789/').then(r=>{console.log('status='+r.status);process.exit(r.ok?0:1)}).catch(e=>{console.error(String(e));process.exit(2)})\"",
+              "elapsedMs": 202,
+              "stdout": "",
+              "stderr": "TypeError: fetch failed",
+              "message": "Command failed: docker exec openclaw-panel node -e \"fetch('http://openclaw-gateway:18789/').then(r=>{console.log('status='+r.status);process.exit(r.ok?0:1)}).catch(e=>{console.error(String(e));process.exit(2)})\"\nTypeError: fetch failed\n"
+            }
+          }
+        },
+        {
+          "attempt": 2,
+          "recovered": false,
+          "probe": {
+            "panelHealth": {
+              "ok": true,
+              "status": 200,
+              "elapsedMs": 2,
+              "body": {
+                "ok": true,
+                "service": "openclaw-panel",
+                "timestamp": "2026-02-16T06:49:29.958Z"
+              }
+            },
+            "serviceStatus": {
+              "ok": true,
+              "status": 200,
+              "elapsedMs": 79,
+              "body": {
+                "ok": true,
+                "result": {
+                  "ok": true,
+                  "action": "status",
+                  "runtimeMode": "docker",
+                  "containerName": "openclaw-gateway",
+                  "active": true,
+                  "output": "state: running\nCONTAINER ID   IMAGE                                 COMMAND                  CREATED         STATUS         PORTS                                             NAMES\n1066146bd00c   ghcr.io/openclaw/openclaw:2026.2.14   \"docker-entrypoint.s…\"   3 seconds ago   Up 2 seconds   0.0.0.0:18789->18789/tcp, [::]:18789->18789/tcp   openclaw-gateway"
+                }
+              }
+            },
+            "updateCheck": {
+              "ok": true,
+              "status": 200,
+              "elapsedMs": 208,
+              "body": {
+                "ok": true,
+                "result": {
+                  "ok": true,
+                  "containerName": "openclaw-gateway",
+                  "imageRepo": "ghcr.io/openclaw/openclaw",
+                  "releaseRepo": "openclaw/openclaw",
+                  "currentImage": "ghcr.io/openclaw/openclaw:2026.2.14",
+                  "currentTag": "2026.2.14",
+                  "latestTag": "2026.2.15",
+                  "latestPublishedAt": "2026-02-16T04:43:47Z",
+                  "updateAvailable": true,
+                  "warning": ""
+                }
+              }
+            },
+            "gatewayHome": {
+              "ok": true,
+              "status": 200,
+              "elapsedMs": 16,
+              "textPreview": "<!doctype html>\n<html lang=\"en\">\n  <head>\n    <meta charset=\"UTF-8\" />\n    <meta name=\"viewport\" content=\"width=device-w"
+            },
+            "containerState": {
+              "ok": true,
+              "command": "docker inspect -f \"{{.State.Status}}\" openclaw-gateway",
+              "elapsedMs": 110,
+              "stdout": "running"
+            },
+            "internalDnsProbe": {
+              "ok": false,
+              "command": "docker exec openclaw-panel node -e \"fetch('http://openclaw-gateway:18789/').then(r=>{console.log('status='+r.status);process.exit(r.ok?0:1)}).catch(e=>{console.error(String(e));process.exit(2)})\"",
+              "elapsedMs": 203,
+              "stdout": "",
+              "stderr": "TypeError: fetch failed",
+              "message": "Command failed: docker exec openclaw-panel node -e \"fetch('http://openclaw-gateway:18789/').then(r=>{console.log('status='+r.status);process.exit(r.ok?0:1)}).catch(e=>{console.error(String(e));process.exit(2)})\"\nTypeError: fetch failed\n"
+            }
+          }
+        },
+        {
+          "attempt": 3,
+          "recovered": false,
+          "probe": {
+            "panelHealth": {
+              "ok": true,
+              "status": 200,
+              "elapsedMs": 3,
+              "body": {
+                "ok": true,
+                "service": "openclaw-panel",
+                "timestamp": "2026-02-16T06:49:31.598Z"
+              }
+            },
+            "serviceStatus": {
+              "ok": true,
+              "status": 200,
+              "elapsedMs": 75,
+              "body": {
+                "ok": true,
+                "result": {
+                  "ok": true,
+                  "action": "status",
+                  "runtimeMode": "docker",
+                  "containerName": "openclaw-gateway",
+                  "active": true,
+                  "output": "state: running\nCONTAINER ID   IMAGE                                 COMMAND                  CREATED         STATUS         PORTS                                             NAMES\n1066146bd00c   ghcr.io/openclaw/openclaw:2026.2.14   \"docker-entrypoint.s…\"   4 seconds ago   Up 4 seconds   0.0.0.0:18789->18789/tcp, [::]:18789->18789/tcp   openclaw-gateway"
+                }
+              }
+            },
+            "updateCheck": {
+              "ok": true,
+              "status": 200,
+              "elapsedMs": 164,
+              "body": {
+                "ok": true,
+                "result": {
+                  "ok": true,
+                  "containerName": "openclaw-gateway",
+                  "imageRepo": "ghcr.io/openclaw/openclaw",
+                  "releaseRepo": "openclaw/openclaw",
+                  "currentImage": "ghcr.io/openclaw/openclaw:2026.2.14",
+                  "currentTag": "2026.2.14",
+                  "latestTag": "2026.2.15",
+                  "latestPublishedAt": "2026-02-16T04:43:47Z",
+                  "updateAvailable": true,
+                  "warning": ""
+                }
+              }
+            },
+            "gatewayHome": {
+              "ok": true,
+              "status": 200,
+              "elapsedMs": 27,
+              "textPreview": "<!doctype html>\n<html lang=\"en\">\n  <head>\n    <meta charset=\"UTF-8\" />\n    <meta name=\"viewport\" content=\"width=device-w"
+            },
+            "containerState": {
+              "ok": true,
+              "command": "docker inspect -f \"{{.State.Status}}\" openclaw-gateway",
+              "elapsedMs": 141,
+              "stdout": "running"
+            },
+            "internalDnsProbe": {
+              "ok": false,
+              "command": "docker exec openclaw-panel node -e \"fetch('http://openclaw-gateway:18789/').then(r=>{console.log('status='+r.status);process.exit(r.ok?0:1)}).catch(e=>{console.error(String(e));process.exit(2)})\"",
+              "elapsedMs": 212,
+              "stdout": "",
+              "stderr": "TypeError: fetch failed",
+              "message": "Command failed: docker exec openclaw-panel node -e \"fetch('http://openclaw-gateway:18789/').then(r=>{console.log('status='+r.status);process.exit(r.ok?0:1)}).catch(e=>{console.error(String(e));process.exit(2)})\"\nTypeError: fetch failed\n"
+            }
+          }
+        },
+        {
+          "attempt": 4,
+          "recovered": false,
+          "probe": {
+            "panelHealth": {
+              "ok": true,
+              "status": 200,
+              "elapsedMs": 3,
+              "body": {
+                "ok": true,
+                "service": "openclaw-panel",
+                "timestamp": "2026-02-16T06:49:33.236Z"
+              }
+            },
+            "serviceStatus": {
+              "ok": true,
+              "status": 200,
+              "elapsedMs": 112,
+              "body": {
+                "ok": true,
+                "result": {
+                  "ok": true,
+                  "action": "status",
+                  "runtimeMode": "docker",
+                  "containerName": "openclaw-gateway",
+                  "active": true,
+                  "output": "state: running\nCONTAINER ID   IMAGE                                 COMMAND                  CREATED         STATUS         PORTS                                             NAMES\n1066146bd00c   ghcr.io/openclaw/openclaw:2026.2.14   \"docker-entrypoint.s…\"   6 seconds ago   Up 5 seconds   0.0.0.0:18789->18789/tcp, [::]:18789->18789/tcp   openclaw-gateway"
+                }
+              }
+            },
+            "updateCheck": {
+              "ok": true,
+              "status": 200,
+              "elapsedMs": 188,
+              "body": {
+                "ok": true,
+                "result": {
+                  "ok": true,
+                  "containerName": "openclaw-gateway",
+                  "imageRepo": "ghcr.io/openclaw/openclaw",
+                  "releaseRepo": "openclaw/openclaw",
+                  "currentImage": "ghcr.io/openclaw/openclaw:2026.2.14",
+                  "currentTag": "2026.2.14",
+                  "latestTag": "2026.2.15",
+                  "latestPublishedAt": "2026-02-16T04:43:47Z",
+                  "updateAvailable": true,
+                  "warning": ""
+                }
+              }
+            },
+            "gatewayHome": {
+              "ok": true,
+              "status": 200,
+              "elapsedMs": 31,
+              "textPreview": "<!doctype html>\n<html lang=\"en\">\n  <head>\n    <meta charset=\"UTF-8\" />\n    <meta name=\"viewport\" content=\"width=device-w"
+            },
+            "containerState": {
+              "ok": true,
+              "command": "docker inspect -f \"{{.State.Status}}\" openclaw-gateway",
+              "elapsedMs": 111,
+              "stdout": "running"
+            },
+            "internalDnsProbe": {
+              "ok": false,
+              "command": "docker exec openclaw-panel node -e \"fetch('http://openclaw-gateway:18789/').then(r=>{console.log('status='+r.status);process.exit(r.ok?0:1)}).catch(e=>{console.error(String(e));process.exit(2)})\"",
+              "elapsedMs": 216,
+              "stdout": "",
+              "stderr": "TypeError: fetch failed",
+              "message": "Command failed: docker exec openclaw-panel node -e \"fetch('http://openclaw-gateway:18789/').then(r=>{console.log('status='+r.status);process.exit(r.ok?0:1)}).catch(e=>{console.error(String(e));process.exit(2)})\"\nTypeError: fetch failed\n"
+            }
+          }
+        },
+        {
+          "attempt": 5,
+          "recovered": false,
+          "probe": {
+            "panelHealth": {
+              "ok": true,
+              "status": 200,
+              "elapsedMs": 3,
+              "body": {
+                "ok": true,
+                "service": "openclaw-panel",
+                "timestamp": "2026-02-16T06:49:34.915Z"
+              }
+            },
+            "serviceStatus": {
+              "ok": true,
+              "status": 200,
+              "elapsedMs": 86,
+              "body": {
+                "ok": true,
+                "result": {
+                  "ok": true,
+                  "action": "status",
+                  "runtimeMode": "docker",
+                  "containerName": "openclaw-gateway",
+                  "active": true,
+                  "output": "state: running\nCONTAINER ID   IMAGE                                 COMMAND                  CREATED         STATUS         PORTS                                             NAMES\n1066146bd00c   ghcr.io/openclaw/openclaw:2026.2.14   \"docker-entrypoint.s…\"   7 seconds ago   Up 7 seconds   0.0.0.0:18789->18789/tcp, [::]:18789->18789/tcp   openclaw-gateway"
+                }
+              }
+            },
+            "updateCheck": {
+              "ok": true,
+              "status": 200,
+              "elapsedMs": 160,
+              "body": {
+                "ok": true,
+                "result": {
+                  "ok": true,
+                  "containerName": "openclaw-gateway",
+                  "imageRepo": "ghcr.io/openclaw/openclaw",
+                  "releaseRepo": "openclaw/openclaw",
+                  "currentImage": "ghcr.io/openclaw/openclaw:2026.2.14",
+                  "currentTag": "2026.2.14",
+                  "latestTag": "2026.2.15",
+                  "latestPublishedAt": "2026-02-16T04:43:47Z",
+                  "updateAvailable": true,
+                  "warning": ""
+                }
+              }
+            },
+            "gatewayHome": {
+              "ok": true,
+              "status": 200,
+              "elapsedMs": 29,
+              "textPreview": "<!doctype html>\n<html lang=\"en\">\n  <head>\n    <meta charset=\"UTF-8\" />\n    <meta name=\"viewport\" content=\"width=device-w"
+            },
+            "containerState": {
+              "ok": true,
+              "command": "docker inspect -f \"{{.State.Status}}\" openclaw-gateway",
+              "elapsedMs": 98,
+              "stdout": "running"
+            },
+            "internalDnsProbe": {
+              "ok": false,
+              "command": "docker exec openclaw-panel node -e \"fetch('http://openclaw-gateway:18789/').then(r=>{console.log('status='+r.status);process.exit(r.ok?0:1)}).catch(e=>{console.error(String(e));process.exit(2)})\"",
+              "elapsedMs": 194,
+              "stdout": "",
+              "stderr": "TypeError: fetch failed",
+              "message": "Command failed: docker exec openclaw-panel node -e \"fetch('http://openclaw-gateway:18789/').then(r=>{console.log('status='+r.status);process.exit(r.ok?0:1)}).catch(e=>{console.error(String(e));process.exit(2)})\"\nTypeError: fetch failed\n"
+            }
+          }
+        },
+        {
+          "attempt": 6,
+          "recovered": false,
+          "probe": {
+            "panelHealth": {
+              "ok": true,
+              "status": 200,
+              "elapsedMs": 3,
+              "body": {
+                "ok": true,
+                "service": "openclaw-panel",
+                "timestamp": "2026-02-16T06:49:36.502Z"
+              }
+            },
+            "serviceStatus": {
+              "ok": true,
+              "status": 200,
+              "elapsedMs": 85,
+              "body": {
+                "ok": true,
+                "result": {
+                  "ok": true,
+                  "action": "status",
+                  "runtimeMode": "docker",
+                  "containerName": "openclaw-gateway",
+                  "active": true,
+                  "output": "state: running\nCONTAINER ID   IMAGE                                 COMMAND                  CREATED         STATUS         PORTS                                             NAMES\n1066146bd00c   ghcr.io/openclaw/openclaw:2026.2.14   \"docker-entrypoint.s…\"   9 seconds ago   Up 9 seconds   0.0.0.0:18789->18789/tcp, [::]:18789->18789/tcp   openclaw-gateway"
+                }
+              }
+            },
+            "updateCheck": {
+              "ok": true,
+              "status": 200,
+              "elapsedMs": 165,
+              "body": {
+                "ok": true,
+                "result": {
+                  "ok": true,
+                  "containerName": "openclaw-gateway",
+                  "imageRepo": "ghcr.io/openclaw/openclaw",
+                  "releaseRepo": "openclaw/openclaw",
+                  "currentImage": "ghcr.io/openclaw/openclaw:2026.2.14",
+                  "currentTag": "2026.2.14",
+                  "latestTag": "2026.2.15",
+                  "latestPublishedAt": "2026-02-16T04:43:47Z",
+                  "updateAvailable": true,
+                  "warning": ""
+                }
+              }
+            },
+            "gatewayHome": {
+              "ok": true,
+              "status": 200,
+              "elapsedMs": 31,
+              "textPreview": "<!doctype html>\n<html lang=\"en\">\n  <head>\n    <meta charset=\"UTF-8\" />\n    <meta name=\"viewport\" content=\"width=device-w"
+            },
+            "containerState": {
+              "ok": true,
+              "command": "docker inspect -f \"{{.State.Status}}\" openclaw-gateway",
+              "elapsedMs": 117,
+              "stdout": "running"
+            },
+            "internalDnsProbe": {
+              "ok": false,
+              "command": "docker exec openclaw-panel node -e \"fetch('http://openclaw-gateway:18789/').then(r=>{console.log('status='+r.status);process.exit(r.ok?0:1)}).catch(e=>{console.error(String(e));process.exit(2)})\"",
+              "elapsedMs": 227,
+              "stdout": "",
+              "stderr": "TypeError: fetch failed",
+              "message": "Command failed: docker exec openclaw-panel node -e \"fetch('http://openclaw-gateway:18789/').then(r=>{console.log('status='+r.status);process.exit(r.ok?0:1)}).catch(e=>{console.error(String(e));process.exit(2)})\"\nTypeError: fetch failed\n"
+            }
+          }
+        },
+        {
+          "attempt": 7,
+          "recovered": false,
+          "probe": {
+            "panelHealth": {
+              "ok": true,
+              "status": 200,
+              "elapsedMs": 3,
+              "body": {
+                "ok": true,
+                "service": "openclaw-panel",
+                "timestamp": "2026-02-16T06:49:38.141Z"
+              }
+            },
+            "serviceStatus": {
+              "ok": true,
+              "status": 200,
+              "elapsedMs": 82,
+              "body": {
+                "ok": true,
+                "result": {
+                  "ok": true,
+                  "action": "status",
+                  "runtimeMode": "docker",
+                  "containerName": "openclaw-gateway",
+                  "active": true,
+                  "output": "state: running\nCONTAINER ID   IMAGE                                 COMMAND                  CREATED          STATUS          PORTS                                             NAMES\n1066146bd00c   ghcr.io/openclaw/openclaw:2026.2.14   \"docker-entrypoint.s…\"   11 seconds ago   Up 10 seconds   0.0.0.0:18789->18789/tcp, [::]:18789->18789/tcp   openclaw-gateway"
+                }
+              }
+            },
+            "updateCheck": {
+              "ok": true,
+              "status": 200,
+              "elapsedMs": 163,
+              "body": {
+                "ok": true,
+                "result": {
+                  "ok": true,
+                  "containerName": "openclaw-gateway",
+                  "imageRepo": "ghcr.io/openclaw/openclaw",
+                  "releaseRepo": "openclaw/openclaw",
+                  "currentImage": "ghcr.io/openclaw/openclaw:2026.2.14",
+                  "currentTag": "2026.2.14",
+                  "latestTag": "2026.2.15",
+                  "latestPublishedAt": "2026-02-16T04:43:47Z",
+                  "updateAvailable": true,
+                  "warning": ""
+                }
+              }
+            },
+            "gatewayHome": {
+              "ok": true,
+              "status": 200,
+              "elapsedMs": 29,
+              "textPreview": "<!doctype html>\n<html lang=\"en\">\n  <head>\n    <meta charset=\"UTF-8\" />\n    <meta name=\"viewport\" content=\"width=device-w"
+            },
+            "containerState": {
+              "ok": true,
+              "command": "docker inspect -f \"{{.State.Status}}\" openclaw-gateway",
+              "elapsedMs": 99,
+              "stdout": "running"
+            },
+            "internalDnsProbe": {
+              "ok": false,
+              "command": "docker exec openclaw-panel node -e \"fetch('http://openclaw-gateway:18789/').then(r=>{console.log('status='+r.status);process.exit(r.ok?0:1)}).catch(e=>{console.error(String(e));process.exit(2)})\"",
+              "elapsedMs": 211,
+              "stdout": "",
+              "stderr": "TypeError: fetch failed",
+              "message": "Command failed: docker exec openclaw-panel node -e \"fetch('http://openclaw-gateway:18789/').then(r=>{console.log('status='+r.status);process.exit(r.ok?0:1)}).catch(e=>{console.error(String(e));process.exit(2)})\"\nTypeError: fetch failed\n"
+            }
+          }
+        },
+        {
+          "attempt": 8,
+          "recovered": false,
+          "probe": {
+            "panelHealth": {
+              "ok": true,
+              "status": 200,
+              "elapsedMs": 3,
+              "body": {
+                "ok": true,
+                "service": "openclaw-panel",
+                "timestamp": "2026-02-16T06:49:39.742Z"
+              }
+            },
+            "serviceStatus": {
+              "ok": true,
+              "status": 200,
+              "elapsedMs": 76,
+              "body": {
+                "ok": true,
+                "result": {
+                  "ok": true,
+                  "action": "status",
+                  "runtimeMode": "docker",
+                  "containerName": "openclaw-gateway",
+                  "active": true,
+                  "output": "state: running\nCONTAINER ID   IMAGE                                 COMMAND                  CREATED          STATUS          PORTS                                             NAMES\n1066146bd00c   ghcr.io/openclaw/openclaw:2026.2.14   \"docker-entrypoint.s…\"   12 seconds ago   Up 12 seconds   0.0.0.0:18789->18789/tcp, [::]:18789->18789/tcp   openclaw-gateway"
+                }
+              }
+            },
+            "updateCheck": {
+              "ok": true,
+              "status": 200,
+              "elapsedMs": 189,
+              "body": {
+                "ok": true,
+                "result": {
+                  "ok": true,
+                  "containerName": "openclaw-gateway",
+                  "imageRepo": "ghcr.io/openclaw/openclaw",
+                  "releaseRepo": "openclaw/openclaw",
+                  "currentImage": "ghcr.io/openclaw/openclaw:2026.2.14",
+                  "currentTag": "2026.2.14",
+                  "latestTag": "2026.2.15",
+                  "latestPublishedAt": "2026-02-16T04:43:47Z",
+                  "updateAvailable": true,
+                  "warning": ""
+                }
+              }
+            },
+            "gatewayHome": {
+              "ok": true,
+              "status": 200,
+              "elapsedMs": 28,
+              "textPreview": "<!doctype html>\n<html lang=\"en\">\n  <head>\n    <meta charset=\"UTF-8\" />\n    <meta name=\"viewport\" content=\"width=device-w"
+            },
+            "containerState": {
+              "ok": true,
+              "command": "docker inspect -f \"{{.State.Status}}\" openclaw-gateway",
+              "elapsedMs": 95,
+              "stdout": "running"
+            },
+            "internalDnsProbe": {
+              "ok": false,
+              "command": "docker exec openclaw-panel node -e \"fetch('http://openclaw-gateway:18789/').then(r=>{console.log('status='+r.status);process.exit(r.ok?0:1)}).catch(e=>{console.error(String(e));process.exit(2)})\"",
+              "elapsedMs": 190,
+              "stdout": "",
+              "stderr": "TypeError: fetch failed",
+              "message": "Command failed: docker exec openclaw-panel node -e \"fetch('http://openclaw-gateway:18789/').then(r=>{console.log('status='+r.status);process.exit(r.ok?0:1)}).catch(e=>{console.error(String(e));process.exit(2)})\"\nTypeError: fetch failed\n"
+            }
+          }
+        },
+        {
+          "attempt": 9,
+          "recovered": false,
+          "probe": {
+            "panelHealth": {
+              "ok": true,
+              "status": 200,
+              "elapsedMs": 3,
+              "body": {
+                "ok": true,
+                "service": "openclaw-panel",
+                "timestamp": "2026-02-16T06:49:41.340Z"
+              }
+            },
+            "serviceStatus": {
+              "ok": true,
+              "status": 200,
+              "elapsedMs": 73,
+              "body": {
+                "ok": true,
+                "result": {
+                  "ok": true,
+                  "action": "status",
+                  "runtimeMode": "docker",
+                  "containerName": "openclaw-gateway",
+                  "active": true,
+                  "output": "state: running\nCONTAINER ID   IMAGE                                 COMMAND                  CREATED          STATUS          PORTS                                             NAMES\n1066146bd00c   ghcr.io/openclaw/openclaw:2026.2.14   \"docker-entrypoint.s…\"   14 seconds ago   Up 13 seconds   0.0.0.0:18789->18789/tcp, [::]:18789->18789/tcp   openclaw-gateway"
+                }
+              }
+            },
+            "updateCheck": {
+              "ok": true,
+              "status": 200,
+              "elapsedMs": 190,
+              "body": {
+                "ok": true,
+                "result": {
+                  "ok": true,
+                  "containerName": "openclaw-gateway",
+                  "imageRepo": "ghcr.io/openclaw/openclaw",
+                  "releaseRepo": "openclaw/openclaw",
+                  "currentImage": "ghcr.io/openclaw/openclaw:2026.2.14",
+                  "currentTag": "2026.2.14",
+                  "latestTag": "2026.2.15",
+                  "latestPublishedAt": "2026-02-16T04:43:47Z",
+                  "updateAvailable": true,
+                  "warning": ""
+                }
+              }
+            },
+            "gatewayHome": {
+              "ok": true,
+              "status": 200,
+              "elapsedMs": 31,
+              "textPreview": "<!doctype html>\n<html lang=\"en\">\n  <head>\n    <meta charset=\"UTF-8\" />\n    <meta name=\"viewport\" content=\"width=device-w"
+            },
+            "containerState": {
+              "ok": true,
+              "command": "docker inspect -f \"{{.State.Status}}\" openclaw-gateway",
+              "elapsedMs": 95,
+              "stdout": "running"
+            },
+            "internalDnsProbe": {
+              "ok": false,
+              "command": "docker exec openclaw-panel node -e \"fetch('http://openclaw-gateway:18789/').then(r=>{console.log('status='+r.status);process.exit(r.ok?0:1)}).catch(e=>{console.error(String(e));process.exit(2)})\"",
+              "elapsedMs": 199,
+              "stdout": "",
+              "stderr": "TypeError: fetch failed",
+              "message": "Command failed: docker exec openclaw-panel node -e \"fetch('http://openclaw-gateway:18789/').then(r=>{console.log('status='+r.status);process.exit(r.ok?0:1)}).catch(e=>{console.error(String(e));process.exit(2)})\"\nTypeError: fetch failed\n"
+            }
+          }
+        },
+        {
+          "attempt": 10,
+          "recovered": true,
+          "probe": {
+            "panelHealth": {
+              "ok": true,
+              "status": 200,
+              "elapsedMs": 4,
+              "body": {
+                "ok": true,
+                "service": "openclaw-panel",
+                "timestamp": "2026-02-16T06:49:42.865Z"
+              }
+            },
+            "serviceStatus": {
+              "ok": true,
+              "status": 200,
+              "elapsedMs": 78,
+              "body": {
+                "ok": true,
+                "result": {
+                  "ok": true,
+                  "action": "status",
+                  "runtimeMode": "docker",
+                  "containerName": "openclaw-gateway",
+                  "active": true,
+                  "output": "state: running\nCONTAINER ID   IMAGE                                 COMMAND                  CREATED          STATUS          PORTS                                             NAMES\n1066146bd00c   ghcr.io/openclaw/openclaw:2026.2.14   \"docker-entrypoint.s…\"   15 seconds ago   Up 15 seconds   0.0.0.0:18789->18789/tcp, [::]:18789->18789/tcp   openclaw-gateway"
+                }
+              }
+            },
+            "updateCheck": {
+              "ok": true,
+              "status": 200,
+              "elapsedMs": 191,
+              "body": {
+                "ok": true,
+                "result": {
+                  "ok": true,
+                  "containerName": "openclaw-gateway",
+                  "imageRepo": "ghcr.io/openclaw/openclaw",
+                  "releaseRepo": "openclaw/openclaw",
+                  "currentImage": "ghcr.io/openclaw/openclaw:2026.2.14",
+                  "currentTag": "2026.2.14",
+                  "latestTag": "2026.2.15",
+                  "latestPublishedAt": "2026-02-16T04:43:47Z",
+                  "updateAvailable": true,
+                  "warning": ""
+                }
+              }
+            },
+            "gatewayHome": {
+              "ok": true,
+              "status": 200,
+              "elapsedMs": 28,
+              "textPreview": "<!doctype html>\n<html lang=\"en\">\n  <head>\n    <meta charset=\"UTF-8\" />\n    <meta name=\"viewport\" content=\"width=device-w"
+            },
+            "containerState": {
+              "ok": true,
+              "command": "docker inspect -f \"{{.State.Status}}\" openclaw-gateway",
+              "elapsedMs": 98,
+              "stdout": "running"
+            },
+            "internalDnsProbe": {
+              "ok": true,
+              "command": "docker exec openclaw-panel node -e \"fetch('http://openclaw-gateway:18789/').then(r=>{console.log('status='+r.status);process.exit(r.ok?0:1)}).catch(e=>{console.error(String(e));process.exit(2)})\"",
+              "elapsedMs": 255,
+              "stdout": "status=200"
+            }
+          }
+        }
+      ]
+    }
+  },
+  "finishedAt": "2026-02-16T06:49:43.516Z"
+}

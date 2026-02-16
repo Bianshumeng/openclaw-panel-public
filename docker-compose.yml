@@ -12,7 +12,7 @@ services:
     volumes:
       - ./data/openclaw:/home/node/.openclaw
     ports:
-      - "${OPENCLAW_GATEWAY_PORT:-18789}:18789"
+      - "${OPENCLAW_GATEWAY_BIND_IP:-0.0.0.0}:${OPENCLAW_GATEWAY_PORT:-18789}:${OPENCLAW_GATEWAY_CONTAINER_PORT:-18789}"
     command:
       [
         "node",
@@ -21,8 +21,10 @@ services:
         "--bind",
         "${OPENCLAW_GATEWAY_BIND:-lan}",
         "--port",
-        "18789",
+        "${OPENCLAW_GATEWAY_CONTAINER_PORT:-18789}",
       ]
+    networks:
+      - openclaw-internal
 
   panel:
     build:
@@ -35,9 +37,19 @@ services:
       - openclaw-gateway
     environment:
       PANEL_CONFIG_PATH: /data/panel/panel.config.json
+      PANEL_LISTEN_HOST: ${PANEL_LISTEN_HOST:-0.0.0.0}
+      PANEL_LISTEN_PORT: ${PANEL_CONTAINER_PORT:-18080}
+      OPENCLAW_GATEWAY_CONTAINER_PORT: ${OPENCLAW_GATEWAY_CONTAINER_PORT:-18789}
+      OPENCLAW_GATEWAY_TOKEN: ${OPENCLAW_GATEWAY_TOKEN}
     volumes:
       - ./data/openclaw:/data/openclaw
       - ./data/panel:/data/panel
       - /var/run/docker.sock:/var/run/docker.sock
     ports:
-      - "${PANEL_BIND_IP:-127.0.0.1}:${PANEL_PORT:-18080}:18080"
+      - "${PANEL_BIND_IP:-127.0.0.1}:${PANEL_PORT:-18080}:${PANEL_CONTAINER_PORT:-18080}"
+    networks:
+      - openclaw-internal
+
+networks:
+  openclaw-internal:
+    name: ${OPENCLAW_INTERNAL_NETWORK:-openclaw-internal}

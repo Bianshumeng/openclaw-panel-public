@@ -12,11 +12,14 @@
         <div class="brand">
           <p class="eyebrow">OpenClaw Panel</p>
           <h1>龙虾 Bot 控制台</h1>
-          <p class="sub">只暴露业务配置，不暴露服务器端点。</p>
+          <p class="sub">默认隐藏基础设施细节，按需展示公网入口与回调地址。</p>
         </div>
 
         <nav class="tabs sidebar-tabs">
           <a class="tab" data-tab-target="panel-dashboard" href="/dashboard">仪表盘</a>
+          <a class="tab" data-tab-target="panel-status-overview" href="/status-overview">状态总览</a>
+          <a class="tab" data-tab-target="panel-skills" href="/skills">Skills 管理</a>
+          <a class="tab" data-tab-target="panel-chat-console" href="/chat-console">对话控制台</a>
           <a class="tab is-active" data-tab-target="panel-model" href="/model">模型与提供商配置</a>
           <a class="tab" data-tab-target="panel-config-generator" href="/config-generator">配置生成器</a>
           <a class="tab" data-tab-target="panel-channel" href="/channels">渠道接入</a>
@@ -46,6 +49,27 @@
               <span id="meta_service_name">service: -</span>
               <span id="meta_log_source">log: -</span>
             </div>
+            <div class="grid">
+              <label>
+                面板本地监听地址
+                <input id="dashboard_panel_local_url" type="text" readonly />
+              </label>
+              <label>
+                面板公网访问地址
+                <input id="dashboard_panel_public_url" type="text" readonly />
+              </label>
+              <label>
+                网关公网访问地址
+                <input id="dashboard_gateway_public_url" type="text" readonly />
+              </label>
+              <label>
+                Webhook 回调基地址
+                <input id="dashboard_webhook_base_url" type="text" readonly />
+              </label>
+            </div>
+            <p id="dashboard_public_hint" class="muted-line">
+              若为空，请在 <code>data/panel/panel.config.json</code> 的 <code>reverse_proxy</code> 中填写公网 IP 与端口。
+            </p>
           </article>
 
           <article class="card">
@@ -69,6 +93,152 @@
                 <input id="dashboard_current_thinking_strength" type="text" readonly />
               </label>
             </div>
+          </article>
+        </section>
+
+        <section class="panel" data-panel="panel-status-overview">
+          <article class="card">
+            <h2>状态总览（聚合）</h2>
+            <p class="muted-line">聚合 Gateway、Skills、渠道与模型状态，便于快速巡检。</p>
+            <div class="actions">
+              <button id="status_overview_refresh" type="button">刷新状态总览</button>
+            </div>
+            <div class="grid">
+              <label>
+                运行模式
+                <input id="status_runtime_mode" type="text" readonly />
+              </label>
+              <label>
+                服务状态
+                <input id="status_runtime_active" type="text" readonly />
+              </label>
+              <label>
+                提供商数量
+                <input id="status_model_provider_count" type="text" readonly />
+              </label>
+              <label>
+                可用模型总数
+                <input id="status_model_count" type="text" readonly />
+              </label>
+              <label>
+                已配置渠道
+                <input id="status_channel_configured" type="text" readonly />
+              </label>
+              <label>
+                运行中渠道
+                <input id="status_channel_running" type="text" readonly />
+              </label>
+              <label>
+                Skills 总数
+                <input id="status_skills_total" type="text" readonly />
+              </label>
+              <label>
+                已启用 Skills
+                <input id="status_skills_enabled" type="text" readonly />
+              </label>
+            </div>
+            <p id="status_overview_hint" class="muted-line">点击“刷新状态总览”后显示最新聚合状态。</p>
+          </article>
+
+          <article class="card">
+            <h2>渠道运行态</h2>
+            <div id="status_channel_runtime_list" class="stack-list"></div>
+          </article>
+
+          <article class="card">
+            <h2>Skills 运行态</h2>
+            <div id="status_skills_runtime_list" class="stack-list"></div>
+          </article>
+        </section>
+
+        <section class="panel" data-panel="panel-skills">
+          <article class="card">
+            <h2>Skills 管理</h2>
+            <p class="muted-line">你可以在这里查看技能状态、启停技能，并检查该技能在本地配置中的落盘内容。</p>
+            <div class="actions">
+              <button id="skills_refresh" type="button">刷新 Skills 列表</button>
+            </div>
+            <div class="grid">
+              <label>
+                总数
+                <input id="skills_total" type="text" readonly />
+              </label>
+              <label>
+                已启用
+                <input id="skills_enabled" type="text" readonly />
+              </label>
+              <label>
+                已禁用
+                <input id="skills_disabled" type="text" readonly />
+              </label>
+            </div>
+            <div id="skills_list" class="stack-list"></div>
+          </article>
+
+          <article class="card">
+            <h2>Skill 配置详情</h2>
+            <p class="muted-line">用于查看当前选中 Skill 在配置文件中的有效配置（敏感字段会脱敏）。</p>
+            <pre id="skills_config_preview" class="output">请选择一个 Skill 查看配置</pre>
+          </article>
+        </section>
+
+        <section class="panel" data-panel="panel-chat-console">
+          <article class="card">
+            <h2>对话控制台（控制层）</h2>
+            <p class="muted-line">不替代主聊天页面，只用于调试会话、发送消息、查看运行与中止。</p>
+            <div class="actions">
+              <button id="chat_refresh_sessions" type="button">刷新会话列表</button>
+              <button id="chat_load_history" type="button">刷新会话历史</button>
+              <button id="chat_reconnect_stream" class="btn-soft" type="button">重连流式通道</button>
+            </div>
+            <div class="grid">
+              <label>
+                会话
+                <select id="chat_session_select"></select>
+              </label>
+              <label>
+                最近 Run ID
+                <input id="chat_last_run_id" type="text" readonly />
+              </label>
+              <label>
+                流式通道状态
+                <input id="chat_stream_status" type="text" readonly />
+              </label>
+              <label>
+                思考强度
+                <select id="chat_thinking_level">
+                  <option value="">默认</option>
+                  <option value="minimal">minimal</option>
+                  <option value="low">low</option>
+                  <option value="medium">medium</option>
+                  <option value="high">high</option>
+                </select>
+              </label>
+              <label>
+                幂等键（可选）
+                <input id="chat_idempotency_key" type="text" placeholder="留空自动生成" />
+              </label>
+            </div>
+            <label>
+              发送消息
+              <textarea id="chat_message_input" rows="4" placeholder="输入消息内容"></textarea>
+            </label>
+            <div class="actions">
+              <button id="chat_send_message" type="button">发送消息</button>
+              <button id="chat_abort_run" class="btn-soft" type="button">中止当前 Run</button>
+              <button id="chat_reset_session" class="btn-soft" type="button">重置会话</button>
+            </div>
+          </article>
+
+          <article class="card">
+            <h2>会话历史</h2>
+            <pre id="chat_history_output" class="output">请选择会话后加载历史</pre>
+          </article>
+
+          <article class="card">
+            <h2>流式输出（SSE）</h2>
+            <p class="muted-line">实时展示 delta / final / aborted / thinking 等事件。</p>
+            <pre id="chat_stream_output" class="output">等待流式事件...</pre>
           </article>
         </section>
 

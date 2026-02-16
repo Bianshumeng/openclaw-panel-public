@@ -1,0 +1,33 @@
+{
+  "ok": true,
+  "testedAt": "2026-02-16T08:01:34.735Z",
+  "endpoint": "/api/chat/stream",
+  "sessionKey": "agent:main:panel-chat-service-api-probe",
+  "sendPayload": {
+    "sessionKey": "agent:main:panel-chat-service-api-probe",
+    "message": "1.5 SSE smoke test",
+    "idempotencyKey": "panel-sse-1771228888719"
+  },
+  "sendResponse": {
+    "ok": true,
+    "result": {
+      "sessionKey": "agent:main:panel-chat-service-api-probe",
+      "runId": "panel-sse-1771228888719",
+      "status": "started",
+      "idempotencyKey": "panel-sse-1771228888719"
+    }
+  },
+  "totalEvents": 12,
+  "eventCounts": {
+    "ready": 1,
+    "status": 1,
+    "agent": 7,
+    "chat": 2,
+    "terminal": 1
+  },
+  "terminalState": "final",
+  "sampleStates": [
+    "delta",
+    "final"
+  ]
+}

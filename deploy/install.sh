@@ -22,10 +22,20 @@ if [ ! -f "$CONFIG_DIR/panel.config.json" ]; then
   cat > "$CONFIG_DIR/panel.config.json" <<EOF
 {
   "panel": { "listen_host": "127.0.0.1", "listen_port": 18080 },
-  "reverse_proxy": { "enabled": false },
+  "reverse_proxy": {
+    "enabled": false,
+    "public_scheme": "http",
+    "public_host": "",
+    "panel_public_port": 18080,
+    "gateway_public_port": 18789,
+    "panel_public_base_url": "",
+    "webhook_public_base_url": ""
+  },
   "openclaw": {
     "config_path": "~/.openclaw/openclaw.json",
-    "service_name": "openclaw-gateway"
+    "service_name": "openclaw-gateway",
+    "gateway_port": 18789,
+    "gateway_ws_url": ""
   },
   "log": {
     "source": "journal",
@@ -42,4 +52,3 @@ systemctl daemon-reload
 systemctl enable openclaw-panel
 systemctl restart openclaw-panel
 systemctl status openclaw-panel --no-pager -n 20
-

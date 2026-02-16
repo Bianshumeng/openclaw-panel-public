@@ -1,0 +1,4484 @@
+{
+  "startedAt": "2026-02-16T05:41:20.454Z",
+  "finishedAt": "2026-02-16T05:41:21.050Z",
+  "wsUrl": "ws://127.0.0.1:18789/ws",
+  "probeId": "skills-boundary-probe-1771220480454",
+  "probeSkillKey": "__panel_probe_nonexistent_skill__",
+  "clientDistFile": "client-B5KEYk4h.js",
+  "hello": {
+    "type": "hello-ok",
+    "protocol": 3,
+    "server": {
+      "version": "dev",
+      "host": "3fdf9e7221c0",
+      "connId": "bc705ef2-85d9-41d2-97c8-2c3e38184ac3"
+    },
+    "features": {
+      "methods": [
+        "health",
+        "logs.tail",
+        "channels.status",
+        "channels.logout",
+        "status",
+        "usage.status",
+        "usage.cost",
+        "tts.status",
+        "tts.providers",
+        "tts.enable",
+        "tts.disable",
+        "tts.convert",
+        "tts.setProvider",
+        "config.get",
+        "config.set",
+        "config.apply",
+        "config.patch",
+        "config.schema",
+        "exec.approvals.get",
+        "exec.approvals.set",
+        "exec.approvals.node.get",
+        "exec.approvals.node.set",
+        "exec.approval.request",
+        "exec.approval.waitDecision",
+        "exec.approval.resolve",
+        "wizard.start",
+        "wizard.next",
+        "wizard.cancel",
+        "wizard.status",
+        "talk.config",
+        "talk.mode",
+        "models.list",
+        "agents.list",
+        "agents.create",
+        "agents.update",
+        "agents.delete",
+        "agents.files.list",
+        "agents.files.get",
+        "agents.files.set",
+        "skills.status",
+        "skills.bins",
+        "skills.install",
+        "skills.update",
+        "update.run",
+        "voicewake.get",
+        "voicewake.set",
+        "sessions.list",
+        "sessions.preview",
+        "sessions.patch",
+        "sessions.reset",
+        "sessions.delete",
+        "sessions.compact",
+        "last-heartbeat",
+        "set-heartbeats",
+        "wake",
+        "node.pair.request",
+        "node.pair.list",
+        "node.pair.approve",
+        "node.pair.reject",
+        "node.pair.verify",
+        "device.pair.list",
+        "device.pair.approve",
+        "device.pair.reject",
+        "device.token.rotate",
+        "device.token.revoke",
+        "node.rename",
+        "node.list",
+        "node.describe",
+        "node.invoke",
+        "node.invoke.result",
+        "node.event",
+        "cron.list",
+        "cron.status",
+        "cron.add",
+        "cron.update",
+        "cron.remove",
+        "cron.run",
+        "cron.runs",
+        "system-presence",
+        "system-event",
+        "send",
+        "agent",
+        "agent.identity.get",
+        "agent.wait",
+        "browser.request",
+        "chat.history",
+        "chat.abort",
+        "chat.send"
+      ],
+      "events": [
+        "connect.challenge",
+        "agent",
+        "chat",
+        "presence",
+        "tick",
+        "talk.mode",
+        "shutdown",
+        "health",
+        "heartbeat",
+        "cron",
+        "node.pair.requested",
+        "node.pair.resolved",
+        "node.invoke.request",
+        "device.pair.requested",
+        "device.pair.resolved",
+        "voicewake.changed",
+        "exec.approval.requested",
+        "exec.approval.resolved"
+      ]
+    },
+    "snapshot": {
+      "presence": [
+        {
+          "host": "3fdf9e7221c0",
+          "ip": "172.21.0.2",
+          "version": "unknown",
+          "platform": "linux 5.15.167.4-microsoft-standard-WSL2",
+          "deviceFamily": "Linux",
+          "modelIdentifier": "x64",
+          "mode": "gateway",
+          "reason": "self",
+          "text": "Gateway: 3fdf9e7221c0 (172.21.0.2) · app unknown · mode gateway · reason self",
+          "ts": 1771220480751
+        }
+      ],
+      "health": {
+        "ok": true,
+        "ts": 1771220450336,
+        "durationMs": 0,
+        "channels": {},
+        "channelOrder": [],
+        "channelLabels": {},
+        "heartbeatSeconds": 1800,
+        "defaultAgentId": "main",
+        "agents": [
+          {
+            "agentId": "main",
+            "isDefault": true,
+            "heartbeat": {
+              "enabled": true,
+              "every": "30m",
+              "everyMs": 1800000,
+              "prompt": "Read HEARTBEAT.md if it exists (workspace context). Follow it strictly. Do not infer or repeat old tasks from prior chats. If nothing needs attention, reply HEARTBEAT_OK.",
+              "target": "last",
+              "ackMaxChars": 300
+            },
+            "sessions": {
+              "path": "/home/node/.openclaw/agents/main/sessions/sessions.json",
+              "count": 13,
+              "recent": [
+                {
+                  "key": "agent:main:panel-stream-probe-1771220207181",
+                  "updatedAt": 1771220215209,
+                  "age": 235126
+                },
+                {
+                  "key": "agent:main:panel-stream-probe-1771220153828",
+                  "updatedAt": 1771220168681,
+                  "age": 281654
+                },
+                {
+                  "key": "agent:main:panel-stream-abort-1771220040840",
+                  "updatedAt": 1771220041435,
+                  "age": 408900
+                },
+                {
+                  "key": "agent:main:panel-stream-probe-config-error-1771220021125",
+                  "updatedAt": 1771220024782,
+                  "age": 425553
+                },
+                {
+                  "key": "agent:main:panel-stream-probe-force-error-1771219989545",
+                  "updatedAt": 1771219993304,
+                  "age": 457031
+                }
+              ]
+            }
+          }
+        ],
+        "sessions": {
+          "path": "/home/node/.openclaw/agents/main/sessions/sessions.json",
+          "count": 13,
+          "recent": [
+            {
+              "key": "agent:main:panel-stream-probe-1771220207181",
+              "updatedAt": 1771220215209,
+              "age": 235126
+            },
+            {
+              "key": "agent:main:panel-stream-probe-1771220153828",
+              "updatedAt": 1771220168681,
+              "age": 281654
+            },
+            {
+              "key": "agent:main:panel-stream-abort-1771220040840",
+              "updatedAt": 1771220041435,
+              "age": 408900
+            },
+            {
+              "key": "agent:main:panel-stream-probe-config-error-1771220021125",
+              "updatedAt": 1771220024782,
+              "age": 425553
+            },
+            {
+              "key": "agent:main:panel-stream-probe-force-error-1771219989545",
+              "updatedAt": 1771219993304,
+              "age": 457031
+            }
+          ]
+        }
+      },
+      "stateVersion": {
+        "presence": 1,
+        "health": 834
+      },
+      "uptimeMs": 45949120,
+      "configPath": "/home/node/.openclaw/openclaw.json",
+      "stateDir": "/home/node/.openclaw",
+      "sessionDefaults": {
+        "defaultAgentId": "main",
+        "mainKey": "main",
+        "mainSessionKey": "agent:main:main",
+        "scope": "per-sender"
+      },
+      "authMode": "token"
+    },
+    "canvasHostUrl": "http://127.0.0.1:18789",
+    "auth": {
+      "deviceToken": "uVkW2idRtbd2z2lBYyAF9QuM_Er9W79ib7TwWbqv0mA",
+      "role": "operator",
+      "scopes": [
+        "operator.admin",
+        "operator.approvals",
+        "operator.pairing"
+      ],
+      "issuedAtMs": 1771219284921
+    },
+    "policy": {
+      "maxPayload": 8388608,
+      "maxBufferedBytes": 16777216,
+      "tickIntervalMs": 30000
+    }
+  },
+  "lastClose": null,
+  "checks": {
+    "statusBefore": {
+      "total": 49,
+      "firstSkillKeys": [
+        "1password",
+        "apple-notes",
+        "apple-reminders",
+        "bear-notes",
+        "blogwatcher",
+        "blucli",
+        "bluebubbles",
+        "camsnap",
+        "clawhub",
+        "coding-agent"
+      ],
+      "containsProbeSkillKey": false
+    },
+    "unknownAgentError": {
+      "ok": true,
+      "error": "unknown agent id \"__unknown_agent__\""
+    },
+    "updateUnknown": {
+      "ok": true,
+      "response": {
+        "ok": true,
+        "skillKey": "__panel_probe_nonexistent_skill__",
+        "config": {
+          "enabled": false
+        }
+      }
+    },
+    "statusAfter": {
+      "total": 49,
+      "containsProbeSkillKey": false
+    },
+    "installMissingError": {
+      "ok": true,
+      "error": "Skill not found: __panel_missing_skill__"
+    },
+    "binsError": {
+      "ok": true,
+      "error": "unauthorized role: operator"
+    }
+  },
+  "rpcTrace": [
+    {
+      "at": "2026-02-16T05:41:20.845Z",
+      "method": "skills.status",
+      "ok": true,
+      "latencyMs": 82,
+      "params": {},
+      "payload": {
+        "workspaceDir": "/home/node/.openclaw/workspace",
+        "managedSkillsDir": "/home/node/.openclaw/skills",
+        "skills": [
+          {
+            "name": "1password",
+            "description": "Set up and use 1Password CLI (op). Use when installing the CLI, enabling desktop app integration, signing in (single or multi-account), or reading/injecting/running secrets via op.",
+            "source": "openclaw-bundled",
+            "bundled": true,
+            "filePath": "/app/skills/1password/SKILL.md",
+            "baseDir": "/app/skills/1password",
+            "skillKey": "1password",
+            "emoji": "🔐",
+            "homepage": "https://developer.1password.com/docs/cli/get-started/",
+            "always": false,
+            "disabled": false,
+            "blockedByAllowlist": false,
+            "eligible": false,
+            "requirements": {
+              "bins": [
+                "op"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "missing": {
+              "bins": [
+                "op"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "configChecks": [],
+            "install": [
+              {
+                "id": "brew",
+                "kind": "brew",
+                "label": "Install 1Password CLI (brew)",
+                "bins": [
+                  "op"
+                ]
+              }
+            ]
+          },
+          {
+            "name": "apple-notes",
+            "description": "Manage Apple Notes via the `memo` CLI on macOS (create, view, edit, delete, search, move, and export notes). Use when a user asks OpenClaw to add a note, list notes, search notes, or manage note folders.",
+            "source": "openclaw-bundled",
+            "bundled": true,
+            "filePath": "/app/skills/apple-notes/SKILL.md",
+            "baseDir": "/app/skills/apple-notes",
+            "skillKey": "apple-notes",
+            "emoji": "📝",
+            "homepage": "https://github.com/antoniorodr/memo",
+            "always": false,
+            "disabled": false,
+            "blockedByAllowlist": false,
+            "eligible": false,
+            "requirements": {
+              "bins": [
+                "memo"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": [
+                "darwin"
+              ]
+            },
+            "missing": {
+              "bins": [
+                "memo"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": [
+                "darwin"
+              ]
+            },
+            "configChecks": [],
+            "install": []
+          },
+          {
+            "name": "apple-reminders",
+            "description": "Manage Apple Reminders via the `remindctl` CLI on macOS (list, add, edit, complete, delete). Supports lists, date filters, and JSON/plain output.",
+            "source": "openclaw-bundled",
+            "bundled": true,
+            "filePath": "/app/skills/apple-reminders/SKILL.md",
+            "baseDir": "/app/skills/apple-reminders",
+            "skillKey": "apple-reminders",
+            "emoji": "⏰",
+            "homepage": "https://github.com/steipete/remindctl",
+            "always": false,
+            "disabled": false,
+            "blockedByAllowlist": false,
+            "eligible": false,
+            "requirements": {
+              "bins": [
+                "remindctl"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": [
+                "darwin"
+              ]
+            },
+            "missing": {
+              "bins": [
+                "remindctl"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": [
+                "darwin"
+              ]
+            },
+            "configChecks": [],
+            "install": []
+          },
+          {
+            "name": "bear-notes",
+            "description": "Create, search, and manage Bear notes via grizzly CLI.",
+            "source": "openclaw-bundled",
+            "bundled": true,
+            "filePath": "/app/skills/bear-notes/SKILL.md",
+            "baseDir": "/app/skills/bear-notes",
+            "skillKey": "bear-notes",
+            "emoji": "🐻",
+            "homepage": "https://bear.app",
+            "always": false,
+            "disabled": false,
+            "blockedByAllowlist": false,
+            "eligible": false,
+            "requirements": {
+              "bins": [
+                "grizzly"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": [
+                "darwin"
+              ]
+            },
+            "missing": {
+              "bins": [
+                "grizzly"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": [
+                "darwin"
+              ]
+            },
+            "configChecks": [],
+            "install": []
+          },
+          {
+            "name": "blogwatcher",
+            "description": "Monitor blogs and RSS/Atom feeds for updates using the blogwatcher CLI.",
+            "source": "openclaw-bundled",
+            "bundled": true,
+            "filePath": "/app/skills/blogwatcher/SKILL.md",
+            "baseDir": "/app/skills/blogwatcher",
+            "skillKey": "blogwatcher",
+            "emoji": "📰",
+            "homepage": "https://github.com/Hyaxia/blogwatcher",
+            "always": false,
+            "disabled": false,
+            "blockedByAllowlist": false,
+            "eligible": false,
+            "requirements": {
+              "bins": [
+                "blogwatcher"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "missing": {
+              "bins": [
+                "blogwatcher"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "configChecks": [],
+            "install": [
+              {
+                "id": "go",
+                "kind": "go",
+                "label": "Install blogwatcher (go)",
+                "bins": [
+                  "blogwatcher"
+                ]
+              }
+            ]
+          },
+          {
+            "name": "blucli",
+            "description": "BluOS CLI (blu) for discovery, playback, grouping, and volume.",
+            "source": "openclaw-bundled",
+            "bundled": true,
+            "filePath": "/app/skills/blucli/SKILL.md",
+            "baseDir": "/app/skills/blucli",
+            "skillKey": "blucli",
+            "emoji": "🫐",
+            "homepage": "https://blucli.sh",
+            "always": false,
+            "disabled": false,
+            "blockedByAllowlist": false,
+            "eligible": false,
+            "requirements": {
+              "bins": [
+                "blu"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "missing": {
+              "bins": [
+                "blu"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "configChecks": [],
+            "install": [
+              {
+                "id": "go",
+                "kind": "go",
+                "label": "Install blucli (go)",
+                "bins": [
+                  "blu"
+                ]
+              }
+            ]
+          },
+          {
+            "name": "bluebubbles",
+            "description": "Use when you need to send or manage iMessages via BlueBubbles (recommended iMessage integration). Calls go through the generic message tool with channel=\"bluebubbles\".",
+            "source": "openclaw-bundled",
+            "bundled": true,
+            "filePath": "/app/skills/bluebubbles/SKILL.md",
+            "baseDir": "/app/skills/bluebubbles",
+            "skillKey": "bluebubbles",
+            "emoji": "🫧",
+            "always": false,
+            "disabled": false,
+            "blockedByAllowlist": false,
+            "eligible": false,
+            "requirements": {
+              "bins": [],
+              "anyBins": [],
+              "env": [],
+              "config": [
+                "channels.bluebubbles"
+              ],
+              "os": []
+            },
+            "missing": {
+              "bins": [],
+              "anyBins": [],
+              "env": [],
+              "config": [
+                "channels.bluebubbles"
+              ],
+              "os": []
+            },
+            "configChecks": [
+              {
+                "path": "channels.bluebubbles",
+                "satisfied": false
+              }
+            ],
+            "install": []
+          },
+          {
+            "name": "camsnap",
+            "description": "Capture frames or clips from RTSP/ONVIF cameras.",
+            "source": "openclaw-bundled",
+            "bundled": true,
+            "filePath": "/app/skills/camsnap/SKILL.md",
+            "baseDir": "/app/skills/camsnap",
+            "skillKey": "camsnap",
+            "emoji": "📸",
+            "homepage": "https://camsnap.ai",
+            "always": false,
+            "disabled": false,
+            "blockedByAllowlist": false,
+            "eligible": false,
+            "requirements": {
+              "bins": [
+                "camsnap"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "missing": {
+              "bins": [
+                "camsnap"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "configChecks": [],
+            "install": [
+              {
+                "id": "brew",
+                "kind": "brew",
+                "label": "Install camsnap (brew)",
+                "bins": [
+                  "camsnap"
+                ]
+              }
+            ]
+          },
+          {
+            "name": "clawhub",
+            "description": "Use the ClawHub CLI to search, install, update, and publish agent skills from clawhub.com. Use when you need to fetch new skills on the fly, sync installed skills to latest or a specific version, or publish new/updated skill folders with the npm-installed clawhub CLI.",
+            "source": "openclaw-bundled",
+            "bundled": true,
+            "filePath": "/app/skills/clawhub/SKILL.md",
+            "baseDir": "/app/skills/clawhub",
+            "skillKey": "clawhub",
+            "always": false,
+            "disabled": false,
+            "blockedByAllowlist": false,
+            "eligible": false,
+            "requirements": {
+              "bins": [
+                "clawhub"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "missing": {
+              "bins": [
+                "clawhub"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "configChecks": [],
+            "install": [
+              {
+                "id": "node",
+                "kind": "node",
+                "label": "Install clawhub (npm)",
+                "bins": [
+                  "clawhub"
+                ]
+              }
+            ]
+          },
+          {
+            "name": "coding-agent",
+            "description": "Run Codex CLI, Claude Code, OpenCode, or Pi Coding Agent via background process for programmatic control.",
+            "source": "openclaw-bundled",
+            "bundled": true,
+            "filePath": "/app/skills/coding-agent/SKILL.md",
+            "baseDir": "/app/skills/coding-agent",
+            "skillKey": "coding-agent",
+            "emoji": "🧩",
+            "always": false,
+            "disabled": false,
+            "blockedByAllowlist": false,
+            "eligible": false,
+            "requirements": {
+              "bins": [],
+              "anyBins": [
+                "claude",
+                "codex",
+                "opencode",
+                "pi"
+              ],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "missing": {
+              "bins": [],
+              "anyBins": [
+                "claude",
+                "codex",
+                "opencode",
+                "pi"
+              ],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "configChecks": [],
+            "install": []
+          },
+          {
+            "name": "discord",
+            "description": "Discord ops via the message tool (channel=discord).",
+            "source": "openclaw-bundled",
+            "bundled": true,
+            "filePath": "/app/skills/discord/SKILL.md",
+            "baseDir": "/app/skills/discord",
+            "skillKey": "discord",
+            "emoji": "🎮",
+            "always": false,
+            "disabled": false,
+            "blockedByAllowlist": false,
+            "eligible": false,
+            "requirements": {
+              "bins": [],
+              "anyBins": [],
+              "env": [],
+              "config": [
+                "channels.discord.token"
+              ],
+              "os": []
+            },
+            "missing": {
+              "bins": [],
+              "anyBins": [],
+              "env": [],
+              "config": [
+                "channels.discord.token"
+              ],
+              "os": []
+            },
+            "configChecks": [
+              {
+                "path": "channels.discord.token",
+                "satisfied": false
+              }
+            ],
+            "install": []
+          },
+          {
+            "name": "eightctl",
+            "description": "Control Eight Sleep pods (status, temperature, alarms, schedules).",
+            "source": "openclaw-bundled",
+            "bundled": true,
+            "filePath": "/app/skills/eightctl/SKILL.md",
+            "baseDir": "/app/skills/eightctl",
+            "skillKey": "eightctl",
+            "emoji": "🎛️",
+            "homepage": "https://eightctl.sh",
+            "always": false,
+            "disabled": false,
+            "blockedByAllowlist": false,
+            "eligible": false,
+            "requirements": {
+              "bins": [
+                "eightctl"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "missing": {
+              "bins": [
+                "eightctl"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "configChecks": [],
+            "install": [
+              {
+                "id": "go",
+                "kind": "go",
+                "label": "Install eightctl (go)",
+                "bins": [
+                  "eightctl"
+                ]
+              }
+            ]
+          },
+          {
+            "name": "gemini",
+            "description": "Gemini CLI for one-shot Q&A, summaries, and generation.",
+            "source": "openclaw-bundled",
+            "bundled": true,
+            "filePath": "/app/skills/gemini/SKILL.md",
+            "baseDir": "/app/skills/gemini",
+            "skillKey": "gemini",
+            "emoji": "♊️",
+            "homepage": "https://ai.google.dev/",
+            "always": false,
+            "disabled": false,
+            "blockedByAllowlist": false,
+            "eligible": false,
+            "requirements": {
+              "bins": [
+                "gemini"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "missing": {
+              "bins": [
+                "gemini"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "configChecks": [],
+            "install": [
+              {
+                "id": "brew",
+                "kind": "brew",
+                "label": "Install Gemini CLI (brew)",
+                "bins": [
+                  "gemini"
+                ]
+              }
+            ]
+          },
+          {
+            "name": "gifgrep",
+            "description": "Search GIF providers with CLI/TUI, download results, and extract stills/sheets.",
+            "source": "openclaw-bundled",
+            "bundled": true,
+            "filePath": "/app/skills/gifgrep/SKILL.md",
+            "baseDir": "/app/skills/gifgrep",
+            "skillKey": "gifgrep",
+            "emoji": "🧲",
+            "homepage": "https://gifgrep.com",
+            "always": false,
+            "disabled": false,
+            "blockedByAllowlist": false,
+            "eligible": false,
+            "requirements": {
+              "bins": [
+                "gifgrep"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "missing": {
+              "bins": [
+                "gifgrep"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "configChecks": [],
+            "install": [
+              {
+                "id": "brew",
+                "kind": "brew",
+                "label": "Install gifgrep (brew)",
+                "bins": [
+                  "gifgrep"
+                ]
+              }
+            ]
+          },
+          {
+            "name": "github",
+            "description": "Interact with GitHub using the `gh` CLI. Use `gh issue`, `gh pr`, `gh run`, and `gh api` for issues, PRs, CI runs, and advanced queries.",
+            "source": "openclaw-bundled",
+            "bundled": true,
+            "filePath": "/app/skills/github/SKILL.md",
+            "baseDir": "/app/skills/github",
+            "skillKey": "github",
+            "emoji": "🐙",
+            "always": false,
+            "disabled": false,
+            "blockedByAllowlist": false,
+            "eligible": false,
+            "requirements": {
+              "bins": [
+                "gh"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "missing": {
+              "bins": [
+                "gh"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "configChecks": [],
+            "install": [
+              {
+                "id": "brew",
+                "kind": "brew",
+                "label": "Install GitHub CLI (brew)",
+                "bins": [
+                  "gh"
+                ]
+              }
+            ]
+          },
+          {
+            "name": "gog",
+            "description": "Google Workspace CLI for Gmail, Calendar, Drive, Contacts, Sheets, and Docs.",
+            "source": "openclaw-bundled",
+            "bundled": true,
+            "filePath": "/app/skills/gog/SKILL.md",
+            "baseDir": "/app/skills/gog",
+            "skillKey": "gog",
+            "emoji": "🎮",
+            "homepage": "https://gogcli.sh",
+            "always": false,
+            "disabled": false,
+            "blockedByAllowlist": false,
+            "eligible": false,
+            "requirements": {
+              "bins": [
+                "gog"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "missing": {
+              "bins": [
+                "gog"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "configChecks": [],
+            "install": [
+              {
+                "id": "brew",
+                "kind": "brew",
+                "label": "Install gog (brew)",
+                "bins": [
+                  "gog"
+                ]
+              }
+            ]
+          },
+          {
+            "name": "goplaces",
+            "description": "Query Google Places API (New) via the goplaces CLI for text search, place details, resolve, and reviews. Use for human-friendly place lookup or JSON output for scripts.",
+            "source": "openclaw-bundled",
+            "bundled": true,
+            "filePath": "/app/skills/goplaces/SKILL.md",
+            "baseDir": "/app/skills/goplaces",
+            "skillKey": "goplaces",
+            "primaryEnv": "GOOGLE_PLACES_API_KEY",
+            "emoji": "📍",
+            "homepage": "https://github.com/steipete/goplaces",
+            "always": false,
+            "disabled": false,
+            "blockedByAllowlist": false,
+            "eligible": false,
+            "requirements": {
+              "bins": [
+                "goplaces"
+              ],
+              "anyBins": [],
+              "env": [
+                "GOOGLE_PLACES_API_KEY"
+              ],
+              "config": [],
+              "os": []
+            },
+            "missing": {
+              "bins": [
+                "goplaces"
+              ],
+              "anyBins": [],
+              "env": [
+                "GOOGLE_PLACES_API_KEY"
+              ],
+              "config": [],
+              "os": []
+            },
+            "configChecks": [],
+            "install": [
+              {
+                "id": "brew",
+                "kind": "brew",
+                "label": "Install goplaces (brew)",
+                "bins": [
+                  "goplaces"
+                ]
+              }
+            ]
+          },
+          {
+            "name": "healthcheck",
+            "description": "Host security hardening and risk-tolerance configuration for OpenClaw deployments. Use when a user asks for security audits, firewall/SSH/update hardening, risk posture, exposure review, OpenClaw cron scheduling for periodic checks, or version status checks on a machine running OpenClaw (laptop, workstation, Pi, VPS).",
+            "source": "openclaw-bundled",
+            "bundled": true,
+            "filePath": "/app/skills/healthcheck/SKILL.md",
+            "baseDir": "/app/skills/healthcheck",
+            "skillKey": "healthcheck",
+            "always": false,
+            "disabled": false,
+            "blockedByAllowlist": false,
+            "eligible": true,
+            "requirements": {
+              "bins": [],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "missing": {
+              "bins": [],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "configChecks": [],
+            "install": []
+          },
+          {
+            "name": "himalaya",
+            "description": "CLI to manage emails via IMAP/SMTP. Use `himalaya` to list, read, write, reply, forward, search, and organize emails from the terminal. Supports multiple accounts and message composition with MML (MIME Meta Language).",
+            "source": "openclaw-bundled",
+            "bundled": true,
+            "filePath": "/app/skills/himalaya/SKILL.md",
+            "baseDir": "/app/skills/himalaya",
+            "skillKey": "himalaya",
+            "emoji": "📧",
+            "homepage": "https://github.com/pimalaya/himalaya",
+            "always": false,
+            "disabled": false,
+            "blockedByAllowlist": false,
+            "eligible": false,
+            "requirements": {
+              "bins": [
+                "himalaya"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "missing": {
+              "bins": [
+                "himalaya"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "configChecks": [],
+            "install": [
+              {
+                "id": "brew",
+                "kind": "brew",
+                "label": "Install Himalaya (brew)",
+                "bins": [
+                  "himalaya"
+                ]
+              }
+            ]
+          },
+          {
+            "name": "imsg",
+            "description": "iMessage/SMS CLI for listing chats, history, watch, and sending.",
+            "source": "openclaw-bundled",
+            "bundled": true,
+            "filePath": "/app/skills/imsg/SKILL.md",
+            "baseDir": "/app/skills/imsg",
+            "skillKey": "imsg",
+            "emoji": "📨",
+            "homepage": "https://imsg.to",
+            "always": false,
+            "disabled": false,
+            "blockedByAllowlist": false,
+            "eligible": false,
+            "requirements": {
+              "bins": [
+                "imsg"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": [
+                "darwin"
+              ]
+            },
+            "missing": {
+              "bins": [
+                "imsg"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": [
+                "darwin"
+              ]
+            },
+            "configChecks": [],
+            "install": []
+          },
+          {
+            "name": "mcporter",
+            "description": "Use the mcporter CLI to list, configure, auth, and call MCP servers/tools directly (HTTP or stdio), including ad-hoc servers, config edits, and CLI/type generation.",
+            "source": "openclaw-bundled",
+            "bundled": true,
+            "filePath": "/app/skills/mcporter/SKILL.md",
+            "baseDir": "/app/skills/mcporter",
+            "skillKey": "mcporter",
+            "emoji": "📦",
+            "homepage": "http://mcporter.dev",
+            "always": false,
+            "disabled": false,
+            "blockedByAllowlist": false,
+            "eligible": false,
+            "requirements": {
+              "bins": [
+                "mcporter"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "missing": {
+              "bins": [
+                "mcporter"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "configChecks": [],
+            "install": [
+              {
+                "id": "node",
+                "kind": "node",
+                "label": "Install mcporter (npm)",
+                "bins": [
+                  "mcporter"
+                ]
+              }
+            ]
+          },
+          {
+            "name": "model-usage",
+            "description": "Use CodexBar CLI local cost usage to summarize per-model usage for Codex or Claude, including the current (most recent) model or a full model breakdown. Trigger when asked for model-level usage/cost data from codexbar, or when you need a scriptable per-model summary from codexbar cost JSON.",
+            "source": "openclaw-bundled",
+            "bundled": true,
+            "filePath": "/app/skills/model-usage/SKILL.md",
+            "baseDir": "/app/skills/model-usage",
+            "skillKey": "model-usage",
+            "emoji": "📊",
+            "always": false,
+            "disabled": false,
+            "blockedByAllowlist": false,
+            "eligible": false,
+            "requirements": {
+              "bins": [
+                "codexbar"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": [
+                "darwin"
+              ]
+            },
+            "missing": {
+              "bins": [
+                "codexbar"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": [
+                "darwin"
+              ]
+            },
+            "configChecks": [],
+            "install": []
+          },
+          {
+            "name": "nano-banana-pro",
+            "description": "Generate or edit images via Gemini 3 Pro Image (Nano Banana Pro).",
+            "source": "openclaw-bundled",
+            "bundled": true,
+            "filePath": "/app/skills/nano-banana-pro/SKILL.md",
+            "baseDir": "/app/skills/nano-banana-pro",
+            "skillKey": "nano-banana-pro",
+            "primaryEnv": "GEMINI_API_KEY",
+            "emoji": "🍌",
+            "homepage": "https://ai.google.dev/",
+            "always": false,
+            "disabled": false,
+            "blockedByAllowlist": false,
+            "eligible": false,
+            "requirements": {
+              "bins": [
+                "uv"
+              ],
+              "anyBins": [],
+              "env": [
+                "GEMINI_API_KEY"
+              ],
+              "config": [],
+              "os": []
+            },
+            "missing": {
+              "bins": [
+                "uv"
+              ],
+              "anyBins": [],
+              "env": [
+                "GEMINI_API_KEY"
+              ],
+              "config": [],
+              "os": []
+            },
+            "configChecks": [],
+            "install": [
+              {
+                "id": "uv-brew",
+                "kind": "brew",
+                "label": "Install uv (brew)",
+                "bins": [
+                  "uv"
+                ]
+              }
+            ]
+          },
+          {
+            "name": "nano-pdf",
+            "description": "Edit PDFs with natural-language instructions using the nano-pdf CLI.",
+            "source": "openclaw-bundled",
+            "bundled": true,
+            "filePath": "/app/skills/nano-pdf/SKILL.md",
+            "baseDir": "/app/skills/nano-pdf",
+            "skillKey": "nano-pdf",
+            "emoji": "📄",
+            "homepage": "https://pypi.org/project/nano-pdf/",
+            "always": false,
+            "disabled": false,
+            "blockedByAllowlist": false,
+            "eligible": false,
+            "requirements": {
+              "bins": [
+                "nano-pdf"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "missing": {
+              "bins": [
+                "nano-pdf"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "configChecks": [],
+            "install": [
+              {
+                "id": "uv",
+                "kind": "uv",
+                "label": "Install nano-pdf (uv)",
+                "bins": [
+                  "nano-pdf"
+                ]
+              }
+            ]
+          },
+          {
+            "name": "notion",
+            "description": "Notion API for creating and managing pages, databases, and blocks.",
+            "source": "openclaw-bundled",
+            "bundled": true,
+            "filePath": "/app/skills/notion/SKILL.md",
+            "baseDir": "/app/skills/notion",
+            "skillKey": "notion",
+            "primaryEnv": "NOTION_API_KEY",
+            "emoji": "📝",
+            "homepage": "https://developers.notion.com",
+            "always": false,
+            "disabled": false,
+            "blockedByAllowlist": false,
+            "eligible": false,
+            "requirements": {
+              "bins": [],
+              "anyBins": [],
+              "env": [
+                "NOTION_API_KEY"
+              ],
+              "config": [],
+              "os": []
+            },
+            "missing": {
+              "bins": [],
+              "anyBins": [],
+              "env": [
+                "NOTION_API_KEY"
+              ],
+              "config": [],
+              "os": []
+            },
+            "configChecks": [],
+            "install": []
+          },
+          {
+            "name": "obsidian",
+            "description": "Work with Obsidian vaults (plain Markdown notes) and automate via obsidian-cli.",
+            "source": "openclaw-bundled",
+            "bundled": true,
+            "filePath": "/app/skills/obsidian/SKILL.md",
+            "baseDir": "/app/skills/obsidian",
+            "skillKey": "obsidian",
+            "emoji": "💎",
+            "homepage": "https://help.obsidian.md",
+            "always": false,
+            "disabled": false,
+            "blockedByAllowlist": false,
+            "eligible": false,
+            "requirements": {
+              "bins": [
+                "obsidian-cli"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "missing": {
+              "bins": [
+                "obsidian-cli"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "configChecks": [],
+            "install": [
+              {
+                "id": "brew",
+                "kind": "brew",
+                "label": "Install obsidian-cli (brew)",
+                "bins": [
+                  "obsidian-cli"
+                ]
+              }
+            ]
+          },
+          {
+            "name": "openai-image-gen",
+            "description": "Batch-generate images via OpenAI Images API. Random prompt sampler + `index.html` gallery.",
+            "source": "openclaw-bundled",
+            "bundled": true,
+            "filePath": "/app/skills/openai-image-gen/SKILL.md",
+            "baseDir": "/app/skills/openai-image-gen",
+            "skillKey": "openai-image-gen",
+            "primaryEnv": "OPENAI_API_KEY",
+            "emoji": "🖼️",
+            "homepage": "https://platform.openai.com/docs/api-reference/images",
+            "always": false,
+            "disabled": false,
+            "blockedByAllowlist": false,
+            "eligible": false,
+            "requirements": {
+              "bins": [
+                "python3"
+              ],
+              "anyBins": [],
+              "env": [
+                "OPENAI_API_KEY"
+              ],
+              "config": [],
+              "os": []
+            },
+            "missing": {
+              "bins": [],
+              "anyBins": [],
+              "env": [
+                "OPENAI_API_KEY"
+              ],
+              "config": [],
+              "os": []
+            },
+            "configChecks": [],
+            "install": [
+              {
+                "id": "python-brew",
+                "kind": "brew",
+                "label": "Install Python (brew)",
+                "bins": [
+                  "python3"
+                ]
+              }
+            ]
+          },
+          {
+            "name": "openai-whisper",
+            "description": "Local speech-to-text with the Whisper CLI (no API key).",
+            "source": "openclaw-bundled",
+            "bundled": true,
+            "filePath": "/app/skills/openai-whisper/SKILL.md",
+            "baseDir": "/app/skills/openai-whisper",
+            "skillKey": "openai-whisper",
+            "emoji": "🎙️",
+            "homepage": "https://openai.com/research/whisper",
+            "always": false,
+            "disabled": false,
+            "blockedByAllowlist": false,
+            "eligible": false,
+            "requirements": {
+              "bins": [
+                "whisper"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "missing": {
+              "bins": [
+                "whisper"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "configChecks": [],
+            "install": [
+              {
+                "id": "brew",
+                "kind": "brew",
+                "label": "Install OpenAI Whisper (brew)",
+                "bins": [
+                  "whisper"
+                ]
+              }
+            ]
+          },
+          {
+            "name": "openai-whisper-api",
+            "description": "Transcribe audio via OpenAI Audio Transcriptions API (Whisper).",
+            "source": "openclaw-bundled",
+            "bundled": true,
+            "filePath": "/app/skills/openai-whisper-api/SKILL.md",
+            "baseDir": "/app/skills/openai-whisper-api",
+            "skillKey": "openai-whisper-api",
+            "primaryEnv": "OPENAI_API_KEY",
+            "emoji": "☁️",
+            "homepage": "https://platform.openai.com/docs/guides/speech-to-text",
+            "always": false,
+            "disabled": false,
+            "blockedByAllowlist": false,
+            "eligible": false,
+            "requirements": {
+              "bins": [
+                "curl"
+              ],
+              "anyBins": [],
+              "env": [
+                "OPENAI_API_KEY"
+              ],
+              "config": [],
+              "os": []
+            },
+            "missing": {
+              "bins": [],
+              "anyBins": [],
+              "env": [
+                "OPENAI_API_KEY"
+              ],
+              "config": [],
+              "os": []
+            },
+            "configChecks": [],
+            "install": []
+          },
+          {
+            "name": "openhue",
+            "description": "Control Philips Hue lights/scenes via the OpenHue CLI.",
+            "source": "openclaw-bundled",
+            "bundled": true,
+            "filePath": "/app/skills/openhue/SKILL.md",
+            "baseDir": "/app/skills/openhue",
+            "skillKey": "openhue",
+            "emoji": "💡",
+            "homepage": "https://www.openhue.io/cli",
+            "always": false,
+            "disabled": false,
+            "blockedByAllowlist": false,
+            "eligible": false,
+            "requirements": {
+              "bins": [
+                "openhue"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "missing": {
+              "bins": [
+                "openhue"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "configChecks": [],
+            "install": [
+              {
+                "id": "brew",
+                "kind": "brew",
+                "label": "Install OpenHue CLI (brew)",
+                "bins": [
+                  "openhue"
+                ]
+              }
+            ]
+          },
+          {
+            "name": "oracle",
+            "description": "Best practices for using the oracle CLI (prompt + file bundling, engines, sessions, and file attachment patterns).",
+            "source": "openclaw-bundled",
+            "bundled": true,
+            "filePath": "/app/skills/oracle/SKILL.md",
+            "baseDir": "/app/skills/oracle",
+            "skillKey": "oracle",
+            "emoji": "🧿",
+            "homepage": "https://askoracle.dev",
+            "always": false,
+            "disabled": false,
+            "blockedByAllowlist": false,
+            "eligible": false,
+            "requirements": {
+              "bins": [
+                "oracle"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "missing": {
+              "bins": [
+                "oracle"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "configChecks": [],
+            "install": [
+              {
+                "id": "node",
+                "kind": "node",
+                "label": "Install @steipete/oracle (npm)",
+                "bins": [
+                  "oracle"
+                ]
+              }
+            ]
+          },
+          {
+            "name": "ordercli",
+            "description": "Foodora-only CLI for checking past orders and active order status (Deliveroo WIP).",
+            "source": "openclaw-bundled",
+            "bundled": true,
+            "filePath": "/app/skills/ordercli/SKILL.md",
+            "baseDir": "/app/skills/ordercli",
+            "skillKey": "ordercli",
+            "emoji": "🛵",
+            "homepage": "https://ordercli.sh",
+            "always": false,
+            "disabled": false,
+            "blockedByAllowlist": false,
+            "eligible": false,
+            "requirements": {
+              "bins": [
+                "ordercli"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "missing": {
+              "bins": [
+                "ordercli"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "configChecks": [],
+            "install": [
+              {
+                "id": "brew",
+                "kind": "brew",
+                "label": "Install ordercli (brew)",
+                "bins": [
+                  "ordercli"
+                ]
+              }
+            ]
+          },
+          {
+            "name": "peekaboo",
+            "description": "Capture and automate macOS UI with the Peekaboo CLI.",
+            "source": "openclaw-bundled",
+            "bundled": true,
+            "filePath": "/app/skills/peekaboo/SKILL.md",
+            "baseDir": "/app/skills/peekaboo",
+            "skillKey": "peekaboo",
+            "emoji": "👀",
+            "homepage": "https://peekaboo.boo",
+            "always": false,
+            "disabled": false,
+            "blockedByAllowlist": false,
+            "eligible": false,
+            "requirements": {
+              "bins": [
+                "peekaboo"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": [
+                "darwin"
+              ]
+            },
+            "missing": {
+              "bins": [
+                "peekaboo"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": [
+                "darwin"
+              ]
+            },
+            "configChecks": [],
+            "install": []
+          },
+          {
+            "name": "sag",
+            "description": "ElevenLabs text-to-speech with mac-style say UX.",
+            "source": "openclaw-bundled",
+            "bundled": true,
+            "filePath": "/app/skills/sag/SKILL.md",
+            "baseDir": "/app/skills/sag",
+            "skillKey": "sag",
+            "primaryEnv": "ELEVENLABS_API_KEY",
+            "emoji": "🗣️",
+            "homepage": "https://sag.sh",
+            "always": false,
+            "disabled": false,
+            "blockedByAllowlist": false,
+            "eligible": false,
+            "requirements": {
+              "bins": [
+                "sag"
+              ],
+              "anyBins": [],
+              "env": [
+                "ELEVENLABS_API_KEY"
+              ],
+              "config": [],
+              "os": []
+            },
+            "missing": {
+              "bins": [
+                "sag"
+              ],
+              "anyBins": [],
+              "env": [
+                "ELEVENLABS_API_KEY"
+              ],
+              "config": [],
+              "os": []
+            },
+            "configChecks": [],
+            "install": [
+              {
+                "id": "brew",
+                "kind": "brew",
+                "label": "Install sag (brew)",
+                "bins": [
+                  "sag"
+                ]
+              }
+            ]
+          },
+          {
+            "name": "session-logs",
+            "description": "Search and analyze your own session logs (older/parent conversations) using jq.",
+            "source": "openclaw-bundled",
+            "bundled": true,
+            "filePath": "/app/skills/session-logs/SKILL.md",
+            "baseDir": "/app/skills/session-logs",
+            "skillKey": "session-logs",
+            "emoji": "📜",
+            "always": false,
+            "disabled": false,
+            "blockedByAllowlist": false,
+            "eligible": false,
+            "requirements": {
+              "bins": [
+                "jq",
+                "rg"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "missing": {
+              "bins": [
+                "jq",
+                "rg"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "configChecks": [],
+            "install": []
+          },
+          {
+            "name": "sherpa-onnx-tts",
+            "description": "Local text-to-speech via sherpa-onnx (offline, no cloud)",
+            "source": "openclaw-bundled",
+            "bundled": true,
+            "filePath": "/app/skills/sherpa-onnx-tts/SKILL.md",
+            "baseDir": "/app/skills/sherpa-onnx-tts",
+            "skillKey": "sherpa-onnx-tts",
+            "emoji": "🗣️",
+            "always": false,
+            "disabled": false,
+            "blockedByAllowlist": false,
+            "eligible": false,
+            "requirements": {
+              "bins": [],
+              "anyBins": [],
+              "env": [
+                "SHERPA_ONNX_RUNTIME_DIR",
+                "SHERPA_ONNX_MODEL_DIR"
+              ],
+              "config": [],
+              "os": [
+                "darwin",
+                "linux",
+                "win32"
+              ]
+            },
+            "missing": {
+              "bins": [],
+              "anyBins": [],
+              "env": [
+                "SHERPA_ONNX_RUNTIME_DIR",
+                "SHERPA_ONNX_MODEL_DIR"
+              ],
+              "config": [],
+              "os": []
+            },
+            "configChecks": [],
+            "install": [
+              {
+                "id": "download-runtime-linux-x64",
+                "kind": "download",
+                "label": "Download sherpa-onnx runtime (Linux x64)",
+                "bins": []
+              },
+              {
+                "id": "download-model-lessac",
+                "kind": "download",
+                "label": "Download Piper en_US lessac (high)",
+                "bins": []
+              }
+            ]
+          },
+          {
+            "name": "skill-creator",
+            "description": "Create or update AgentSkills. Use when designing, structuring, or packaging skills with scripts, references, and assets.",
+            "source": "openclaw-bundled",
+            "bundled": true,
+            "filePath": "/app/skills/skill-creator/SKILL.md",
+            "baseDir": "/app/skills/skill-creator",
+            "skillKey": "skill-creator",
+            "always": false,
+            "disabled": false,
+            "blockedByAllowlist": false,
+            "eligible": true,
+            "requirements": {
+              "bins": [],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "missing": {
+              "bins": [],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "configChecks": [],
+            "install": []
+          },
+          {
+            "name": "slack",
+            "description": "Use when you need to control Slack from OpenClaw via the slack tool, including reacting to messages or pinning/unpinning items in Slack channels or DMs.",
+            "source": "openclaw-bundled",
+            "bundled": true,
+            "filePath": "/app/skills/slack/SKILL.md",
+            "baseDir": "/app/skills/slack",
+            "skillKey": "slack",
+            "emoji": "💬",
+            "always": false,
+            "disabled": false,
+            "blockedByAllowlist": false,
+            "eligible": true,
+            "requirements": {
+              "bins": [],
+              "anyBins": [],
+              "env": [],
+              "config": [
+                "channels.slack"
+              ],
+              "os": []
+            },
+            "missing": {
+              "bins": [],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "configChecks": [
+              {
+                "path": "channels.slack",
+                "satisfied": true
+              }
+            ],
+            "install": []
+          },
+          {
+            "name": "songsee",
+            "description": "Generate spectrograms and feature-panel visualizations from audio with the songsee CLI.",
+            "source": "openclaw-bundled",
+            "bundled": true,
+            "filePath": "/app/skills/songsee/SKILL.md",
+            "baseDir": "/app/skills/songsee",
+            "skillKey": "songsee",
+            "emoji": "🌊",
+            "homepage": "https://github.com/steipete/songsee",
+            "always": false,
+            "disabled": false,
+            "blockedByAllowlist": false,
+            "eligible": false,
+            "requirements": {
+              "bins": [
+                "songsee"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "missing": {
+              "bins": [
+                "songsee"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "configChecks": [],
+            "install": [
+              {
+                "id": "brew",
+                "kind": "brew",
+                "label": "Install songsee (brew)",
+                "bins": [
+                  "songsee"
+                ]
+              }
+            ]
+          },
+          {
+            "name": "sonoscli",
+            "description": "Control Sonos speakers (discover/status/play/volume/group).",
+            "source": "openclaw-bundled",
+            "bundled": true,
+            "filePath": "/app/skills/sonoscli/SKILL.md",
+            "baseDir": "/app/skills/sonoscli",
+            "skillKey": "sonoscli",
+            "emoji": "🔊",
+            "homepage": "https://sonoscli.sh",
+            "always": false,
+            "disabled": false,
+            "blockedByAllowlist": false,
+            "eligible": false,
+            "requirements": {
+              "bins": [
+                "sonos"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "missing": {
+              "bins": [
+                "sonos"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "configChecks": [],
+            "install": [
+              {
+                "id": "go",
+                "kind": "go",
+                "label": "Install sonoscli (go)",
+                "bins": [
+                  "sonos"
+                ]
+              }
+            ]
+          },
+          {
+            "name": "spotify-player",
+            "description": "Terminal Spotify playback/search via spogo (preferred) or spotify_player.",
+            "source": "openclaw-bundled",
+            "bundled": true,
+            "filePath": "/app/skills/spotify-player/SKILL.md",
+            "baseDir": "/app/skills/spotify-player",
+            "skillKey": "spotify-player",
+            "emoji": "🎵",
+            "homepage": "https://www.spotify.com",
+            "always": false,
+            "disabled": false,
+            "blockedByAllowlist": false,
+            "eligible": false,
+            "requirements": {
+              "bins": [],
+              "anyBins": [
+                "spogo",
+                "spotify_player"
+              ],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "missing": {
+              "bins": [],
+              "anyBins": [
+                "spogo",
+                "spotify_player"
+              ],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "configChecks": [],
+            "install": [
+              {
+                "id": "brew",
+                "kind": "brew",
+                "label": "Install spogo (brew)",
+                "bins": [
+                  "spogo"
+                ]
+              }
+            ]
+          },
+          {
+            "name": "summarize",
+            "description": "Summarize or extract text/transcripts from URLs, podcasts, and local files (great fallback for “transcribe this YouTube/video”).",
+            "source": "openclaw-bundled",
+            "bundled": true,
+            "filePath": "/app/skills/summarize/SKILL.md",
+            "baseDir": "/app/skills/summarize",
+            "skillKey": "summarize",
+            "emoji": "🧾",
+            "homepage": "https://summarize.sh",
+            "always": false,
+            "disabled": false,
+            "blockedByAllowlist": false,
+            "eligible": false,
+            "requirements": {
+              "bins": [
+                "summarize"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "missing": {
+              "bins": [
+                "summarize"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "configChecks": [],
+            "install": [
+              {
+                "id": "brew",
+                "kind": "brew",
+                "label": "Install summarize (brew)",
+                "bins": [
+                  "summarize"
+                ]
+              }
+            ]
+          },
+          {
+            "name": "things-mac",
+            "description": "Manage Things 3 via the `things` CLI on macOS (add/update projects+todos via URL scheme; read/search/list from the local Things database). Use when a user asks OpenClaw to add a task to Things, list inbox/today/upcoming, search tasks, or inspect projects/areas/tags.",
+            "source": "openclaw-bundled",
+            "bundled": true,
+            "filePath": "/app/skills/things-mac/SKILL.md",
+            "baseDir": "/app/skills/things-mac",
+            "skillKey": "things-mac",
+            "emoji": "✅",
+            "homepage": "https://github.com/ossianhempel/things3-cli",
+            "always": false,
+            "disabled": false,
+            "blockedByAllowlist": false,
+            "eligible": false,
+            "requirements": {
+              "bins": [
+                "things"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": [
+                "darwin"
+              ]
+            },
+            "missing": {
+              "bins": [
+                "things"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": [
+                "darwin"
+              ]
+            },
+            "configChecks": [],
+            "install": []
+          },
+          {
+            "name": "tmux",
+            "description": "Remote-control tmux sessions for interactive CLIs by sending keystrokes and scraping pane output.",
+            "source": "openclaw-bundled",
+            "bundled": true,
+            "filePath": "/app/skills/tmux/SKILL.md",
+            "baseDir": "/app/skills/tmux",
+            "skillKey": "tmux",
+            "emoji": "🧵",
+            "always": false,
+            "disabled": false,
+            "blockedByAllowlist": false,
+            "eligible": false,
+            "requirements": {
+              "bins": [
+                "tmux"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": [
+                "darwin",
+                "linux"
+              ]
+            },
+            "missing": {
+              "bins": [
+                "tmux"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "configChecks": [],
+            "install": []
+          },
+          {
+            "name": "trello",
+            "description": "Manage Trello boards, lists, and cards via the Trello REST API.",
+            "source": "openclaw-bundled",
+            "bundled": true,
+            "filePath": "/app/skills/trello/SKILL.md",
+            "baseDir": "/app/skills/trello",
+            "skillKey": "trello",
+            "emoji": "📋",
+            "homepage": "https://developer.atlassian.com/cloud/trello/rest/",
+            "always": false,
+            "disabled": false,
+            "blockedByAllowlist": false,
+            "eligible": false,
+            "requirements": {
+              "bins": [
+                "jq"
+              ],
+              "anyBins": [],
+              "env": [
+                "TRELLO_API_KEY",
+                "TRELLO_TOKEN"
+              ],
+              "config": [],
+              "os": []
+            },
+            "missing": {
+              "bins": [
+                "jq"
+              ],
+              "anyBins": [],
+              "env": [
+                "TRELLO_API_KEY",
+                "TRELLO_TOKEN"
+              ],
+              "config": [],
+              "os": []
+            },
+            "configChecks": [],
+            "install": []
+          },
+          {
+            "name": "video-frames",
+            "description": "Extract frames or short clips from videos using ffmpeg.",
+            "source": "openclaw-bundled",
+            "bundled": true,
+            "filePath": "/app/skills/video-frames/SKILL.md",
+            "baseDir": "/app/skills/video-frames",
+            "skillKey": "video-frames",
+            "emoji": "🎞️",
+            "homepage": "https://ffmpeg.org",
+            "always": false,
+            "disabled": false,
+            "blockedByAllowlist": false,
+            "eligible": false,
+            "requirements": {
+              "bins": [
+                "ffmpeg"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "missing": {
+              "bins": [
+                "ffmpeg"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "configChecks": [],
+            "install": [
+              {
+                "id": "brew",
+                "kind": "brew",
+                "label": "Install ffmpeg (brew)",
+                "bins": [
+                  "ffmpeg"
+                ]
+              }
+            ]
+          },
+          {
+            "name": "voice-call",
+            "description": "Start voice calls via the OpenClaw voice-call plugin.",
+            "source": "openclaw-bundled",
+            "bundled": true,
+            "filePath": "/app/skills/voice-call/SKILL.md",
+            "baseDir": "/app/skills/voice-call",
+            "skillKey": "voice-call",
+            "emoji": "📞",
+            "always": false,
+            "disabled": false,
+            "blockedByAllowlist": false,
+            "eligible": false,
+            "requirements": {
+              "bins": [],
+              "anyBins": [],
+              "env": [],
+              "config": [
+                "plugins.entries.voice-call.enabled"
+              ],
+              "os": []
+            },
+            "missing": {
+              "bins": [],
+              "anyBins": [],
+              "env": [],
+              "config": [
+                "plugins.entries.voice-call.enabled"
+              ],
+              "os": []
+            },
+            "configChecks": [
+              {
+                "path": "plugins.entries.voice-call.enabled",
+                "satisfied": false
+              }
+            ],
+            "install": []
+          },
+          {
+            "name": "wacli",
+            "description": "Send WhatsApp messages to other people or search/sync WhatsApp history via the wacli CLI (not for normal user chats).",
+            "source": "openclaw-bundled",
+            "bundled": true,
+            "filePath": "/app/skills/wacli/SKILL.md",
+            "baseDir": "/app/skills/wacli",
+            "skillKey": "wacli",
+            "emoji": "📱",
+            "homepage": "https://wacli.sh",
+            "always": false,
+            "disabled": false,
+            "blockedByAllowlist": false,
+            "eligible": false,
+            "requirements": {
+              "bins": [
+                "wacli"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "missing": {
+              "bins": [
+                "wacli"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "configChecks": [],
+            "install": [
+              {
+                "id": "brew",
+                "kind": "brew",
+                "label": "Install wacli (brew)",
+                "bins": [
+                  "wacli"
+                ]
+              }
+            ]
+          },
+          {
+            "name": "weather",
+            "description": "Get current weather and forecasts (no API key required).",
+            "source": "openclaw-bundled",
+            "bundled": true,
+            "filePath": "/app/skills/weather/SKILL.md",
+            "baseDir": "/app/skills/weather",
+            "skillKey": "weather",
+            "emoji": "🌤️",
+            "homepage": "https://wttr.in/:help",
+            "always": false,
+            "disabled": false,
+            "blockedByAllowlist": false,
+            "eligible": true,
+            "requirements": {
+              "bins": [
+                "curl"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "missing": {
+              "bins": [],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "configChecks": [],
+            "install": []
+          }
+        ]
+      }
+    },
+    {
+      "at": "2026-02-16T05:41:20.854Z",
+      "method": "skills.status",
+      "ok": false,
+      "latencyMs": 9,
+      "params": {
+        "agentId": "__unknown_agent__"
+      },
+      "error": "unknown agent id \"__unknown_agent__\""
+    },
+    {
+      "at": "2026-02-16T05:41:20.956Z",
+      "method": "skills.update",
+      "ok": true,
+      "latencyMs": 102,
+      "params": {
+        "skillKey": "__panel_probe_nonexistent_skill__",
+        "enabled": false
+      },
+      "payload": {
+        "ok": true,
+        "skillKey": "__panel_probe_nonexistent_skill__",
+        "config": {
+          "enabled": false
+        }
+      }
+    },
+    {
+      "at": "2026-02-16T05:41:21.009Z",
+      "method": "skills.status",
+      "ok": true,
+      "latencyMs": 53,
+      "params": {},
+      "payload": {
+        "workspaceDir": "/home/node/.openclaw/workspace",
+        "managedSkillsDir": "/home/node/.openclaw/skills",
+        "skills": [
+          {
+            "name": "1password",
+            "description": "Set up and use 1Password CLI (op). Use when installing the CLI, enabling desktop app integration, signing in (single or multi-account), or reading/injecting/running secrets via op.",
+            "source": "openclaw-bundled",
+            "bundled": true,
+            "filePath": "/app/skills/1password/SKILL.md",
+            "baseDir": "/app/skills/1password",
+            "skillKey": "1password",
+            "emoji": "🔐",
+            "homepage": "https://developer.1password.com/docs/cli/get-started/",
+            "always": false,
+            "disabled": false,
+            "blockedByAllowlist": false,
+            "eligible": false,
+            "requirements": {
+              "bins": [
+                "op"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "missing": {
+              "bins": [
+                "op"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "configChecks": [],
+            "install": [
+              {
+                "id": "brew",
+                "kind": "brew",
+                "label": "Install 1Password CLI (brew)",
+                "bins": [
+                  "op"
+                ]
+              }
+            ]
+          },
+          {
+            "name": "apple-notes",
+            "description": "Manage Apple Notes via the `memo` CLI on macOS (create, view, edit, delete, search, move, and export notes). Use when a user asks OpenClaw to add a note, list notes, search notes, or manage note folders.",
+            "source": "openclaw-bundled",
+            "bundled": true,
+            "filePath": "/app/skills/apple-notes/SKILL.md",
+            "baseDir": "/app/skills/apple-notes",
+            "skillKey": "apple-notes",
+            "emoji": "📝",
+            "homepage": "https://github.com/antoniorodr/memo",
+            "always": false,
+            "disabled": false,
+            "blockedByAllowlist": false,
+            "eligible": false,
+            "requirements": {
+              "bins": [
+                "memo"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": [
+                "darwin"
+              ]
+            },
+            "missing": {
+              "bins": [
+                "memo"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": [
+                "darwin"
+              ]
+            },
+            "configChecks": [],
+            "install": []
+          },
+          {
+            "name": "apple-reminders",
+            "description": "Manage Apple Reminders via the `remindctl` CLI on macOS (list, add, edit, complete, delete). Supports lists, date filters, and JSON/plain output.",
+            "source": "openclaw-bundled",
+            "bundled": true,
+            "filePath": "/app/skills/apple-reminders/SKILL.md",
+            "baseDir": "/app/skills/apple-reminders",
+            "skillKey": "apple-reminders",
+            "emoji": "⏰",
+            "homepage": "https://github.com/steipete/remindctl",
+            "always": false,
+            "disabled": false,
+            "blockedByAllowlist": false,
+            "eligible": false,
+            "requirements": {
+              "bins": [
+                "remindctl"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": [
+                "darwin"
+              ]
+            },
+            "missing": {
+              "bins": [
+                "remindctl"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": [
+                "darwin"
+              ]
+            },
+            "configChecks": [],
+            "install": []
+          },
+          {
+            "name": "bear-notes",
+            "description": "Create, search, and manage Bear notes via grizzly CLI.",
+            "source": "openclaw-bundled",
+            "bundled": true,
+            "filePath": "/app/skills/bear-notes/SKILL.md",
+            "baseDir": "/app/skills/bear-notes",
+            "skillKey": "bear-notes",
+            "emoji": "🐻",
+            "homepage": "https://bear.app",
+            "always": false,
+            "disabled": false,
+            "blockedByAllowlist": false,
+            "eligible": false,
+            "requirements": {
+              "bins": [
+                "grizzly"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": [
+                "darwin"
+              ]
+            },
+            "missing": {
+              "bins": [
+                "grizzly"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": [
+                "darwin"
+              ]
+            },
+            "configChecks": [],
+            "install": []
+          },
+          {
+            "name": "blogwatcher",
+            "description": "Monitor blogs and RSS/Atom feeds for updates using the blogwatcher CLI.",
+            "source": "openclaw-bundled",
+            "bundled": true,
+            "filePath": "/app/skills/blogwatcher/SKILL.md",
+            "baseDir": "/app/skills/blogwatcher",
+            "skillKey": "blogwatcher",
+            "emoji": "📰",
+            "homepage": "https://github.com/Hyaxia/blogwatcher",
+            "always": false,
+            "disabled": false,
+            "blockedByAllowlist": false,
+            "eligible": false,
+            "requirements": {
+              "bins": [
+                "blogwatcher"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "missing": {
+              "bins": [
+                "blogwatcher"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "configChecks": [],
+            "install": [
+              {
+                "id": "go",
+                "kind": "go",
+                "label": "Install blogwatcher (go)",
+                "bins": [
+                  "blogwatcher"
+                ]
+              }
+            ]
+          },
+          {
+            "name": "blucli",
+            "description": "BluOS CLI (blu) for discovery, playback, grouping, and volume.",
+            "source": "openclaw-bundled",
+            "bundled": true,
+            "filePath": "/app/skills/blucli/SKILL.md",
+            "baseDir": "/app/skills/blucli",
+            "skillKey": "blucli",
+            "emoji": "🫐",
+            "homepage": "https://blucli.sh",
+            "always": false,
+            "disabled": false,
+            "blockedByAllowlist": false,
+            "eligible": false,
+            "requirements": {
+              "bins": [
+                "blu"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "missing": {
+              "bins": [
+                "blu"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "configChecks": [],
+            "install": [
+              {
+                "id": "go",
+                "kind": "go",
+                "label": "Install blucli (go)",
+                "bins": [
+                  "blu"
+                ]
+              }
+            ]
+          },
+          {
+            "name": "bluebubbles",
+            "description": "Use when you need to send or manage iMessages via BlueBubbles (recommended iMessage integration). Calls go through the generic message tool with channel=\"bluebubbles\".",
+            "source": "openclaw-bundled",
+            "bundled": true,
+            "filePath": "/app/skills/bluebubbles/SKILL.md",
+            "baseDir": "/app/skills/bluebubbles",
+            "skillKey": "bluebubbles",
+            "emoji": "🫧",
+            "always": false,
+            "disabled": false,
+            "blockedByAllowlist": false,
+            "eligible": false,
+            "requirements": {
+              "bins": [],
+              "anyBins": [],
+              "env": [],
+              "config": [
+                "channels.bluebubbles"
+              ],
+              "os": []
+            },
+            "missing": {
+              "bins": [],
+              "anyBins": [],
+              "env": [],
+              "config": [
+                "channels.bluebubbles"
+              ],
+              "os": []
+            },
+            "configChecks": [
+              {
+                "path": "channels.bluebubbles",
+                "satisfied": false
+              }
+            ],
+            "install": []
+          },
+          {
+            "name": "camsnap",
+            "description": "Capture frames or clips from RTSP/ONVIF cameras.",
+            "source": "openclaw-bundled",
+            "bundled": true,
+            "filePath": "/app/skills/camsnap/SKILL.md",
+            "baseDir": "/app/skills/camsnap",
+            "skillKey": "camsnap",
+            "emoji": "📸",
+            "homepage": "https://camsnap.ai",
+            "always": false,
+            "disabled": false,
+            "blockedByAllowlist": false,
+            "eligible": false,
+            "requirements": {
+              "bins": [
+                "camsnap"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "missing": {
+              "bins": [
+                "camsnap"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "configChecks": [],
+            "install": [
+              {
+                "id": "brew",
+                "kind": "brew",
+                "label": "Install camsnap (brew)",
+                "bins": [
+                  "camsnap"
+                ]
+              }
+            ]
+          },
+          {
+            "name": "clawhub",
+            "description": "Use the ClawHub CLI to search, install, update, and publish agent skills from clawhub.com. Use when you need to fetch new skills on the fly, sync installed skills to latest or a specific version, or publish new/updated skill folders with the npm-installed clawhub CLI.",
+            "source": "openclaw-bundled",
+            "bundled": true,
+            "filePath": "/app/skills/clawhub/SKILL.md",
+            "baseDir": "/app/skills/clawhub",
+            "skillKey": "clawhub",
+            "always": false,
+            "disabled": false,
+            "blockedByAllowlist": false,
+            "eligible": false,
+            "requirements": {
+              "bins": [
+                "clawhub"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "missing": {
+              "bins": [
+                "clawhub"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "configChecks": [],
+            "install": [
+              {
+                "id": "node",
+                "kind": "node",
+                "label": "Install clawhub (npm)",
+                "bins": [
+                  "clawhub"
+                ]
+              }
+            ]
+          },
+          {
+            "name": "coding-agent",
+            "description": "Run Codex CLI, Claude Code, OpenCode, or Pi Coding Agent via background process for programmatic control.",
+            "source": "openclaw-bundled",
+            "bundled": true,
+            "filePath": "/app/skills/coding-agent/SKILL.md",
+            "baseDir": "/app/skills/coding-agent",
+            "skillKey": "coding-agent",
+            "emoji": "🧩",
+            "always": false,
+            "disabled": false,
+            "blockedByAllowlist": false,
+            "eligible": false,
+            "requirements": {
+              "bins": [],
+              "anyBins": [
+                "claude",
+                "codex",
+                "opencode",
+                "pi"
+              ],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "missing": {
+              "bins": [],
+              "anyBins": [
+                "claude",
+                "codex",
+                "opencode",
+                "pi"
+              ],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "configChecks": [],
+            "install": []
+          },
+          {
+            "name": "discord",
+            "description": "Discord ops via the message tool (channel=discord).",
+            "source": "openclaw-bundled",
+            "bundled": true,
+            "filePath": "/app/skills/discord/SKILL.md",
+            "baseDir": "/app/skills/discord",
+            "skillKey": "discord",
+            "emoji": "🎮",
+            "always": false,
+            "disabled": false,
+            "blockedByAllowlist": false,
+            "eligible": false,
+            "requirements": {
+              "bins": [],
+              "anyBins": [],
+              "env": [],
+              "config": [
+                "channels.discord.token"
+              ],
+              "os": []
+            },
+            "missing": {
+              "bins": [],
+              "anyBins": [],
+              "env": [],
+              "config": [
+                "channels.discord.token"
+              ],
+              "os": []
+            },
+            "configChecks": [
+              {
+                "path": "channels.discord.token",
+                "satisfied": false
+              }
+            ],
+            "install": []
+          },
+          {
+            "name": "eightctl",
+            "description": "Control Eight Sleep pods (status, temperature, alarms, schedules).",
+            "source": "openclaw-bundled",
+            "bundled": true,
+            "filePath": "/app/skills/eightctl/SKILL.md",
+            "baseDir": "/app/skills/eightctl",
+            "skillKey": "eightctl",
+            "emoji": "🎛️",
+            "homepage": "https://eightctl.sh",
+            "always": false,
+            "disabled": false,
+            "blockedByAllowlist": false,
+            "eligible": false,
+            "requirements": {
+              "bins": [
+                "eightctl"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "missing": {
+              "bins": [
+                "eightctl"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "configChecks": [],
+            "install": [
+              {
+                "id": "go",
+                "kind": "go",
+                "label": "Install eightctl (go)",
+                "bins": [
+                  "eightctl"
+                ]
+              }
+            ]
+          },
+          {
+            "name": "gemini",
+            "description": "Gemini CLI for one-shot Q&A, summaries, and generation.",
+            "source": "openclaw-bundled",
+            "bundled": true,
+            "filePath": "/app/skills/gemini/SKILL.md",
+            "baseDir": "/app/skills/gemini",
+            "skillKey": "gemini",
+            "emoji": "♊️",
+            "homepage": "https://ai.google.dev/",
+            "always": false,
+            "disabled": false,
+            "blockedByAllowlist": false,
+            "eligible": false,
+            "requirements": {
+              "bins": [
+                "gemini"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "missing": {
+              "bins": [
+                "gemini"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "configChecks": [],
+            "install": [
+              {
+                "id": "brew",
+                "kind": "brew",
+                "label": "Install Gemini CLI (brew)",
+                "bins": [
+                  "gemini"
+                ]
+              }
+            ]
+          },
+          {
+            "name": "gifgrep",
+            "description": "Search GIF providers with CLI/TUI, download results, and extract stills/sheets.",
+            "source": "openclaw-bundled",
+            "bundled": true,
+            "filePath": "/app/skills/gifgrep/SKILL.md",
+            "baseDir": "/app/skills/gifgrep",
+            "skillKey": "gifgrep",
+            "emoji": "🧲",
+            "homepage": "https://gifgrep.com",
+            "always": false,
+            "disabled": false,
+            "blockedByAllowlist": false,
+            "eligible": false,
+            "requirements": {
+              "bins": [
+                "gifgrep"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "missing": {
+              "bins": [
+                "gifgrep"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "configChecks": [],
+            "install": [
+              {
+                "id": "brew",
+                "kind": "brew",
+                "label": "Install gifgrep (brew)",
+                "bins": [
+                  "gifgrep"
+                ]
+              }
+            ]
+          },
+          {
+            "name": "github",
+            "description": "Interact with GitHub using the `gh` CLI. Use `gh issue`, `gh pr`, `gh run`, and `gh api` for issues, PRs, CI runs, and advanced queries.",
+            "source": "openclaw-bundled",
+            "bundled": true,
+            "filePath": "/app/skills/github/SKILL.md",
+            "baseDir": "/app/skills/github",
+            "skillKey": "github",
+            "emoji": "🐙",
+            "always": false,
+            "disabled": false,
+            "blockedByAllowlist": false,
+            "eligible": false,
+            "requirements": {
+              "bins": [
+                "gh"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "missing": {
+              "bins": [
+                "gh"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "configChecks": [],
+            "install": [
+              {
+                "id": "brew",
+                "kind": "brew",
+                "label": "Install GitHub CLI (brew)",
+                "bins": [
+                  "gh"
+                ]
+              }
+            ]
+          },
+          {
+            "name": "gog",
+            "description": "Google Workspace CLI for Gmail, Calendar, Drive, Contacts, Sheets, and Docs.",
+            "source": "openclaw-bundled",
+            "bundled": true,
+            "filePath": "/app/skills/gog/SKILL.md",
+            "baseDir": "/app/skills/gog",
+            "skillKey": "gog",
+            "emoji": "🎮",
+            "homepage": "https://gogcli.sh",
+            "always": false,
+            "disabled": false,
+            "blockedByAllowlist": false,
+            "eligible": false,
+            "requirements": {
+              "bins": [
+                "gog"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "missing": {
+              "bins": [
+                "gog"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "configChecks": [],
+            "install": [
+              {
+                "id": "brew",
+                "kind": "brew",
+                "label": "Install gog (brew)",
+                "bins": [
+                  "gog"
+                ]
+              }
+            ]
+          },
+          {
+            "name": "goplaces",
+            "description": "Query Google Places API (New) via the goplaces CLI for text search, place details, resolve, and reviews. Use for human-friendly place lookup or JSON output for scripts.",
+            "source": "openclaw-bundled",
+            "bundled": true,
+            "filePath": "/app/skills/goplaces/SKILL.md",
+            "baseDir": "/app/skills/goplaces",
+            "skillKey": "goplaces",
+            "primaryEnv": "GOOGLE_PLACES_API_KEY",
+            "emoji": "📍",
+            "homepage": "https://github.com/steipete/goplaces",
+            "always": false,
+            "disabled": false,
+            "blockedByAllowlist": false,
+            "eligible": false,
+            "requirements": {
+              "bins": [
+                "goplaces"
+              ],
+              "anyBins": [],
+              "env": [
+                "GOOGLE_PLACES_API_KEY"
+              ],
+              "config": [],
+              "os": []
+            },
+            "missing": {
+              "bins": [
+                "goplaces"
+              ],
+              "anyBins": [],
+              "env": [
+                "GOOGLE_PLACES_API_KEY"
+              ],
+              "config": [],
+              "os": []
+            },
+            "configChecks": [],
+            "install": [
+              {
+                "id": "brew",
+                "kind": "brew",
+                "label": "Install goplaces (brew)",
+                "bins": [
+                  "goplaces"
+                ]
+              }
+            ]
+          },
+          {
+            "name": "healthcheck",
+            "description": "Host security hardening and risk-tolerance configuration for OpenClaw deployments. Use when a user asks for security audits, firewall/SSH/update hardening, risk posture, exposure review, OpenClaw cron scheduling for periodic checks, or version status checks on a machine running OpenClaw (laptop, workstation, Pi, VPS).",
+            "source": "openclaw-bundled",
+            "bundled": true,
+            "filePath": "/app/skills/healthcheck/SKILL.md",
+            "baseDir": "/app/skills/healthcheck",
+            "skillKey": "healthcheck",
+            "always": false,
+            "disabled": false,
+            "blockedByAllowlist": false,
+            "eligible": true,
+            "requirements": {
+              "bins": [],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "missing": {
+              "bins": [],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "configChecks": [],
+            "install": []
+          },
+          {
+            "name": "himalaya",
+            "description": "CLI to manage emails via IMAP/SMTP. Use `himalaya` to list, read, write, reply, forward, search, and organize emails from the terminal. Supports multiple accounts and message composition with MML (MIME Meta Language).",
+            "source": "openclaw-bundled",
+            "bundled": true,
+            "filePath": "/app/skills/himalaya/SKILL.md",
+            "baseDir": "/app/skills/himalaya",
+            "skillKey": "himalaya",
+            "emoji": "📧",
+            "homepage": "https://github.com/pimalaya/himalaya",
+            "always": false,
+            "disabled": false,
+            "blockedByAllowlist": false,
+            "eligible": false,
+            "requirements": {
+              "bins": [
+                "himalaya"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "missing": {
+              "bins": [
+                "himalaya"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "configChecks": [],
+            "install": [
+              {
+                "id": "brew",
+                "kind": "brew",
+                "label": "Install Himalaya (brew)",
+                "bins": [
+                  "himalaya"
+                ]
+              }
+            ]
+          },
+          {
+            "name": "imsg",
+            "description": "iMessage/SMS CLI for listing chats, history, watch, and sending.",
+            "source": "openclaw-bundled",
+            "bundled": true,
+            "filePath": "/app/skills/imsg/SKILL.md",
+            "baseDir": "/app/skills/imsg",
+            "skillKey": "imsg",
+            "emoji": "📨",
+            "homepage": "https://imsg.to",
+            "always": false,
+            "disabled": false,
+            "blockedByAllowlist": false,
+            "eligible": false,
+            "requirements": {
+              "bins": [
+                "imsg"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": [
+                "darwin"
+              ]
+            },
+            "missing": {
+              "bins": [
+                "imsg"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": [
+                "darwin"
+              ]
+            },
+            "configChecks": [],
+            "install": []
+          },
+          {
+            "name": "mcporter",
+            "description": "Use the mcporter CLI to list, configure, auth, and call MCP servers/tools directly (HTTP or stdio), including ad-hoc servers, config edits, and CLI/type generation.",
+            "source": "openclaw-bundled",
+            "bundled": true,
+            "filePath": "/app/skills/mcporter/SKILL.md",
+            "baseDir": "/app/skills/mcporter",
+            "skillKey": "mcporter",
+            "emoji": "📦",
+            "homepage": "http://mcporter.dev",
+            "always": false,
+            "disabled": false,
+            "blockedByAllowlist": false,
+            "eligible": false,
+            "requirements": {
+              "bins": [
+                "mcporter"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "missing": {
+              "bins": [
+                "mcporter"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "configChecks": [],
+            "install": [
+              {
+                "id": "node",
+                "kind": "node",
+                "label": "Install mcporter (npm)",
+                "bins": [
+                  "mcporter"
+                ]
+              }
+            ]
+          },
+          {
+            "name": "model-usage",
+            "description": "Use CodexBar CLI local cost usage to summarize per-model usage for Codex or Claude, including the current (most recent) model or a full model breakdown. Trigger when asked for model-level usage/cost data from codexbar, or when you need a scriptable per-model summary from codexbar cost JSON.",
+            "source": "openclaw-bundled",
+            "bundled": true,
+            "filePath": "/app/skills/model-usage/SKILL.md",
+            "baseDir": "/app/skills/model-usage",
+            "skillKey": "model-usage",
+            "emoji": "📊",
+            "always": false,
+            "disabled": false,
+            "blockedByAllowlist": false,
+            "eligible": false,
+            "requirements": {
+              "bins": [
+                "codexbar"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": [
+                "darwin"
+              ]
+            },
+            "missing": {
+              "bins": [
+                "codexbar"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": [
+                "darwin"
+              ]
+            },
+            "configChecks": [],
+            "install": []
+          },
+          {
+            "name": "nano-banana-pro",
+            "description": "Generate or edit images via Gemini 3 Pro Image (Nano Banana Pro).",
+            "source": "openclaw-bundled",
+            "bundled": true,
+            "filePath": "/app/skills/nano-banana-pro/SKILL.md",
+            "baseDir": "/app/skills/nano-banana-pro",
+            "skillKey": "nano-banana-pro",
+            "primaryEnv": "GEMINI_API_KEY",
+            "emoji": "🍌",
+            "homepage": "https://ai.google.dev/",
+            "always": false,
+            "disabled": false,
+            "blockedByAllowlist": false,
+            "eligible": false,
+            "requirements": {
+              "bins": [
+                "uv"
+              ],
+              "anyBins": [],
+              "env": [
+                "GEMINI_API_KEY"
+              ],
+              "config": [],
+              "os": []
+            },
+            "missing": {
+              "bins": [
+                "uv"
+              ],
+              "anyBins": [],
+              "env": [
+                "GEMINI_API_KEY"
+              ],
+              "config": [],
+              "os": []
+            },
+            "configChecks": [],
+            "install": [
+              {
+                "id": "uv-brew",
+                "kind": "brew",
+                "label": "Install uv (brew)",
+                "bins": [
+                  "uv"
+                ]
+              }
+            ]
+          },
+          {
+            "name": "nano-pdf",
+            "description": "Edit PDFs with natural-language instructions using the nano-pdf CLI.",
+            "source": "openclaw-bundled",
+            "bundled": true,
+            "filePath": "/app/skills/nano-pdf/SKILL.md",
+            "baseDir": "/app/skills/nano-pdf",
+            "skillKey": "nano-pdf",
+            "emoji": "📄",
+            "homepage": "https://pypi.org/project/nano-pdf/",
+            "always": false,
+            "disabled": false,
+            "blockedByAllowlist": false,
+            "eligible": false,
+            "requirements": {
+              "bins": [
+                "nano-pdf"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "missing": {
+              "bins": [
+                "nano-pdf"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "configChecks": [],
+            "install": [
+              {
+                "id": "uv",
+                "kind": "uv",
+                "label": "Install nano-pdf (uv)",
+                "bins": [
+                  "nano-pdf"
+                ]
+              }
+            ]
+          },
+          {
+            "name": "notion",
+            "description": "Notion API for creating and managing pages, databases, and blocks.",
+            "source": "openclaw-bundled",
+            "bundled": true,
+            "filePath": "/app/skills/notion/SKILL.md",
+            "baseDir": "/app/skills/notion",
+            "skillKey": "notion",
+            "primaryEnv": "NOTION_API_KEY",
+            "emoji": "📝",
+            "homepage": "https://developers.notion.com",
+            "always": false,
+            "disabled": false,
+            "blockedByAllowlist": false,
+            "eligible": false,
+            "requirements": {
+              "bins": [],
+              "anyBins": [],
+              "env": [
+                "NOTION_API_KEY"
+              ],
+              "config": [],
+              "os": []
+            },
+            "missing": {
+              "bins": [],
+              "anyBins": [],
+              "env": [
+                "NOTION_API_KEY"
+              ],
+              "config": [],
+              "os": []
+            },
+            "configChecks": [],
+            "install": []
+          },
+          {
+            "name": "obsidian",
+            "description": "Work with Obsidian vaults (plain Markdown notes) and automate via obsidian-cli.",
+            "source": "openclaw-bundled",
+            "bundled": true,
+            "filePath": "/app/skills/obsidian/SKILL.md",
+            "baseDir": "/app/skills/obsidian",
+            "skillKey": "obsidian",
+            "emoji": "💎",
+            "homepage": "https://help.obsidian.md",
+            "always": false,
+            "disabled": false,
+            "blockedByAllowlist": false,
+            "eligible": false,
+            "requirements": {
+              "bins": [
+                "obsidian-cli"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "missing": {
+              "bins": [
+                "obsidian-cli"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "configChecks": [],
+            "install": [
+              {
+                "id": "brew",
+                "kind": "brew",
+                "label": "Install obsidian-cli (brew)",
+                "bins": [
+                  "obsidian-cli"
+                ]
+              }
+            ]
+          },
+          {
+            "name": "openai-image-gen",
+            "description": "Batch-generate images via OpenAI Images API. Random prompt sampler + `index.html` gallery.",
+            "source": "openclaw-bundled",
+            "bundled": true,
+            "filePath": "/app/skills/openai-image-gen/SKILL.md",
+            "baseDir": "/app/skills/openai-image-gen",
+            "skillKey": "openai-image-gen",
+            "primaryEnv": "OPENAI_API_KEY",
+            "emoji": "🖼️",
+            "homepage": "https://platform.openai.com/docs/api-reference/images",
+            "always": false,
+            "disabled": false,
+            "blockedByAllowlist": false,
+            "eligible": false,
+            "requirements": {
+              "bins": [
+                "python3"
+              ],
+              "anyBins": [],
+              "env": [
+                "OPENAI_API_KEY"
+              ],
+              "config": [],
+              "os": []
+            },
+            "missing": {
+              "bins": [],
+              "anyBins": [],
+              "env": [
+                "OPENAI_API_KEY"
+              ],
+              "config": [],
+              "os": []
+            },
+            "configChecks": [],
+            "install": [
+              {
+                "id": "python-brew",
+                "kind": "brew",
+                "label": "Install Python (brew)",
+                "bins": [
+                  "python3"
+                ]
+              }
+            ]
+          },
+          {
+            "name": "openai-whisper",
+            "description": "Local speech-to-text with the Whisper CLI (no API key).",
+            "source": "openclaw-bundled",
+            "bundled": true,
+            "filePath": "/app/skills/openai-whisper/SKILL.md",
+            "baseDir": "/app/skills/openai-whisper",
+            "skillKey": "openai-whisper",
+            "emoji": "🎙️",
+            "homepage": "https://openai.com/research/whisper",
+            "always": false,
+            "disabled": false,
+            "blockedByAllowlist": false,
+            "eligible": false,
+            "requirements": {
+              "bins": [
+                "whisper"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "missing": {
+              "bins": [
+                "whisper"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "configChecks": [],
+            "install": [
+              {
+                "id": "brew",
+                "kind": "brew",
+                "label": "Install OpenAI Whisper (brew)",
+                "bins": [
+                  "whisper"
+                ]
+              }
+            ]
+          },
+          {
+            "name": "openai-whisper-api",
+            "description": "Transcribe audio via OpenAI Audio Transcriptions API (Whisper).",
+            "source": "openclaw-bundled",
+            "bundled": true,
+            "filePath": "/app/skills/openai-whisper-api/SKILL.md",
+            "baseDir": "/app/skills/openai-whisper-api",
+            "skillKey": "openai-whisper-api",
+            "primaryEnv": "OPENAI_API_KEY",
+            "emoji": "☁️",
+            "homepage": "https://platform.openai.com/docs/guides/speech-to-text",
+            "always": false,
+            "disabled": false,
+            "blockedByAllowlist": false,
+            "eligible": false,
+            "requirements": {
+              "bins": [
+                "curl"
+              ],
+              "anyBins": [],
+              "env": [
+                "OPENAI_API_KEY"
+              ],
+              "config": [],
+              "os": []
+            },
+            "missing": {
+              "bins": [],
+              "anyBins": [],
+              "env": [
+                "OPENAI_API_KEY"
+              ],
+              "config": [],
+              "os": []
+            },
+            "configChecks": [],
+            "install": []
+          },
+          {
+            "name": "openhue",
+            "description": "Control Philips Hue lights/scenes via the OpenHue CLI.",
+            "source": "openclaw-bundled",
+            "bundled": true,
+            "filePath": "/app/skills/openhue/SKILL.md",
+            "baseDir": "/app/skills/openhue",
+            "skillKey": "openhue",
+            "emoji": "💡",
+            "homepage": "https://www.openhue.io/cli",
+            "always": false,
+            "disabled": false,
+            "blockedByAllowlist": false,
+            "eligible": false,
+            "requirements": {
+              "bins": [
+                "openhue"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "missing": {
+              "bins": [
+                "openhue"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "configChecks": [],
+            "install": [
+              {
+                "id": "brew",
+                "kind": "brew",
+                "label": "Install OpenHue CLI (brew)",
+                "bins": [
+                  "openhue"
+                ]
+              }
+            ]
+          },
+          {
+            "name": "oracle",
+            "description": "Best practices for using the oracle CLI (prompt + file bundling, engines, sessions, and file attachment patterns).",
+            "source": "openclaw-bundled",
+            "bundled": true,
+            "filePath": "/app/skills/oracle/SKILL.md",
+            "baseDir": "/app/skills/oracle",
+            "skillKey": "oracle",
+            "emoji": "🧿",
+            "homepage": "https://askoracle.dev",
+            "always": false,
+            "disabled": false,
+            "blockedByAllowlist": false,
+            "eligible": false,
+            "requirements": {
+              "bins": [
+                "oracle"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "missing": {
+              "bins": [
+                "oracle"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "configChecks": [],
+            "install": [
+              {
+                "id": "node",
+                "kind": "node",
+                "label": "Install @steipete/oracle (npm)",
+                "bins": [
+                  "oracle"
+                ]
+              }
+            ]
+          },
+          {
+            "name": "ordercli",
+            "description": "Foodora-only CLI for checking past orders and active order status (Deliveroo WIP).",
+            "source": "openclaw-bundled",
+            "bundled": true,
+            "filePath": "/app/skills/ordercli/SKILL.md",
+            "baseDir": "/app/skills/ordercli",
+            "skillKey": "ordercli",
+            "emoji": "🛵",
+            "homepage": "https://ordercli.sh",
+            "always": false,
+            "disabled": false,
+            "blockedByAllowlist": false,
+            "eligible": false,
+            "requirements": {
+              "bins": [
+                "ordercli"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "missing": {
+              "bins": [
+                "ordercli"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "configChecks": [],
+            "install": [
+              {
+                "id": "brew",
+                "kind": "brew",
+                "label": "Install ordercli (brew)",
+                "bins": [
+                  "ordercli"
+                ]
+              }
+            ]
+          },
+          {
+            "name": "peekaboo",
+            "description": "Capture and automate macOS UI with the Peekaboo CLI.",
+            "source": "openclaw-bundled",
+            "bundled": true,
+            "filePath": "/app/skills/peekaboo/SKILL.md",
+            "baseDir": "/app/skills/peekaboo",
+            "skillKey": "peekaboo",
+            "emoji": "👀",
+            "homepage": "https://peekaboo.boo",
+            "always": false,
+            "disabled": false,
+            "blockedByAllowlist": false,
+            "eligible": false,
+            "requirements": {
+              "bins": [
+                "peekaboo"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": [
+                "darwin"
+              ]
+            },
+            "missing": {
+              "bins": [
+                "peekaboo"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": [
+                "darwin"
+              ]
+            },
+            "configChecks": [],
+            "install": []
+          },
+          {
+            "name": "sag",
+            "description": "ElevenLabs text-to-speech with mac-style say UX.",
+            "source": "openclaw-bundled",
+            "bundled": true,
+            "filePath": "/app/skills/sag/SKILL.md",
+            "baseDir": "/app/skills/sag",
+            "skillKey": "sag",
+            "primaryEnv": "ELEVENLABS_API_KEY",
+            "emoji": "🗣️",
+            "homepage": "https://sag.sh",
+            "always": false,
+            "disabled": false,
+            "blockedByAllowlist": false,
+            "eligible": false,
+            "requirements": {
+              "bins": [
+                "sag"
+              ],
+              "anyBins": [],
+              "env": [
+                "ELEVENLABS_API_KEY"
+              ],
+              "config": [],
+              "os": []
+            },
+            "missing": {
+              "bins": [
+                "sag"
+              ],
+              "anyBins": [],
+              "env": [
+                "ELEVENLABS_API_KEY"
+              ],
+              "config": [],
+              "os": []
+            },
+            "configChecks": [],
+            "install": [
+              {
+                "id": "brew",
+                "kind": "brew",
+                "label": "Install sag (brew)",
+                "bins": [
+                  "sag"
+                ]
+              }
+            ]
+          },
+          {
+            "name": "session-logs",
+            "description": "Search and analyze your own session logs (older/parent conversations) using jq.",
+            "source": "openclaw-bundled",
+            "bundled": true,
+            "filePath": "/app/skills/session-logs/SKILL.md",
+            "baseDir": "/app/skills/session-logs",
+            "skillKey": "session-logs",
+            "emoji": "📜",
+            "always": false,
+            "disabled": false,
+            "blockedByAllowlist": false,
+            "eligible": false,
+            "requirements": {
+              "bins": [
+                "jq",
+                "rg"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "missing": {
+              "bins": [
+                "jq",
+                "rg"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "configChecks": [],
+            "install": []
+          },
+          {
+            "name": "sherpa-onnx-tts",
+            "description": "Local text-to-speech via sherpa-onnx (offline, no cloud)",
+            "source": "openclaw-bundled",
+            "bundled": true,
+            "filePath": "/app/skills/sherpa-onnx-tts/SKILL.md",
+            "baseDir": "/app/skills/sherpa-onnx-tts",
+            "skillKey": "sherpa-onnx-tts",
+            "emoji": "🗣️",
+            "always": false,
+            "disabled": false,
+            "blockedByAllowlist": false,
+            "eligible": false,
+            "requirements": {
+              "bins": [],
+              "anyBins": [],
+              "env": [
+                "SHERPA_ONNX_RUNTIME_DIR",
+                "SHERPA_ONNX_MODEL_DIR"
+              ],
+              "config": [],
+              "os": [
+                "darwin",
+                "linux",
+                "win32"
+              ]
+            },
+            "missing": {
+              "bins": [],
+              "anyBins": [],
+              "env": [
+                "SHERPA_ONNX_RUNTIME_DIR",
+                "SHERPA_ONNX_MODEL_DIR"
+              ],
+              "config": [],
+              "os": []
+            },
+            "configChecks": [],
+            "install": [
+              {
+                "id": "download-runtime-linux-x64",
+                "kind": "download",
+                "label": "Download sherpa-onnx runtime (Linux x64)",
+                "bins": []
+              },
+              {
+                "id": "download-model-lessac",
+                "kind": "download",
+                "label": "Download Piper en_US lessac (high)",
+                "bins": []
+              }
+            ]
+          },
+          {
+            "name": "skill-creator",
+            "description": "Create or update AgentSkills. Use when designing, structuring, or packaging skills with scripts, references, and assets.",
+            "source": "openclaw-bundled",
+            "bundled": true,
+            "filePath": "/app/skills/skill-creator/SKILL.md",
+            "baseDir": "/app/skills/skill-creator",
+            "skillKey": "skill-creator",
+            "always": false,
+            "disabled": false,
+            "blockedByAllowlist": false,
+            "eligible": true,
+            "requirements": {
+              "bins": [],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "missing": {
+              "bins": [],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "configChecks": [],
+            "install": []
+          },
+          {
+            "name": "slack",
+            "description": "Use when you need to control Slack from OpenClaw via the slack tool, including reacting to messages or pinning/unpinning items in Slack channels or DMs.",
+            "source": "openclaw-bundled",
+            "bundled": true,
+            "filePath": "/app/skills/slack/SKILL.md",
+            "baseDir": "/app/skills/slack",
+            "skillKey": "slack",
+            "emoji": "💬",
+            "always": false,
+            "disabled": false,
+            "blockedByAllowlist": false,
+            "eligible": true,
+            "requirements": {
+              "bins": [],
+              "anyBins": [],
+              "env": [],
+              "config": [
+                "channels.slack"
+              ],
+              "os": []
+            },
+            "missing": {
+              "bins": [],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "configChecks": [
+              {
+                "path": "channels.slack",
+                "satisfied": true
+              }
+            ],
+            "install": []
+          },
+          {
+            "name": "songsee",
+            "description": "Generate spectrograms and feature-panel visualizations from audio with the songsee CLI.",
+            "source": "openclaw-bundled",
+            "bundled": true,
+            "filePath": "/app/skills/songsee/SKILL.md",
+            "baseDir": "/app/skills/songsee",
+            "skillKey": "songsee",
+            "emoji": "🌊",
+            "homepage": "https://github.com/steipete/songsee",
+            "always": false,
+            "disabled": false,
+            "blockedByAllowlist": false,
+            "eligible": false,
+            "requirements": {
+              "bins": [
+                "songsee"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "missing": {
+              "bins": [
+                "songsee"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "configChecks": [],
+            "install": [
+              {
+                "id": "brew",
+                "kind": "brew",
+                "label": "Install songsee (brew)",
+                "bins": [
+                  "songsee"
+                ]
+              }
+            ]
+          },
+          {
+            "name": "sonoscli",
+            "description": "Control Sonos speakers (discover/status/play/volume/group).",
+            "source": "openclaw-bundled",
+            "bundled": true,
+            "filePath": "/app/skills/sonoscli/SKILL.md",
+            "baseDir": "/app/skills/sonoscli",
+            "skillKey": "sonoscli",
+            "emoji": "🔊",
+            "homepage": "https://sonoscli.sh",
+            "always": false,
+            "disabled": false,
+            "blockedByAllowlist": false,
+            "eligible": false,
+            "requirements": {
+              "bins": [
+                "sonos"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "missing": {
+              "bins": [
+                "sonos"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "configChecks": [],
+            "install": [
+              {
+                "id": "go",
+                "kind": "go",
+                "label": "Install sonoscli (go)",
+                "bins": [
+                  "sonos"
+                ]
+              }
+            ]
+          },
+          {
+            "name": "spotify-player",
+            "description": "Terminal Spotify playback/search via spogo (preferred) or spotify_player.",
+            "source": "openclaw-bundled",
+            "bundled": true,
+            "filePath": "/app/skills/spotify-player/SKILL.md",
+            "baseDir": "/app/skills/spotify-player",
+            "skillKey": "spotify-player",
+            "emoji": "🎵",
+            "homepage": "https://www.spotify.com",
+            "always": false,
+            "disabled": false,
+            "blockedByAllowlist": false,
+            "eligible": false,
+            "requirements": {
+              "bins": [],
+              "anyBins": [
+                "spogo",
+                "spotify_player"
+              ],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "missing": {
+              "bins": [],
+              "anyBins": [
+                "spogo",
+                "spotify_player"
+              ],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "configChecks": [],
+            "install": [
+              {
+                "id": "brew",
+                "kind": "brew",
+                "label": "Install spogo (brew)",
+                "bins": [
+                  "spogo"
+                ]
+              }
+            ]
+          },
+          {
+            "name": "summarize",
+            "description": "Summarize or extract text/transcripts from URLs, podcasts, and local files (great fallback for “transcribe this YouTube/video”).",
+            "source": "openclaw-bundled",
+            "bundled": true,
+            "filePath": "/app/skills/summarize/SKILL.md",
+            "baseDir": "/app/skills/summarize",
+            "skillKey": "summarize",
+            "emoji": "🧾",
+            "homepage": "https://summarize.sh",
+            "always": false,
+            "disabled": false,
+            "blockedByAllowlist": false,
+            "eligible": false,
+            "requirements": {
+              "bins": [
+                "summarize"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "missing": {
+              "bins": [
+                "summarize"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "configChecks": [],
+            "install": [
+              {
+                "id": "brew",
+                "kind": "brew",
+                "label": "Install summarize (brew)",
+                "bins": [
+                  "summarize"
+                ]
+              }
+            ]
+          },
+          {
+            "name": "things-mac",
+            "description": "Manage Things 3 via the `things` CLI on macOS (add/update projects+todos via URL scheme; read/search/list from the local Things database). Use when a user asks OpenClaw to add a task to Things, list inbox/today/upcoming, search tasks, or inspect projects/areas/tags.",
+            "source": "openclaw-bundled",
+            "bundled": true,
+            "filePath": "/app/skills/things-mac/SKILL.md",
+            "baseDir": "/app/skills/things-mac",
+            "skillKey": "things-mac",
+            "emoji": "✅",
+            "homepage": "https://github.com/ossianhempel/things3-cli",
+            "always": false,
+            "disabled": false,
+            "blockedByAllowlist": false,
+            "eligible": false,
+            "requirements": {
+              "bins": [
+                "things"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": [
+                "darwin"
+              ]
+            },
+            "missing": {
+              "bins": [
+                "things"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": [
+                "darwin"
+              ]
+            },
+            "configChecks": [],
+            "install": []
+          },
+          {
+            "name": "tmux",
+            "description": "Remote-control tmux sessions for interactive CLIs by sending keystrokes and scraping pane output.",
+            "source": "openclaw-bundled",
+            "bundled": true,
+            "filePath": "/app/skills/tmux/SKILL.md",
+            "baseDir": "/app/skills/tmux",
+            "skillKey": "tmux",
+            "emoji": "🧵",
+            "always": false,
+            "disabled": false,
+            "blockedByAllowlist": false,
+            "eligible": false,
+            "requirements": {
+              "bins": [
+                "tmux"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": [
+                "darwin",
+                "linux"
+              ]
+            },
+            "missing": {
+              "bins": [
+                "tmux"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "configChecks": [],
+            "install": []
+          },
+          {
+            "name": "trello",
+            "description": "Manage Trello boards, lists, and cards via the Trello REST API.",
+            "source": "openclaw-bundled",
+            "bundled": true,
+            "filePath": "/app/skills/trello/SKILL.md",
+            "baseDir": "/app/skills/trello",
+            "skillKey": "trello",
+            "emoji": "📋",
+            "homepage": "https://developer.atlassian.com/cloud/trello/rest/",
+            "always": false,
+            "disabled": false,
+            "blockedByAllowlist": false,
+            "eligible": false,
+            "requirements": {
+              "bins": [
+                "jq"
+              ],
+              "anyBins": [],
+              "env": [
+                "TRELLO_API_KEY",
+                "TRELLO_TOKEN"
+              ],
+              "config": [],
+              "os": []
+            },
+            "missing": {
+              "bins": [
+                "jq"
+              ],
+              "anyBins": [],
+              "env": [
+                "TRELLO_API_KEY",
+                "TRELLO_TOKEN"
+              ],
+              "config": [],
+              "os": []
+            },
+            "configChecks": [],
+            "install": []
+          },
+          {
+            "name": "video-frames",
+            "description": "Extract frames or short clips from videos using ffmpeg.",
+            "source": "openclaw-bundled",
+            "bundled": true,
+            "filePath": "/app/skills/video-frames/SKILL.md",
+            "baseDir": "/app/skills/video-frames",
+            "skillKey": "video-frames",
+            "emoji": "🎞️",
+            "homepage": "https://ffmpeg.org",
+            "always": false,
+            "disabled": false,
+            "blockedByAllowlist": false,
+            "eligible": false,
+            "requirements": {
+              "bins": [
+                "ffmpeg"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "missing": {
+              "bins": [
+                "ffmpeg"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "configChecks": [],
+            "install": [
+              {
+                "id": "brew",
+                "kind": "brew",
+                "label": "Install ffmpeg (brew)",
+                "bins": [
+                  "ffmpeg"
+                ]
+              }
+            ]
+          },
+          {
+            "name": "voice-call",
+            "description": "Start voice calls via the OpenClaw voice-call plugin.",
+            "source": "openclaw-bundled",
+            "bundled": true,
+            "filePath": "/app/skills/voice-call/SKILL.md",
+            "baseDir": "/app/skills/voice-call",
+            "skillKey": "voice-call",
+            "emoji": "📞",
+            "always": false,
+            "disabled": false,
+            "blockedByAllowlist": false,
+            "eligible": false,
+            "requirements": {
+              "bins": [],
+              "anyBins": [],
+              "env": [],
+              "config": [
+                "plugins.entries.voice-call.enabled"
+              ],
+              "os": []
+            },
+            "missing": {
+              "bins": [],
+              "anyBins": [],
+              "env": [],
+              "config": [
+                "plugins.entries.voice-call.enabled"
+              ],
+              "os": []
+            },
+            "configChecks": [
+              {
+                "path": "plugins.entries.voice-call.enabled",
+                "satisfied": false
+              }
+            ],
+            "install": []
+          },
+          {
+            "name": "wacli",
+            "description": "Send WhatsApp messages to other people or search/sync WhatsApp history via the wacli CLI (not for normal user chats).",
+            "source": "openclaw-bundled",
+            "bundled": true,
+            "filePath": "/app/skills/wacli/SKILL.md",
+            "baseDir": "/app/skills/wacli",
+            "skillKey": "wacli",
+            "emoji": "📱",
+            "homepage": "https://wacli.sh",
+            "always": false,
+            "disabled": false,
+            "blockedByAllowlist": false,
+            "eligible": false,
+            "requirements": {
+              "bins": [
+                "wacli"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "missing": {
+              "bins": [
+                "wacli"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "configChecks": [],
+            "install": [
+              {
+                "id": "brew",
+                "kind": "brew",
+                "label": "Install wacli (brew)",
+                "bins": [
+                  "wacli"
+                ]
+              }
+            ]
+          },
+          {
+            "name": "weather",
+            "description": "Get current weather and forecasts (no API key required).",
+            "source": "openclaw-bundled",
+            "bundled": true,
+            "filePath": "/app/skills/weather/SKILL.md",
+            "baseDir": "/app/skills/weather",
+            "skillKey": "weather",
+            "emoji": "🌤️",
+            "homepage": "https://wttr.in/:help",
+            "always": false,
+            "disabled": false,
+            "blockedByAllowlist": false,
+            "eligible": true,
+            "requirements": {
+              "bins": [
+                "curl"
+              ],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "missing": {
+              "bins": [],
+              "anyBins": [],
+              "env": [],
+              "config": [],
+              "os": []
+            },
+            "configChecks": [],
+            "install": []
+          }
+        ]
+      }
+    },
+    {
+      "at": "2026-02-16T05:41:21.045Z",
+      "method": "skills.install",
+      "ok": false,
+      "latencyMs": 36,
+      "params": {
+        "name": "__panel_missing_skill__",
+        "installId": "missing"
+      },
+      "error": "Skill not found: __panel_missing_skill__"
+    },
+    {
+      "at": "2026-02-16T05:41:21.050Z",
+      "method": "skills.bins",
+      "ok": false,
+      "latencyMs": 5,
+      "params": {},
+      "error": "unauthorized role: operator"
+    }
+  ],
+  "stats": {
+    "rpcTotal": 6,
+    "rpcFailed": 3
+  },
+  "observations": [
+    "skills.status 返回的是可识别技能列表；probe skillKey 不在列表中。",
+    "skills.update 对 probe skillKey 返回成功（即使该 key 不在 skills.status）。",
+    "skills.install 缺失技能名会失败并返回错误。",
+    "skills.bins 对 operator 角色默认拒绝（unauthorized role）。"
+  ]
+}

@@ -1,5 +1,8 @@
 export const PANEL_ROUTES = {
   "panel-dashboard": "/dashboard",
+  "panel-status-overview": "/status-overview",
+  "panel-skills": "/skills",
+  "panel-chat-console": "/chat-console",
   "panel-model": "/model",
   "panel-config-generator": "/config-generator",
   "panel-channel": "/channels",

@@ -1,0 +1,12 @@
+{
+  "toggleEndpoint": "/api/skills/__unknown_skill__/enabled",
+  "configSkillKey": "skill-creator",
+  "statusOk": true,
+  "testedAt": "2026-02-16 15:15:47 +08:00",
+  "configOk": true,
+  "statusEndpoint": "/api/skills/status",
+  "unknownToggleOk": false,
+  "unknownToggleMessage": "未知技能：__unknown_skill__",
+  "skillsTotal": 53,
+  "configEndpoint": "/api/skills/skill-creator/config"
+}

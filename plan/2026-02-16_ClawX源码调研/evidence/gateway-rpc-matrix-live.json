@@ -1,0 +1,406 @@
+{
+  "startedAt": "2026-02-16T05:23:13.796Z",
+  "finishedAt": "2026-02-16T05:23:16.205Z",
+  "url": "ws://127.0.0.1:18789/ws",
+  "sessionKey": "agent:main:panel-probe-1771219393796",
+  "methodsSummary": {
+    "sessions.list": {
+      "total": 3,
+      "successCount": 3,
+      "failCount": 0,
+      "successRate": 1,
+      "supportKinds": [
+        "supported"
+      ],
+      "p95LatencyMs": 84,
+      "sampleError": null,
+      "sampleResult": {
+        "count": 3,
+        "defaults": {
+          "modelProvider": "aicodecat-gpt",
+          "model": "gpt-5.2",
+          "contextTokens": 400000
+        },
+        "sessionCount": 3,
+        "firstSessionKey": "agent:main:panel-probe-1771219356018"
+      }
+    },
+    "chat.history": {
+      "total": 3,
+      "successCount": 3,
+      "failCount": 0,
+      "successRate": 1,
+      "supportKinds": [
+        "supported"
+      ],
+      "p95LatencyMs": 63,
+      "sampleError": null,
+      "sampleResult": {
+        "sessionKey": "agent:main:panel-probe-1771219393796",
+        "messageCount": 0,
+        "thinkingLevel": "off"
+      }
+    },
+    "chat.send": {
+      "total": 3,
+      "successCount": 3,
+      "failCount": 0,
+      "successRate": 1,
+      "supportKinds": [
+        "supported"
+      ],
+      "p95LatencyMs": 82,
+      "sampleError": null,
+      "sampleResult": {
+        "runId": "93b72da8-abb3-4916-85ab-bb303b0e3e01",
+        "status": "started"
+      }
+    },
+    "chat.abort": {
+      "total": 3,
+      "successCount": 3,
+      "failCount": 0,
+      "successRate": 1,
+      "supportKinds": [
+        "supported"
+      ],
+      "p95LatencyMs": 170,
+      "sampleError": null,
+      "sampleResult": {
+        "ok": true,
+        "aborted": true,
+        "abortedRunCount": 3
+      }
+    },
+    "skills.status": {
+      "total": 3,
+      "successCount": 3,
+      "failCount": 0,
+      "successRate": 1,
+      "supportKinds": [
+        "supported"
+      ],
+      "p95LatencyMs": 172,
+      "sampleError": null,
+      "sampleResult": {
+        "workspaceDir": "/home/node/.openclaw/workspace",
+        "managedSkillsDir": "/home/node/.openclaw/skills",
+        "totalSkills": 49,
+        "enabledCount": 49,
+        "eligibleCount": 4,
+        "firstSkillKeys": [
+          "1password",
+          "apple-notes",
+          "apple-reminders",
+          "bear-notes",
+          "blogwatcher",
+          "blucli",
+          "bluebubbles",
+          "camsnap"
+        ]
+      }
+    },
+    "skills.update": {
+      "total": 3,
+      "successCount": 3,
+      "failCount": 0,
+      "successRate": 1,
+      "supportKinds": [
+        "supported"
+      ],
+      "p95LatencyMs": 138,
+      "sampleError": null,
+      "sampleResult": {
+        "ok": true,
+        "skillKey": "__panel_probe_nonexistent_skill__",
+        "config": {
+          "enabled": false
+        }
+      }
+    }
+  },
+  "summary": {
+    "supported": [
+      "sessions.list",
+      "chat.history",
+      "chat.send",
+      "chat.abort",
+      "skills.status",
+      "skills.update"
+    ],
+    "unsupported": [],
+    "uncertain": []
+  },
+  "runs": [
+    {
+      "method": "sessions.list",
+      "ok": true,
+      "latencyMs": 165,
+      "support": "supported",
+      "error": null,
+      "result": {
+        "count": 3,
+        "defaults": {
+          "modelProvider": "aicodecat-gpt",
+          "model": "gpt-5.2",
+          "contextTokens": 400000
+        },
+        "sessionCount": 3,
+        "firstSessionKey": "agent:main:panel-probe-1771219356018"
+      }
+    },
+    {
+      "method": "sessions.list",
+      "ok": true,
+      "latencyMs": 70,
+      "support": "supported",
+      "error": null,
+      "result": {
+        "count": 3,
+        "defaults": {
+          "modelProvider": "aicodecat-gpt",
+          "model": "gpt-5.2",
+          "contextTokens": 400000
+        },
+        "sessionCount": 3,
+        "firstSessionKey": "agent:main:panel-probe-1771219356018"
+      }
+    },
+    {
+      "method": "sessions.list",
+      "ok": true,
+      "latencyMs": 84,
+      "support": "supported",
+      "error": null,
+      "result": {
+        "count": 3,
+        "defaults": {
+          "modelProvider": "aicodecat-gpt",
+          "model": "gpt-5.2",
+          "contextTokens": 400000
+        },
+        "sessionCount": 3,
+        "firstSessionKey": "agent:main:panel-probe-1771219356018"
+      }
+    },
+    {
+      "method": "chat.history",
+      "ok": true,
+      "latencyMs": 63,
+      "support": "supported",
+      "error": null,
+      "result": {
+        "sessionKey": "agent:main:panel-probe-1771219393796",
+        "messageCount": 0,
+        "thinkingLevel": "off"
+      }
+    },
+    {
+      "method": "chat.history",
+      "ok": true,
+      "latencyMs": 63,
+      "support": "supported",
+      "error": null,
+      "result": {
+        "sessionKey": "agent:main:panel-probe-1771219393796",
+        "messageCount": 0,
+        "thinkingLevel": "off"
+      }
+    },
+    {
+      "method": "chat.history",
+      "ok": true,
+      "latencyMs": 78,
+      "support": "supported",
+      "error": null,
+      "result": {
+        "sessionKey": "agent:main:panel-probe-1771219393796",
+        "messageCount": 0,
+        "thinkingLevel": "off"
+      }
+    },
+    {
+      "method": "chat.send",
+      "ok": true,
+      "latencyMs": 56,
+      "support": "supported",
+      "error": null,
+      "result": {
+        "runId": "93b72da8-abb3-4916-85ab-bb303b0e3e01",
+        "status": "started"
+      }
+    },
+    {
+      "method": "chat.send",
+      "ok": true,
+      "latencyMs": 82,
+      "support": "supported",
+      "error": null,
+      "result": {
+        "runId": "483edb19-be49-4c69-bce3-99e32b185404",
+        "status": "started"
+      }
+    },
+    {
+      "method": "chat.send",
+      "ok": true,
+      "latencyMs": 149,
+      "support": "supported",
+      "error": null,
+      "result": {
+        "runId": "4192a21c-45a7-4d76-8840-449c47eade93",
+        "status": "started"
+      }
+    },
+    {
+      "method": "chat.abort",
+      "ok": true,
+      "latencyMs": 239,
+      "support": "supported",
+      "error": null,
+      "result": {
+        "ok": true,
+        "aborted": true,
+        "abortedRunCount": 3
+      }
+    },
+    {
+      "method": "chat.abort",
+      "ok": true,
+      "latencyMs": 168,
+      "support": "supported",
+      "error": null,
+      "result": {
+        "ok": true,
+        "aborted": false,
+        "abortedRunCount": 0
+      }
+    },
+    {
+      "method": "chat.abort",
+      "ok": true,
+      "latencyMs": 170,
+      "support": "supported",
+      "error": null,
+      "result": {
+        "ok": true,
+        "aborted": false,
+        "abortedRunCount": 0
+      }
+    },
+    {
+      "method": "skills.status",
+      "ok": true,
+      "latencyMs": 274,
+      "support": "supported",
+      "error": null,
+      "result": {
+        "workspaceDir": "/home/node/.openclaw/workspace",
+        "managedSkillsDir": "/home/node/.openclaw/skills",
+        "totalSkills": 49,
+        "enabledCount": 49,
+        "eligibleCount": 4,
+        "firstSkillKeys": [
+          "1password",
+          "apple-notes",
+          "apple-reminders",
+          "bear-notes",
+          "blogwatcher",
+          "blucli",
+          "bluebubbles",
+          "camsnap"
+        ]
+      }
+    },
+    {
+      "method": "skills.status",
+      "ok": true,
+      "latencyMs": 172,
+      "support": "supported",
+      "error": null,
+      "result": {
+        "workspaceDir": "/home/node/.openclaw/workspace",
+        "managedSkillsDir": "/home/node/.openclaw/skills",
+        "totalSkills": 49,
+        "enabledCount": 49,
+        "eligibleCount": 4,
+        "firstSkillKeys": [
+          "1password",
+          "apple-notes",
+          "apple-reminders",
+          "bear-notes",
+          "blogwatcher",
+          "blucli",
+          "bluebubbles",
+          "camsnap"
+        ]
+      }
+    },
+    {
+      "method": "skills.status",
+      "ok": true,
+      "latencyMs": 162,
+      "support": "supported",
+      "error": null,
+      "result": {
+        "workspaceDir": "/home/node/.openclaw/workspace",
+        "managedSkillsDir": "/home/node/.openclaw/skills",
+        "totalSkills": 49,
+        "enabledCount": 49,
+        "eligibleCount": 4,
+        "firstSkillKeys": [
+          "1password",
+          "apple-notes",
+          "apple-reminders",
+          "bear-notes",
+          "blogwatcher",
+          "blucli",
+          "bluebubbles",
+          "camsnap"
+        ]
+      }
+    },
+    {
+      "method": "skills.update",
+      "ok": true,
+      "latencyMs": 138,
+      "support": "supported",
+      "error": null,
+      "result": {
+        "ok": true,
+        "skillKey": "__panel_probe_nonexistent_skill__",
+        "config": {
+          "enabled": false
+        }
+      }
+    },
+    {
+      "method": "skills.update",
+      "ok": true,
+      "latencyMs": 132,
+      "support": "supported",
+      "error": null,
+      "result": {
+        "ok": true,
+        "skillKey": "__panel_probe_nonexistent_skill__",
+        "config": {
+          "enabled": false
+        }
+      }
+    },
+    {
+      "method": "skills.update",
+      "ok": true,
+      "latencyMs": 142,
+      "support": "supported",
+      "error": null,
+      "result": {
+        "ok": true,
+        "skillKey": "__panel_probe_nonexistent_skill__",
+        "config": {
+          "enabled": false
+        }
+      }
+    }
+  ]
+}
