@@ -98,9 +98,12 @@
 
       .tg-flow-arrow {
         justify-self: center;
-        color: var(--muted);
-        font-size: 18px;
+        color: var(--primary);
+        font-size: 40px;
+        font-weight: 900;
         line-height: 1;
+        letter-spacing: 0;
+        text-shadow: 0 1px 0 color-mix(in srgb, var(--primary) 55%, transparent);
       }
 
       .tg-step-result {
@@ -178,7 +181,7 @@
                 </label>
               </section>
 
-              <div class="tg-flow-arrow" aria-hidden="true">↓</div>
+              <div class="tg-flow-arrow" aria-hidden="true">⬇</div>
 
               <section class="tg-flow-step">
                 <h3>第 2 步：保存并启用</h3>
@@ -190,14 +193,14 @@
                 <pre id="tg_setup_trace" class="tg-step-result">暂无执行记录</pre>
               </section>
 
-              <div class="tg-flow-arrow" aria-hidden="true">↓</div>
+              <div class="tg-flow-arrow" aria-hidden="true">⬇</div>
 
               <section class="tg-flow-step">
                 <h3>第 3 步：在 Telegram 里给 Bot 发任意消息</h3>
                 <p>Bot 会返回验证码，把验证码填在下一步。</p>
               </section>
 
-              <div class="tg-flow-arrow" aria-hidden="true">↓</div>
+              <div class="tg-flow-arrow" aria-hidden="true">⬇</div>
 
               <section class="tg-flow-step">
                 <h3>第 4 步：输入验证码并验证</h3>
