@@ -1,0 +1,1245 @@
+import {
+  AICODECAT_PROVIDER,
+  DASHBOARD_CONTEXT_KEY,
+  DEFAULT_MODEL_OPTIONS,
+  MODEL_PROFILE_BY_FAMILY,
+  MODEL_TEMPLATE_MAP,
+  api,
+  buildDefaultModelEntry,
+  buildModelPayload,
+  createDashboardStatusTag,
+  dashboardSummaryState,
+  fillDefaultModelOptions,
+  formatLocalTime,
+  getDashboardContextTokens,
+  getInputValue,
+  modelEditorState,
+  modelFamilyById,
+  normalizeModelDraft,
+  parseModelRef,
+  setInput,
+  setMessage,
+  setStackListEmpty,
+  setText,
+  toNonNegativeInt
+} from "../core/panel-core.js";
+import { resolveAicodecatBaseUrl, resolveProviderId } from "../../config-generator.js";
+
+function buildModelEntryFromProvider(providerEntry, providerModel) {
+  return {
+    ref: `${providerEntry.id}/${providerModel.id}`,
+    providerId: providerEntry.id,
+    providerApi: providerEntry.api,
+    providerBaseUrl: providerEntry.baseUrl,
+    modelId: providerModel.id,
+    modelName: providerModel.name || providerModel.id,
+    contextWindow: Number(providerModel.contextWindow || 0) || undefined,
+    maxTokens: Number(providerModel.maxTokens || 0) || undefined,
+    thinkingStrength: String(providerModel?.thinkingStrength || "").trim() || "无"
+  };
+}
+
+function collectCatalogModelEntries(modelSettings) {
+  const providers = Array.isArray(modelSettings?.catalog?.providers) ? modelSettings.catalog.providers : [];
+  const entries = [];
+  providers.forEach((providerEntry) => {
+    const models = Array.isArray(providerEntry?.models) ? providerEntry.models : [];
+    models.forEach((providerModel) => {
+      entries.push(buildModelEntryFromProvider(providerEntry, providerModel));
+    });
+  });
+  return entries;
+}
+
+function findModelEntryByRef(modelSettings, modelRef) {
+  const targetRef = String(modelRef || "").trim();
+  if (!targetRef) {
+    return null;
+  }
+
+  const matched = collectCatalogModelEntries(modelSettings).find((entry) => entry.ref === targetRef);
+  if (matched) {
+    return matched;
+  }
+
+  if (String(modelSettings?.primary || "").trim() === targetRef) {
+    return {
+      ref: targetRef,
+      providerId: modelSettings?.providerId,
+      providerApi: modelSettings?.providerApi,
+      providerBaseUrl: modelSettings?.providerBaseUrl,
+      modelId: modelSettings?.modelId,
+      modelName: modelSettings?.modelName || modelSettings?.modelId,
+      contextWindow: Number(modelSettings?.contextWindow || 0) || undefined,
+      maxTokens: Number(modelSettings?.maxTokens || 0) || undefined,
+      thinkingStrength: String(modelSettings?.thinkingStrength || "").trim() || "无"
+    };
+  }
+
+  return null;
+}
+
+function confirmModelSwitchRisk(modelSettings, modelEntry) {
+  const currentModelContext = Number(modelSettings?.contextWindow || 0) || undefined;
+  const targetContext = Number(modelEntry?.contextWindow || 0) || undefined;
+  const currentContextTokens = getDashboardContextTokens();
+
+  if (targetContext && currentContextTokens !== null && currentContextTokens > targetContext) {
+    return window.confirm(
+      `当前会话上下文约 ${currentContextTokens.toLocaleString()}，目标模型上限为 ${targetContext.toLocaleString()}。\n切换后可能因上下文超限报错，确认继续切换吗？`
+    );
+  }
+
+  if (targetContext && currentContextTokens === null && currentModelContext && currentModelContext > targetContext) {
+    return window.confirm(
+      `目标模型上下文上限更小（${targetContext.toLocaleString()}），但你还没填写“当前会话上下文”。\n如果当前会话已超过目标上限，切换后会报错。确认继续切换吗？`
+    );
+  }
+
+  return true;
+}
+
+function resolveProviderSavePrimaryRef(targetPrimaryRef, toggleInputId) {
+  const targetRef = String(targetPrimaryRef || "").trim();
+  const currentPrimary = String(
+    modelEditorState.currentModelSettings?.primary || modelEditorState.currentModelPayload?.primary || ""
+  ).trim();
+  const shouldSwitchPrimary = Boolean(getInputValue(toggleInputId));
+  if (shouldSwitchPrimary) {
+    return targetRef || currentPrimary;
+  }
+  return currentPrimary || targetRef;
+}
+
+async function switchDefaultModelByEntry(modelSettings, modelEntry, successPrefix = "已切换默认模型到") {
+  if (!modelEntry?.ref || !modelEntry?.modelId) {
+    throw new Error("目标模型无效，请重新选择");
+  }
+  if (!confirmModelSwitchRisk(modelSettings, modelEntry)) {
+    return;
+  }
+
+  const payload = buildModelPayload({
+    primary: modelEntry.ref,
+    providerId: modelEntry.providerId,
+    providerApi: modelEntry.providerApi,
+    providerBaseUrl: modelEntry.providerBaseUrl,
+    providerApiKey: "",
+    modelId: modelEntry.modelId,
+    modelName: modelEntry.modelName || modelEntry.modelId,
+    contextWindow: modelEntry.contextWindow || 200000,
+    maxTokens: modelEntry.maxTokens || 8192,
+    providerModels: []
+  });
+
+  await saveModelSettings(payload, `${successPrefix} ${modelEntry.modelId}`);
+}
+
+function renderDashboardQuickSwitchHint(modelEntry) {
+  if (!modelEntry) {
+    setText("dashboard_quick_switch_hint", "请选择目标模型后再切换。");
+    return;
+  }
+  const parsedRef = parseModelRef(modelEntry.ref);
+  const modelId = String(modelEntry?.modelId || parsedRef.modelId || modelEntry?.modelName || "-").trim() || "-";
+  const providerId = String(modelEntry?.providerId || parsedRef.providerId || "-").trim() || "-";
+  setText(
+    "dashboard_quick_switch_hint",
+    `将切换到：${modelId}（${providerId}）`
+  );
+}
+
+function fillDashboardQuickSwitch(modelSettings) {
+  const select = document.querySelector("#dashboard_quick_model_ref");
+  if (!(select instanceof HTMLSelectElement)) {
+    return;
+  }
+
+  const entries = [];
+  const seen = new Set();
+  modelEditorState.defaultModelRefs.forEach((entry) => {
+    const ref = String(entry?.ref || "").trim();
+    if (!ref || seen.has(ref)) {
+      return;
+    }
+    const fullEntry = findModelEntryByRef(modelSettings, ref) || entry;
+    entries.push(fullEntry);
+    seen.add(ref);
+  });
+
+  const currentPrimary = String(modelSettings?.primary || "").trim();
+  if (entries.length === 0 && currentPrimary) {
+    const fallbackEntry = findModelEntryByRef(modelSettings, currentPrimary);
+    if (fallbackEntry) {
+      entries.push(fallbackEntry);
+    }
+  }
+
+  select.innerHTML = "";
+  entries.forEach((entry) => {
+    const option = document.createElement("option");
+    option.value = entry.ref;
+    const parsedRef = parseModelRef(entry.ref);
+    const modelId = String(entry?.modelId || parsedRef.modelId || entry?.modelName || entry.ref || "").trim();
+    const providerId = String(entry?.providerId || parsedRef.providerId || "-").trim() || "-";
+    option.textContent = `${modelId || "-"}（${providerId}）`;
+    select.appendChild(option);
+  });
+
+  if (entries.some((entry) => entry.ref === currentPrimary)) {
+    select.value = currentPrimary;
+  } else if (entries.length > 0) {
+    select.selectedIndex = 0;
+  }
+
+  const selectedEntry = entries.find((entry) => entry.ref === select.value) || entries[0] || null;
+  renderDashboardQuickSwitchHint(selectedEntry);
+}
+
+function setModelProviderMode(mode) {
+  const normalizedMode = String(mode || "").trim() === "custom" ? "custom" : "template";
+  modelEditorState.providerMode = normalizedMode;
+
+  const hintText =
+    normalizedMode === "custom"
+      ? "当前为自定义模式：请手工维护 models JSON，适合高级配置场景。"
+      : "当前为基础配置模式：你通常只需要填写提供商名称、API 地址和 API Key。";
+  setText("model_provider_mode_hint", hintText);
+
+  document.querySelectorAll("[data-model-provider-mode]").forEach((button) => {
+    const buttonMode = String(button.getAttribute("data-model-provider-mode") || "").trim();
+    const isActive = buttonMode === normalizedMode;
+    button.classList.toggle("is-active", isActive);
+    button.setAttribute("aria-pressed", isActive ? "true" : "false");
+  });
+
+  document.querySelectorAll("[data-model-provider-mode-panel]").forEach((section) => {
+    const panelMode = String(section.getAttribute("data-model-provider-mode-panel") || "").trim();
+    section.classList.toggle("is-hidden", panelMode !== normalizedMode);
+  });
+}
+
+function renderModelSummary(entry, primary) {
+  const fallback = entry || {};
+  setInput("model_current_primary", primary || "");
+  setInput("model_current_provider", fallback.providerId || "");
+  setInput("model_current_api", fallback.providerApi || "");
+  setInput("model_current_baseurl", fallback.providerBaseUrl || "");
+  setInput("model_current_id", fallback.modelId || "");
+  setInput("model_current_name", fallback.modelName || fallback.modelId || "");
+  setInput("model_current_context_window", fallback.contextWindow || "");
+  setInput("model_current_max_tokens", fallback.maxTokens || "");
+}
+
+function renderDashboardModelCards(modelSettings) {
+  const container = document.querySelector("#model_provider_cards");
+  if (!container) {
+    return;
+  }
+
+  const providers = Array.isArray(modelSettings?.catalog?.providers) ? modelSettings.catalog.providers : [];
+  const primaryRef = String(modelSettings?.primary || "").trim();
+  const currentRefParts = parseModelRef(primaryRef);
+  container.innerHTML = "";
+
+  if (providers.length === 0) {
+    const empty = document.createElement("p");
+    empty.className = "muted-line";
+    empty.textContent = "当前配置没有可用提供商和模型。";
+    container.appendChild(empty);
+    return;
+  }
+
+  providers.forEach((providerEntry) => {
+    const card = document.createElement("article");
+    card.className = "provider-card";
+
+    const header = document.createElement("div");
+    header.className = "provider-header";
+    const title = document.createElement("h3");
+    title.className = "provider-title";
+    title.textContent = providerEntry.id || "(未命名提供商)";
+    const meta = document.createElement("p");
+    meta.className = "provider-meta";
+    meta.textContent = `API: ${providerEntry.api || "-"} | Base URL: ${providerEntry.baseUrl || "-"}`;
+    header.appendChild(title);
+    header.appendChild(meta);
+    card.appendChild(header);
+
+    const modelList = document.createElement("div");
+    modelList.className = "model-list";
+    const models = Array.isArray(providerEntry.models) ? providerEntry.models : [];
+    models.forEach((providerModel) => {
+      const modelEntry = buildModelEntryFromProvider(providerEntry, providerModel);
+      const isCurrent = modelEntry.ref === primaryRef;
+
+      const row = document.createElement("div");
+      row.className = `model-row${isCurrent ? " is-current" : ""}`;
+
+      const top = document.createElement("div");
+      top.className = "model-row-top";
+      const modelId = document.createElement("div");
+      modelId.className = "model-id";
+      modelId.textContent = modelEntry.modelId;
+      top.appendChild(modelId);
+      if (isCurrent) {
+        const currentTag = document.createElement("span");
+        currentTag.className = "tag-current";
+        currentTag.textContent = "当前使用";
+        top.appendChild(currentTag);
+      }
+      row.appendChild(top);
+
+      const modelMeta = document.createElement("div");
+      modelMeta.className = "model-meta";
+      const contextText =
+        modelEntry.contextWindow && modelEntry.contextWindow > 0
+          ? `Context: ${modelEntry.contextWindow.toLocaleString()}`
+          : "Context: -";
+      const maxText = modelEntry.maxTokens && modelEntry.maxTokens > 0 ? `Max Output: ${modelEntry.maxTokens.toLocaleString()}` : "Max Output: -";
+      const thinkingText = `思考强度: ${modelEntry.thinkingStrength || "无"}`;
+      modelMeta.textContent = `${contextText} | ${maxText} | ${thinkingText}`;
+      row.appendChild(modelMeta);
+
+      const switchBtn = document.createElement("button");
+      switchBtn.type = "button";
+      switchBtn.className = "model-switch-btn";
+      switchBtn.textContent = isCurrent ? "已在使用" : "切换到这个模型";
+      switchBtn.disabled = isCurrent;
+      switchBtn.addEventListener("click", () => {
+        switchDefaultModelByEntry(modelSettings, modelEntry).catch((error) => setMessage(error.message || String(error), "error"));
+      });
+      row.appendChild(switchBtn);
+
+      modelList.appendChild(row);
+    });
+
+    if (models.length === 0) {
+      const emptyModel = document.createElement("p");
+      emptyModel.className = "muted-line";
+      emptyModel.textContent = "该提供商未配置模型。";
+      modelList.appendChild(emptyModel);
+    }
+
+    card.appendChild(modelList);
+    container.appendChild(card);
+  });
+
+  const currentModelLabel = modelSettings.modelId || currentRefParts.modelId || "-";
+  setInput("dashboard_current_model", currentModelLabel);
+  setInput("dashboard_current_provider", modelSettings.providerId || currentRefParts.providerId || "-");
+  setInput(
+    "dashboard_current_context_window",
+    modelSettings.contextWindow ? `${Number(modelSettings.contextWindow).toLocaleString()} tokens` : "-"
+  );
+  setInput("dashboard_current_thinking_strength", modelSettings.thinkingStrength || "无");
+}
+
+function setupDashboard() {
+  if (modelEditorState.dashboardBound) {
+    return;
+  }
+  modelEditorState.dashboardBound = true;
+  const contextInputs = Array.from(document.querySelectorAll("[data-dashboard-context-input]"));
+  const syncContextInputs = (valueText) => {
+    contextInputs.forEach((input) => {
+      if (String(input.value || "") !== valueText) {
+        input.value = valueText;
+      }
+    });
+  };
+  const saved = toNonNegativeInt(localStorage.getItem(DASHBOARD_CONTEXT_KEY) || "");
+  if (saved !== null) {
+    syncContextInputs(String(saved));
+  }
+  contextInputs.forEach((input) => {
+    input.addEventListener("input", () => {
+      const parsed = toNonNegativeInt(input.value || "");
+      if (parsed === null) {
+        localStorage.removeItem(DASHBOARD_CONTEXT_KEY);
+        syncContextInputs("");
+        return;
+      }
+      const next = String(parsed);
+      localStorage.setItem(DASHBOARD_CONTEXT_KEY, next);
+      syncContextInputs(next);
+    });
+  });
+
+  document.querySelectorAll("[data-dashboard-jump]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const target = String(button.getAttribute("data-dashboard-jump") || "").trim();
+      if (!target) {
+        return;
+      }
+      const tab = document.querySelector(`.tab[data-tab-target="${target}"]`);
+      if (tab instanceof HTMLElement) {
+        tab.click();
+      }
+    });
+  });
+
+  document.querySelector("#dashboard_summary_refresh")?.addEventListener("click", () => {
+    Promise.allSettled([loadStatusOverview({ silent: true }), loadErrorSummary({ silent: true }), checkUpdate({ silent: true })])
+      .then((results) => {
+        const failed = results.filter((item) => item.status === "rejected");
+        if (failed.length > 0) {
+          const reasons = failed.map((item) => item.reason?.message || String(item.reason || "unknown"));
+          setMessage(`仪表盘刷新部分失败：${reasons.join(" | ")}`, "error");
+          return;
+        }
+        setMessage("仪表盘状态总览刷新完成", "ok");
+      });
+  });
+
+  document.querySelector("#dashboard_quick_model_ref")?.addEventListener("change", () => {
+    const settings = modelEditorState.currentModelSettings;
+    const selectedRef = String(getInputValue("dashboard_quick_model_ref") || "").trim();
+    const entry = findModelEntryByRef(settings, selectedRef);
+    renderDashboardQuickSwitchHint(entry);
+  });
+
+  document.querySelector("#dashboard_quick_switch")?.addEventListener("click", () => {
+    const settings = modelEditorState.currentModelSettings;
+    if (!settings) {
+      setMessage("模型配置尚未加载完成，请稍后重试", "error");
+      return;
+    }
+    const selectedRef = String(getInputValue("dashboard_quick_model_ref") || "").trim();
+    if (!selectedRef) {
+      setMessage("请先选择目标模型", "error");
+      return;
+    }
+    const entry = findModelEntryByRef(settings, selectedRef);
+    if (!entry) {
+      setMessage("目标模型不存在，请刷新页面后重试", "error");
+      return;
+    }
+    switchDefaultModelByEntry(settings, entry, "已从仪表盘切换默认模型到").catch((error) =>
+      setMessage(error.message || String(error), "error")
+    );
+  });
+}
+
+function truncateText(value, max = 72) {
+  const text = String(value || "").replace(/\s+/g, " ").trim();
+  if (!text) {
+    return "";
+  }
+  if (text.length <= max) {
+    return text;
+  }
+  return `${text.slice(0, Math.max(0, max - 1))}…`;
+}
+
+function updateDashboardErrorSummary(lines = []) {
+  const list = Array.isArray(lines) ? lines : [];
+  const latestLine = list.length > 0 ? String(list[list.length - 1] || "").trim() : "";
+  dashboardSummaryState.errorCount = list.length;
+  dashboardSummaryState.latestError = latestLine;
+
+  if (list.length === 0) {
+    setText("dashboard_summary_errors", "无错误");
+    setText("dashboard_summary_errors_meta", "最近 20 条中未发现错误关键字");
+    return;
+  }
+
+  setText("dashboard_summary_errors", `${list.length} 条错误`);
+  setText("dashboard_summary_errors_meta", truncateText(latestLine, 80) || "已命中错误关键字");
+}
+
+function updateDashboardVersionSummary(updateResult = {}) {
+  const currentTag = String(updateResult?.currentTag || "").trim();
+  const latestTag = String(updateResult?.latestTag || "").trim();
+  const warning = String(updateResult?.warning || "").trim();
+  const hasUpdate = Boolean(updateResult?.updateAvailable);
+
+  dashboardSummaryState.currentTag = currentTag;
+  dashboardSummaryState.latestTag = latestTag;
+  dashboardSummaryState.updateAvailable = hasUpdate;
+  dashboardSummaryState.updateWarning = warning;
+
+  if (warning) {
+    setText("dashboard_summary_version", currentTag ? `当前 ${currentTag}` : "检查失败");
+    setText("dashboard_summary_version_meta", truncateText(`最新版本读取失败：${warning}`, 90));
+    return;
+  }
+
+  if (!currentTag && !latestTag) {
+    setText("dashboard_summary_version", "未读取");
+    setText("dashboard_summary_version_meta", "尚未获取版本信息");
+    return;
+  }
+
+  setText("dashboard_summary_version", hasUpdate ? `可升级到 ${latestTag || "-"}` : `当前 ${currentTag || "-"}`);
+  setText(
+    "dashboard_summary_version_meta",
+    hasUpdate ? `当前 ${currentTag || "-"}，检测到新版本` : `当前 ${currentTag || "-"}，已是最新`
+  );
+}
+
+function updateDashboardSummaryCards({ runtime = {}, model = {}, channels = {}, skills = {}, refreshedAt = "" } = {}) {
+  const runtimeMode = String(runtime?.mode || "-");
+  const runtimeState = runtime?.active ? "运行中" : runtime?.ok === false ? "状态异常" : "未运行";
+  setText("dashboard_summary_runtime", runtimeState);
+  setText("dashboard_summary_runtime_meta", `模式: ${runtimeMode} | ${truncateText(runtime?.message || "-", 56)}`);
+
+  // 顶部大字状态同步
+  const heroEl = document.querySelector("#runtime_state");
+  if (heroEl) {
+    heroEl.textContent = runtime?.active ? "机器人运行中" : runtime?.ok === false ? "状态异常" : "未运行";
+    const dot = heroEl.previousElementSibling;
+    if (dot && dot.classList.contains("dot")) {
+      dot.style.background = runtime?.active ? "var(--success, #22c55e)" : "var(--danger, #ef4444)";
+    }
+  }
+
+  const currentModel = model?.current && typeof model.current === "object" ? model.current : {};
+  const modelId = String(currentModel?.modelName || currentModel?.modelId || "-");
+  const modelProvider = String(currentModel?.providerId || "-");
+  setText("dashboard_summary_model", modelId || "-");
+  setText("dashboard_summary_model_meta", `提供商: ${modelProvider}`);
+  // 同步 hero 模型名 + 模型切换区显示
+  setText("dashboard_hero_model", modelId !== "-" ? `· ${modelId}` : "");
+  setText("dashboard_model_display", modelId || "-");
+
+  const channelRuntime = channels?.runtime && typeof channels.runtime === "object" ? channels.runtime : {};
+  const channelRunning = Number(channelRuntime?.running ?? 0);
+  const channelTotal = Number(channelRuntime?.total ?? 0);
+  setText("dashboard_summary_channels", `${channelRunning}/${channelTotal}`);
+  setText(
+    "dashboard_summary_channels_meta",
+    channelRuntime?.ok === false
+      ? `渠道状态读取失败: ${truncateText(channelRuntime?.message || "-", 56)}`
+      : "运行中 / 总渠道数"
+  );
+
+  const skillSummary = skills && typeof skills === "object" ? skills : {};
+  const skillEnabled = Number(skillSummary?.enabled ?? 0);
+  const skillTotal = Number(skillSummary?.total ?? 0);
+  setText("dashboard_summary_skills", `${skillEnabled}/${skillTotal}`);
+  setText(
+    "dashboard_summary_skills_meta",
+    skillSummary?.ok === false ? `Skills 状态读取失败: ${truncateText(skillSummary?.message || "-", 56)}` : "已启用 / 总技能数"
+  );
+
+  const hint = document.querySelector("#dashboard_summary_hint");
+  if (hint) {
+    hint.textContent = refreshedAt ? `最后刷新：${refreshedAt}` : '点击"刷新总览"后显示最新状态。';
+  }
+}
+
+function renderChannelRuntimeList(containerSelector, items = [], emptyText = "暂无渠道运行数据") {
+  const container = document.querySelector(containerSelector);
+  if (!container) {
+    return;
+  }
+  if (!Array.isArray(items) || items.length === 0) {
+    setStackListEmpty(container, emptyText);
+    return;
+  }
+
+  container.innerHTML = "";
+  items.forEach((item) => {
+    const node = document.createElement("sl-card");
+    node.className = "dashboard-runtime-item dashboard-runtime-item-channel";
+    node.title = `${item?.name || item?.key || "未命名 Skill"}\nkey: ${item?.key || "-"}\nsource: ${item?.source || "-"}`;
+
+    const body = document.createElement("div");
+    body.className = "dashboard-runtime-item-body";
+
+    const top = document.createElement("div");
+    top.className = "stack-item-row";
+    const title = document.createElement("span");
+    title.className = "stack-item-title";
+    title.textContent = item?.label || item?.id || "未命名渠道";
+    top.appendChild(title);
+
+    const chips = document.createElement("div");
+    chips.className = "chip-line";
+
+    const configuredChip = createDashboardStatusTag(item?.configured ? "已配置" : "未配置", item?.configured ? "success" : "neutral");
+    chips.appendChild(configuredChip);
+
+    const runningChip = createDashboardStatusTag(item?.running ? "运行中" : "未运行", item?.running ? "primary" : "warning");
+    chips.appendChild(runningChip);
+
+    if (String(item?.lastError || "").trim()) {
+      chips.appendChild(createDashboardStatusTag("最近有报错", "danger"));
+    }
+
+    top.appendChild(chips);
+    body.appendChild(top);
+
+    const meta = document.createElement("p");
+    meta.className = "stack-item-meta";
+    const errorText = String(item?.lastError || "").trim();
+    const probeText = formatLocalTime(item?.lastProbeAt);
+    meta.textContent = errorText ? `最近错误: ${errorText}` : `最近检查: ${probeText}`;
+    body.appendChild(meta);
+    node.appendChild(body);
+    container.appendChild(node);
+  });
+}
+
+function renderSkillsRuntimeList(containerSelector, items = [], emptyText = "暂无 Skills 运行数据") {
+  const container = document.querySelector(containerSelector);
+  if (!container) {
+    return;
+  }
+  if (!Array.isArray(items) || items.length === 0) {
+    setStackListEmpty(container, emptyText);
+    return;
+  }
+
+  const total = items.length;
+  const enabledCount = items.filter((i) => i?.enabled).length;
+
+  // 摘要文字
+  const summaryEl = document.querySelector("#dashboard_skills_summary_text");
+  if (summaryEl) {
+    summaryEl.textContent = `${total} 个技能，${enabledCount} 个已启用`;
+  }
+
+  // 分为有问题 / 正常两组
+  const problemItems = items.filter((i) => !i?.enabled || i?.blocked || !i?.eligible);
+  const normalItems = items.filter((i) => i?.enabled && !i?.blocked && i?.eligible);
+
+  container.innerHTML = "";
+
+  const renderItem = (item) => {
+    const node = document.createElement("div");
+    node.className = "dashboard-runtime-item-flat dashboard-runtime-item-body";
+
+    const top = document.createElement("div");
+    top.className = "stack-item-row";
+    const title = document.createElement("span");
+    title.className = "stack-item-title";
+    title.textContent = item?.name || item?.key || "未命名 Skill";
+    top.appendChild(title);
+
+    const chips = document.createElement("div");
+    chips.className = "chip-line";
+    // 三维状态合并为一个标签
+    let statusText, statusVariant;
+    if (item?.blocked) {
+      statusText = "受限"; statusVariant = "danger";
+    } else if (!item?.enabled) {
+      statusText = "已禁用"; statusVariant = "neutral";
+    } else if (!item?.eligible) {
+      statusText = "未就绪"; statusVariant = "warning";
+    } else {
+      statusText = "正常"; statusVariant = "success";
+    }
+    chips.appendChild(createDashboardStatusTag(statusText, statusVariant));
+    top.appendChild(chips);
+    node.appendChild(top);
+    return node;
+  };
+
+  // 先渲染有问题的
+  problemItems.forEach((item) => container.appendChild(renderItem(item)));
+
+  // 正常技能默认隐藏
+  const normalNodes = normalItems.map((item) => {
+    const n = renderItem(item);
+    n.style.display = "none";
+    n.dataset.skillNormal = "1";
+    container.appendChild(n);
+    return n;
+  });
+
+  // 切换按钮
+  const toggleBtn = document.querySelector("#dashboard_skills_toggle_all");
+  if (toggleBtn) {
+    if (normalItems.length === 0) {
+      toggleBtn.style.display = "none";
+    } else {
+      toggleBtn.style.display = "";
+      toggleBtn.textContent = `显示全部 (${total})`;
+      let expanded = false;
+      toggleBtn.onclick = () => {
+        expanded = !expanded;
+        normalNodes.forEach((n) => (n.style.display = expanded ? "" : "none"));
+        toggleBtn.textContent = expanded ? "只看有问题的" : `显示全部 (${total})`;
+      };
+    }
+  }
+}
+
+function renderDashboardChannelRuntime(items = []) {
+  renderChannelRuntimeList("#dashboard_channel_runtime_list", items, "暂无渠道运行数据");
+}
+
+function renderDashboardSkillsRuntime(items = []) {
+  renderSkillsRuntimeList("#dashboard_skills_runtime_list", items, "暂无 Skills 运行数据");
+}
+
+async function loadStatusOverview({ silent = false } = {}) {
+  const response = await api("/api/dashboard/summary");
+  const summary = response?.summary && typeof response.summary === "object" ? response.summary : {};
+  const runtime = summary.runtime && typeof summary.runtime === "object" ? summary.runtime : {};
+  const model = summary.model && typeof summary.model === "object" ? summary.model : {};
+  const channels = summary.channels && typeof summary.channels === "object" ? summary.channels : {};
+  const runtimeChannels = channels.runtime && typeof channels.runtime === "object" ? channels.runtime : {};
+  const skills = summary.skills && typeof summary.skills === "object" ? summary.skills : {};
+  const refreshedAt = new Date().toLocaleString();
+  renderDashboardChannelRuntime(Array.isArray(runtimeChannels.items) ? runtimeChannels.items : []);
+  renderDashboardSkillsRuntime(Array.isArray(skills.items) ? skills.items : []);
+  updateDashboardSummaryCards({
+    runtime,
+    model,
+    channels,
+    skills,
+    refreshedAt
+  });
+
+  if (!silent) {
+    setMessage("状态总览刷新完成", "ok");
+  }
+}
+
+function setSelectValueWithCustom(selectId, customInputId, rawValue) {
+  const selectEl = document.querySelector(`#${selectId}`);
+  if (!selectEl) {
+    return;
+  }
+  const customEl = customInputId ? document.querySelector(`#${customInputId}`) : null;
+  const value = String(rawValue || "").trim();
+  const hasPresetOption = Array.from(selectEl.options || []).some((option) => option.value === value);
+
+  if (hasPresetOption) {
+    selectEl.value = value;
+    if (customEl) {
+      customEl.value = "";
+      customEl.classList.remove("is-visible");
+    }
+    return;
+  }
+
+  if (Array.from(selectEl.options || []).some((option) => option.value === "custom")) {
+    selectEl.value = "custom";
+    if (customEl) {
+      customEl.value = value;
+      customEl.classList.add("is-visible");
+    }
+    return;
+  }
+
+  selectEl.value = value;
+}
+
+function getSelectValueWithCustom(selectId, customInputId) {
+  const selectEl = document.querySelector(`#${selectId}`);
+  if (!selectEl) {
+    return "";
+  }
+  if (String(selectEl.value || "") !== "custom") {
+    return String(selectEl.value || "").trim();
+  }
+  const customEl = customInputId ? document.querySelector(`#${customInputId}`) : null;
+  return String(customEl?.value || "").trim();
+}
+
+function renderTemplatePreset(templateKey, options = {}) {
+  const template = MODEL_TEMPLATE_MAP[templateKey] || MODEL_TEMPLATE_MAP["aicodecat-gpt"];
+  const apiMode = String(options.apiOverride || template.api || "").trim();
+  const isAicodecatTemplate = String(template.providerId || "").startsWith("aicodecat-");
+  const preferredModelId = String(options.defaultModelId || getInputValue("template_default_model_id") || "").trim();
+
+  setInput("template_provider_id", template.providerId);
+  setSelectValueWithCustom("template_api", "template_api_custom", apiMode);
+  setInput("template_base_url", isAicodecatTemplate ? resolveAicodecatBaseUrl(apiMode) : template.baseUrl);
+
+  const defaultModelSelect = document.querySelector("#template_default_model_id");
+  if (defaultModelSelect) {
+    fillDefaultModelOptions(defaultModelSelect, {
+      selectedValue: preferredModelId
+    });
+    const fallbackModelId = template.models[0]?.id || DEFAULT_MODEL_OPTIONS[0]?.id || "";
+    const targetModelId = String(defaultModelSelect.value || "").trim() || fallbackModelId;
+    defaultModelSelect.value = targetModelId;
+  }
+
+  const preview = document.querySelector("#template_model_preview");
+  if (preview) {
+    preview.textContent = template.models
+      .map(
+        (item) =>
+          `- ${item.name} (${item.id}) | 输入: ${(item.input || []).join("+")} | 思考: ${
+            item.reasoning ? "开启" : "关闭"
+          } | 上下文: ${item.contextWindow} | 最大输出: ${item.maxTokens}`
+      )
+      .join("\n");
+  }
+
+  setInput("custom_models_json", JSON.stringify(template.models, null, 2));
+  setSelectValueWithCustom("custom_api", "custom_api_custom", apiMode || template.api);
+  setInput("custom_base_url", isAicodecatTemplate ? resolveAicodecatBaseUrl(apiMode) : template.baseUrl);
+  setInput("custom_provider_id", template.providerId);
+  const customDefaultModelSelect = document.querySelector("#custom_default_model_id");
+  const nextDefaultModelId = String(
+    getInputValue("template_default_model_id") || template.models[0]?.id || DEFAULT_MODEL_OPTIONS[0]?.id || ""
+  );
+  if (customDefaultModelSelect) {
+    fillDefaultModelOptions(customDefaultModelSelect, {
+      includeCustom: true,
+      selectedValue: nextDefaultModelId
+    });
+  }
+  setSelectValueWithCustom("custom_default_model_id", "custom_default_model_id_custom", nextDefaultModelId);
+}
+
+function fillModelEditor(modelSettings) {
+  const catalog = modelSettings?.catalog || { providers: [], modelRefs: [] };
+  const catalogRefs = Array.isArray(catalog.modelRefs) ? catalog.modelRefs : [];
+  modelEditorState.currentModelSettings = modelSettings || null;
+  modelEditorState.modelCatalog = {
+    providers: Array.isArray(catalog.providers) ? catalog.providers : [],
+    modelRefs: catalogRefs
+  };
+
+  const selectableModelRefs = [];
+  const seenRefs = new Set();
+
+  // 只使用当前配置文件中已经存在的模型，避免把模板默认模型误展示给用户。
+  catalogRefs.forEach((entry) => {
+    const ref = String(entry?.ref || "").trim();
+    if (!ref || seenRefs.has(ref)) {
+      return;
+    }
+    seenRefs.add(ref);
+    selectableModelRefs.push({
+      ...entry,
+      ref
+    });
+  });
+
+  const currentPrimary = String(modelSettings?.primary || "").trim();
+  if (currentPrimary && !seenRefs.has(currentPrimary)) {
+    const fallbackCurrent = {
+      ref: currentPrimary,
+      providerId: modelSettings.providerId,
+      providerApi: modelSettings.providerApi,
+      providerBaseUrl: modelSettings.providerBaseUrl,
+      modelId: modelSettings.modelId,
+      modelName: modelSettings.modelName,
+      contextWindow: modelSettings.contextWindow,
+      maxTokens: modelSettings.maxTokens,
+      thinkingStrength: modelSettings.thinkingStrength || "无"
+    };
+    seenRefs.add(currentPrimary);
+    selectableModelRefs.push(fallbackCurrent);
+  }
+
+  if (selectableModelRefs.length === 0 && currentPrimary) {
+    selectableModelRefs.push({
+      ref: currentPrimary,
+      providerId: modelSettings.providerId,
+      providerApi: modelSettings.providerApi,
+      providerBaseUrl: modelSettings.providerBaseUrl,
+      modelId: modelSettings.modelId,
+      modelName: modelSettings.modelName,
+      contextWindow: modelSettings.contextWindow,
+      maxTokens: modelSettings.maxTokens,
+      thinkingStrength: modelSettings.thinkingStrength || "无"
+    });
+  }
+
+  modelEditorState.defaultModelRefs = selectableModelRefs;
+
+  const defaultSelect = document.querySelector("#model_default_ref");
+  if (defaultSelect) {
+    defaultSelect.innerHTML = "";
+    modelEditorState.defaultModelRefs.forEach((entry) => {
+      const option = document.createElement("option");
+      option.value = entry.ref;
+      option.textContent = entry.modelId || entry.modelName || entry.ref;
+      defaultSelect.appendChild(option);
+    });
+    if (modelSettings.primary && modelEditorState.defaultModelRefs.some((entry) => entry.ref === modelSettings.primary)) {
+      defaultSelect.value = modelSettings.primary;
+    } else if (defaultSelect.options.length > 0) {
+      defaultSelect.selectedIndex = 0;
+    }
+  }
+
+  const selectedEntry =
+    modelEditorState.defaultModelRefs.find((entry) => entry.ref === modelSettings.primary) ||
+    modelEditorState.defaultModelRefs[0] || {
+      ref: modelSettings.primary,
+      providerId: modelSettings.providerId,
+      providerApi: modelSettings.providerApi,
+      providerBaseUrl: modelSettings.providerBaseUrl,
+      modelId: modelSettings.modelId,
+      modelName: modelSettings.modelName,
+      contextWindow: modelSettings.contextWindow,
+      maxTokens: modelSettings.maxTokens
+    };
+
+  renderModelSummary(selectedEntry, selectedEntry.ref || modelSettings.primary);
+  modelEditorState.currentModelPayload = buildModelPayload({
+    primary: modelSettings.primary || selectedEntry.ref,
+    providerId: modelSettings.providerId || selectedEntry.providerId,
+    providerApi: modelSettings.providerApi || selectedEntry.providerApi,
+    providerBaseUrl: modelSettings.providerBaseUrl || selectedEntry.providerBaseUrl,
+    providerApiKey: "",
+    modelId: modelSettings.modelId || selectedEntry.modelId,
+    modelName: modelSettings.modelName || selectedEntry.modelName || selectedEntry.modelId,
+    contextWindow: modelSettings.contextWindow || selectedEntry.contextWindow,
+    maxTokens: modelSettings.maxTokens || selectedEntry.maxTokens,
+    providerModels: []
+  });
+  setInput("template_set_as_primary", false);
+  setInput("custom_set_as_primary", false);
+  setModelProviderMode("template");
+
+  fillDashboardQuickSwitch(modelSettings);
+}
+
+function setupModelEditor() {
+  const defaultSelect = document.querySelector("#model_default_ref");
+  if (!defaultSelect || defaultSelect.dataset.bound === "1") {
+    return;
+  }
+  defaultSelect.dataset.bound = "1";
+
+  document.querySelectorAll("[data-model-flow-jump]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const targetId = String(button.getAttribute("data-model-flow-jump") || "").trim();
+      if (!targetId) {
+        return;
+      }
+      const target = document.getElementById(targetId);
+      if (!target) {
+        return;
+      }
+      target.scrollIntoView({ behavior: "smooth", block: "start" });
+      setMessage(`已定位到：${target.querySelector("h2")?.textContent || targetId}`, "info");
+    });
+  });
+
+  document.querySelectorAll("[data-model-provider-mode]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const targetMode = String(button.getAttribute("data-model-provider-mode") || "").trim();
+      setModelProviderMode(targetMode);
+    });
+  });
+  setModelProviderMode(modelEditorState.providerMode || "template");
+
+  const templateSelect = document.querySelector("#model_template_key");
+  templateSelect?.addEventListener("change", () => {
+    renderTemplatePreset(String(templateSelect.value || "aicodecat-gpt"));
+  });
+
+  const templateApiSelect = document.querySelector("#template_api");
+  const templateApiCustomInput = document.querySelector("#template_api_custom");
+  const templateDefaultModelSelect = document.querySelector("#template_default_model_id");
+  const syncTemplateByApiMode = () => {
+    const providerId = String(getInputValue("template_provider_id") || "").trim();
+    const apiMode = getSelectValueWithCustom("template_api", "template_api_custom");
+    const selectedModelId = String(getInputValue("template_default_model_id") || "").trim();
+    if (!providerId || !apiMode) {
+      return;
+    }
+
+    const isAicodecatProvider = providerId === AICODECAT_PROVIDER || providerId.startsWith("aicodecat-");
+    if (!isAicodecatProvider) {
+      return;
+    }
+
+    const resolvedProviderId = resolveProviderId(AICODECAT_PROVIDER, apiMode);
+    if (!MODEL_TEMPLATE_MAP[resolvedProviderId]) {
+      return;
+    }
+
+    if (templateSelect) {
+      templateSelect.value = resolvedProviderId;
+    }
+    renderTemplatePreset(resolvedProviderId, { apiOverride: apiMode, defaultModelId: selectedModelId });
+  };
+
+  const syncTemplateByModelSelection = () => {
+    const selectedModelId = String(getInputValue("template_default_model_id") || "").trim();
+    if (!selectedModelId) {
+      return;
+    }
+
+    const family = modelFamilyById(selectedModelId);
+    const profile = MODEL_PROFILE_BY_FAMILY[family] || MODEL_PROFILE_BY_FAMILY.gpt;
+    const providerApi = profile.apiMode;
+    const providerId = resolveProviderId(AICODECAT_PROVIDER, providerApi);
+    if (!MODEL_TEMPLATE_MAP[providerId]) {
+      return;
+    }
+
+    if (templateSelect) {
+      templateSelect.value = providerId;
+    }
+    renderTemplatePreset(providerId, { apiOverride: providerApi, defaultModelId: selectedModelId });
+  };
+
+  const refreshTemplateApiCustomInput = () => {
+    if (!templateApiSelect || !templateApiCustomInput) {
+      return;
+    }
+    const useCustom = String(templateApiSelect.value || "") === "custom";
+    templateApiCustomInput.classList.toggle("is-visible", useCustom);
+  };
+
+  templateApiSelect?.addEventListener("change", () => {
+    refreshTemplateApiCustomInput();
+    syncTemplateByApiMode();
+  });
+  templateApiCustomInput?.addEventListener("input", () => {
+    if (String(templateApiSelect?.value || "") !== "custom") {
+      return;
+    }
+    syncTemplateByApiMode();
+  });
+  templateDefaultModelSelect?.addEventListener("change", () => {
+    syncTemplateByModelSelection();
+  });
+  refreshTemplateApiCustomInput();
+
+  const customApiSelect = document.querySelector("#custom_api");
+  const customApiCustomInput = document.querySelector("#custom_api_custom");
+  const customDefaultModelSelect = document.querySelector("#custom_default_model_id");
+  const customDefaultModelCustomInput = document.querySelector("#custom_default_model_id_custom");
+  const customProviderInput = document.querySelector("#custom_provider_id");
+
+  const syncCustomByApiMode = () => {
+    const providerId = String(getInputValue("custom_provider_id") || "").trim();
+    const apiMode = getSelectValueWithCustom("custom_api", "custom_api_custom");
+    if (!providerId || !apiMode) {
+      return;
+    }
+    const isAicodecatProvider = providerId === AICODECAT_PROVIDER || providerId.startsWith("aicodecat-");
+    if (!isAicodecatProvider) {
+      return;
+    }
+    const resolvedProviderId = resolveProviderId(AICODECAT_PROVIDER, apiMode);
+    setInput("custom_provider_id", resolvedProviderId);
+    setInput("custom_base_url", resolveAicodecatBaseUrl(apiMode));
+  };
+
+  const syncCustomByModelSelection = () => {
+    const providerId = String(getInputValue("custom_provider_id") || "").trim();
+    const selectedModelId = getSelectValueWithCustom("custom_default_model_id", "custom_default_model_id_custom");
+    if (!providerId || !selectedModelId) {
+      return;
+    }
+    const isAicodecatProvider = providerId === AICODECAT_PROVIDER || providerId.startsWith("aicodecat-");
+    if (!isAicodecatProvider) {
+      return;
+    }
+    const family = modelFamilyById(selectedModelId);
+    const profile = MODEL_PROFILE_BY_FAMILY[family] || MODEL_PROFILE_BY_FAMILY.gpt;
+    const providerApi = profile.apiMode;
+    setSelectValueWithCustom("custom_api", "custom_api_custom", providerApi);
+    syncCustomByApiMode();
+  };
+
+  const refreshCustomApiCustomInput = () => {
+    if (!customApiSelect || !customApiCustomInput) {
+      return;
+    }
+    const useCustom = String(customApiSelect.value || "") === "custom";
+    customApiCustomInput.classList.toggle("is-visible", useCustom);
+  };
+
+  const refreshCustomDefaultModelCustomInput = () => {
+    if (!customDefaultModelSelect || !customDefaultModelCustomInput) {
+      return;
+    }
+    const useCustom = String(customDefaultModelSelect.value || "") === "custom";
+    customDefaultModelCustomInput.classList.toggle("is-visible", useCustom);
+  };
+
+  customApiSelect?.addEventListener("change", () => {
+    refreshCustomApiCustomInput();
+    syncCustomByApiMode();
+  });
+  customApiCustomInput?.addEventListener("input", () => {
+    if (String(customApiSelect?.value || "") !== "custom") {
+      return;
+    }
+    syncCustomByApiMode();
+  });
+  customDefaultModelSelect?.addEventListener("change", () => {
+    refreshCustomDefaultModelCustomInput();
+    syncCustomByModelSelection();
+  });
+  customDefaultModelCustomInput?.addEventListener("input", () => {
+    if (String(customDefaultModelSelect?.value || "") !== "custom") {
+      return;
+    }
+    syncCustomByModelSelection();
+  });
+  customProviderInput?.addEventListener("change", () => {
+    syncCustomByApiMode();
+  });
+  refreshCustomApiCustomInput();
+  refreshCustomDefaultModelCustomInput();
+
+  defaultSelect.addEventListener("change", () => {
+    const selectedRef = String(defaultSelect.value || "");
+    const entry = modelEditorState.defaultModelRefs.find((item) => item.ref === selectedRef);
+    renderModelSummary(entry || {}, selectedRef);
+  });
+
+  document.querySelector("#save_default_model")?.addEventListener("click", () => {
+    const selectedRef = String(getInputValue("model_default_ref") || "").trim();
+    const entry = modelEditorState.defaultModelRefs.find((item) => item.ref === selectedRef);
+    if (!entry) {
+      setMessage("默认模型无效，请先选择一个可用模型", "error");
+      return;
+    }
+    const payload = buildModelPayload({
+      primary: entry.ref,
+      providerId: entry.providerId,
+      providerApi: entry.providerApi,
+      providerBaseUrl: entry.providerBaseUrl,
+      providerApiKey: "",
+      modelId: entry.modelId,
+      modelName: entry.modelName || entry.modelId,
+      contextWindow: entry.contextWindow || 200000,
+      maxTokens: entry.maxTokens || 8192,
+      providerModels: []
+    });
+    saveModelSettings(payload, "默认模型已更新").catch((error) => setMessage(error.message, "error"));
+  });
+
+  document.querySelector("#save_provider_template")?.addEventListener("click", () => {
+    const templateKey = String(getInputValue("model_template_key") || "").trim();
+    const template = MODEL_TEMPLATE_MAP[templateKey];
+    if (!template) {
+      setMessage("模板不存在，请重新选择", "error");
+      return;
+    }
+    const providerId = String(getInputValue("template_provider_id") || "").trim();
+    const providerApi = getSelectValueWithCustom("template_api", "template_api_custom");
+    const providerBaseUrl = String(getInputValue("template_base_url") || "").trim();
+    const providerApiKey = String(getInputValue("template_api_key") || "").trim();
+    const defaultModelId =
+      String(getInputValue("template_default_model_id") || "").trim() || template.models[0]?.id || DEFAULT_MODEL_OPTIONS[0]?.id;
+    const defaultModel =
+      template.models.find((item) => item.id === defaultModelId) ||
+      DEFAULT_MODEL_OPTIONS.find((item) => item.id === defaultModelId) ||
+      template.models[0];
+
+    if (!providerId || !providerApi || !providerBaseUrl || !defaultModel) {
+      setMessage("模板配置不完整，请检查提供商名称 / API 模式 / URL / 默认模型", "error");
+      return;
+    }
+
+    const providerModels = template.models.map((item) => ({ ...item }));
+    const targetPrimaryRef = `${providerId}/${defaultModel.id}`;
+    const primaryRef = resolveProviderSavePrimaryRef(targetPrimaryRef, "template_set_as_primary");
+    if (!primaryRef) {
+      setMessage("无法确定默认模型指向，请先在路径 1 设置默认模型或勾选“保存后设为当前默认模型”", "error");
+      return;
+    }
+
+    const payload = buildModelPayload({
+      primary: primaryRef,
+      providerId,
+      providerApi,
+      providerBaseUrl,
+      providerApiKey,
+      modelId: defaultModel.id,
+      modelName: defaultModel.name || defaultModel.id,
+      contextWindow: defaultModel.contextWindow,
+      maxTokens: defaultModel.maxTokens,
+      providerModels
+    });
+    const shouldSwitchPrimary = Boolean(getInputValue("template_set_as_primary"));
+    const actionLabel = shouldSwitchPrimary ? "模板提供商已写入，默认模型已切换" : "模板提供商已写入（默认模型未变）";
+    saveModelSettings(payload, actionLabel).catch((error) => setMessage(error.message, "error"));
+  });
+
+  document.querySelector("#save_provider_custom")?.addEventListener("click", () => {
+    const providerId = String(getInputValue("custom_provider_id") || "").trim();
+    const providerApi = getSelectValueWithCustom("custom_api", "custom_api_custom");
+    const providerBaseUrl = String(getInputValue("custom_base_url") || "").trim();
+    const providerApiKey = String(getInputValue("custom_api_key") || "").trim();
+    const defaultModelId = getSelectValueWithCustom("custom_default_model_id", "custom_default_model_id_custom");
+    const rawModels = String(getInputValue("custom_models_json") || "").trim();
+    if (!providerId || !providerApi || !providerBaseUrl || !rawModels) {
+      setMessage("自定义配置不完整，请至少填写提供商名称 / API 模式 / URL / models JSON", "error");
+      return;
+    }
+
+    let parsedModels;
+    try {
+      parsedModels = JSON.parse(rawModels);
+    } catch (error) {
+      setMessage(`models JSON 解析失败：${error.message}`, "error");
+      return;
+    }
+    if (!Array.isArray(parsedModels) || parsedModels.length === 0) {
+      setMessage("models JSON 必须是非空数组", "error");
+      return;
+    }
+
+    const normalizedModels = parsedModels.map((item) => normalizeModelDraft(item)).filter(Boolean);
+    const selectedDefaultModelId = defaultModelId || normalizedModels[0]?.id;
+    const defaultModel = normalizedModels.find((item) => item.id === selectedDefaultModelId);
+    if (!defaultModel) {
+      setMessage("默认模型 ID 未命中 models 数组，请检查 custom_default_model_id", "error");
+      return;
+    }
+
+    const targetPrimaryRef = `${providerId}/${defaultModel.id}`;
+    const primaryRef = resolveProviderSavePrimaryRef(targetPrimaryRef, "custom_set_as_primary");
+    if (!primaryRef) {
+      setMessage("无法确定默认模型指向，请先在路径 1 设置默认模型或勾选“保存后设为当前默认模型”", "error");
+      return;
+    }
+
+    const payload = buildModelPayload({
+      primary: primaryRef,
+      providerId,
+      providerApi,
+      providerBaseUrl,
+      providerApiKey,
+      modelId: defaultModel.id,
+      modelName: defaultModel.name || defaultModel.id,
+      contextWindow: defaultModel.contextWindow,
+      maxTokens: defaultModel.maxTokens,
+      providerModels: normalizedModels
+    });
+    const shouldSwitchPrimary = Boolean(getInputValue("custom_set_as_primary"));
+    const actionLabel = shouldSwitchPrimary ? "自定义提供商已写入，默认模型已切换" : "自定义提供商已写入（默认模型未变）";
+    saveModelSettings(payload, actionLabel).catch((error) => setMessage(error.message, "error"));
+  });
+
+  renderTemplatePreset(String(getInputValue("model_template_key") || "aicodecat-gpt"));
+}
+
+
+let saveModelSettingsHandler = null;
+
+function setSaveModelSettingsHandler(handler) {
+  saveModelSettingsHandler = typeof handler === "function" ? handler : null;
+}
+
+async function saveModelSettings(...args) {
+  if (!saveModelSettingsHandler) {
+    throw new Error("saveModelSettings handler 未设置");
+  }
+  return saveModelSettingsHandler(...args);
+}
+
+export {
+  fillModelEditor,
+  fillDashboardQuickSwitch,
+  loadStatusOverview,
+  renderDashboardModelCards,
+  renderModelSummary,
+  setupDashboard,
+  setupModelEditor,
+  setSaveModelSettingsHandler,
+  updateDashboardErrorSummary,
+  updateDashboardVersionSummary
+};
