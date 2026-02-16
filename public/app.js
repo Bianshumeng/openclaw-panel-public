@@ -142,6 +142,7 @@ const modelEditorState = {
     modelRefs: []
   },
   defaultModelRefs: [],
+  currentModelSettings: null,
   currentModelPayload: null,
   dashboardBound: false
 };
@@ -618,8 +619,14 @@ function parseModelRef(ref) {
 }
 
 function getDashboardContextTokens() {
-  const input = document.querySelector("#dashboard_context_tokens");
-  return toNonNegativeInt(input?.value || "");
+  const inputs = Array.from(document.querySelectorAll("[data-dashboard-context-input]"));
+  for (const input of inputs) {
+    const parsed = toNonNegativeInt(input?.value || "");
+    if (parsed !== null) {
+      return parsed;
+    }
+  }
+  return toNonNegativeInt(localStorage.getItem(DASHBOARD_CONTEXT_KEY) || "");
 }
 
 function formatLocalTime(value) {
@@ -653,6 +660,148 @@ function buildModelEntryFromProvider(providerEntry, providerModel) {
     maxTokens: Number(providerModel.maxTokens || 0) || undefined,
     thinkingStrength: String(providerModel?.thinkingStrength || "").trim() || "无"
   };
+}
+
+function collectCatalogModelEntries(modelSettings) {
+  const providers = Array.isArray(modelSettings?.catalog?.providers) ? modelSettings.catalog.providers : [];
+  const entries = [];
+  providers.forEach((providerEntry) => {
+    const models = Array.isArray(providerEntry?.models) ? providerEntry.models : [];
+    models.forEach((providerModel) => {
+      entries.push(buildModelEntryFromProvider(providerEntry, providerModel));
+    });
+  });
+  return entries;
+}
+
+function findModelEntryByRef(modelSettings, modelRef) {
+  const targetRef = String(modelRef || "").trim();
+  if (!targetRef) {
+    return null;
+  }
+
+  const matched = collectCatalogModelEntries(modelSettings).find((entry) => entry.ref === targetRef);
+  if (matched) {
+    return matched;
+  }
+
+  if (String(modelSettings?.primary || "").trim() === targetRef) {
+    return {
+      ref: targetRef,
+      providerId: modelSettings?.providerId,
+      providerApi: modelSettings?.providerApi,
+      providerBaseUrl: modelSettings?.providerBaseUrl,
+      modelId: modelSettings?.modelId,
+      modelName: modelSettings?.modelName || modelSettings?.modelId,
+      contextWindow: Number(modelSettings?.contextWindow || 0) || undefined,
+      maxTokens: Number(modelSettings?.maxTokens || 0) || undefined,
+      thinkingStrength: String(modelSettings?.thinkingStrength || "").trim() || "无"
+    };
+  }
+
+  return null;
+}
+
+function confirmModelSwitchRisk(modelSettings, modelEntry) {
+  const currentModelContext = Number(modelSettings?.contextWindow || 0) || undefined;
+  const targetContext = Number(modelEntry?.contextWindow || 0) || undefined;
+  const currentContextTokens = getDashboardContextTokens();
+
+  if (targetContext && currentContextTokens !== null && currentContextTokens > targetContext) {
+    return window.confirm(
+      `当前会话上下文约 ${currentContextTokens.toLocaleString()}，目标模型上限为 ${targetContext.toLocaleString()}。\n切换后可能因上下文超限报错，确认继续切换吗？`
+    );
+  }
+
+  if (targetContext && currentContextTokens === null && currentModelContext && currentModelContext > targetContext) {
+    return window.confirm(
+      `目标模型上下文上限更小（${targetContext.toLocaleString()}），但你还没填写“当前会话上下文”。\n如果当前会话已超过目标上限，切换后会报错。确认继续切换吗？`
+    );
+  }
+
+  return true;
+}
+
+async function switchDefaultModelByEntry(modelSettings, modelEntry, successPrefix = "已切换默认模型到") {
+  if (!modelEntry?.ref || !modelEntry?.modelId) {
+    throw new Error("目标模型无效，请重新选择");
+  }
+  if (!confirmModelSwitchRisk(modelSettings, modelEntry)) {
+    return;
+  }
+
+  const payload = buildModelPayload({
+    primary: modelEntry.ref,
+    providerId: modelEntry.providerId,
+    providerApi: modelEntry.providerApi,
+    providerBaseUrl: modelEntry.providerBaseUrl,
+    providerApiKey: "",
+    modelId: modelEntry.modelId,
+    modelName: modelEntry.modelName || modelEntry.modelId,
+    contextWindow: modelEntry.contextWindow || 200000,
+    maxTokens: modelEntry.maxTokens || 8192,
+    providerModels: []
+  });
+
+  await saveModelSettings(payload, `${successPrefix} ${modelEntry.modelId}`);
+}
+
+function renderDashboardQuickSwitchHint(modelEntry) {
+  if (!modelEntry) {
+    setText("dashboard_quick_switch_hint", "请选择目标模型后再切换。");
+    return;
+  }
+  const contextText = modelEntry.contextWindow ? `${Number(modelEntry.contextWindow).toLocaleString()} tokens` : "-";
+  setText(
+    "dashboard_quick_switch_hint",
+    `目标模型：${modelEntry.modelName || modelEntry.modelId} | 提供商：${modelEntry.providerId || "-"} | 上下文上限：${contextText} | 思考强度：${
+      modelEntry.thinkingStrength || "无"
+    }`
+  );
+}
+
+function fillDashboardQuickSwitch(modelSettings) {
+  const select = document.querySelector("#dashboard_quick_model_ref");
+  if (!(select instanceof HTMLSelectElement)) {
+    return;
+  }
+
+  const entries = [];
+  const seen = new Set();
+  modelEditorState.defaultModelRefs.forEach((entry) => {
+    const ref = String(entry?.ref || "").trim();
+    if (!ref || seen.has(ref)) {
+      return;
+    }
+    const fullEntry = findModelEntryByRef(modelSettings, ref) || entry;
+    entries.push(fullEntry);
+    seen.add(ref);
+  });
+
+  const currentPrimary = String(modelSettings?.primary || "").trim();
+  if (entries.length === 0 && currentPrimary) {
+    const fallbackEntry = findModelEntryByRef(modelSettings, currentPrimary);
+    if (fallbackEntry) {
+      entries.push(fallbackEntry);
+    }
+  }
+
+  select.innerHTML = "";
+  entries.forEach((entry) => {
+    const option = document.createElement("option");
+    option.value = entry.ref;
+    option.textContent = entry.modelName || entry.modelId || entry.ref;
+    select.appendChild(option);
+  });
+
+  if (entries.some((entry) => entry.ref === currentPrimary)) {
+    select.value = currentPrimary;
+  } else if (entries.length > 0) {
+    select.selectedIndex = 0;
+  }
+
+  const selectedEntry = entries.find((entry) => entry.ref === select.value) || entries[0] || null;
+  renderDashboardQuickSwitchHint(selectedEntry);
 }
 
 function collectChannelSettings() {
@@ -791,41 +940,7 @@ function renderDashboardModelCards(modelSettings) {
       switchBtn.textContent = isCurrent ? "已在使用" : "切换到这个模型";
       switchBtn.disabled = isCurrent;
       switchBtn.addEventListener("click", () => {
-        const currentModelContext = Number(modelSettings?.contextWindow || 0) || undefined;
-        const targetContext = Number(modelEntry.contextWindow || 0) || undefined;
-        const currentContextTokens = getDashboardContextTokens();
-
-        if (targetContext && currentContextTokens !== null && currentContextTokens > targetContext) {
-          const proceed = window.confirm(
-            `当前会话上下文约 ${currentContextTokens.toLocaleString()}，目标模型上限为 ${targetContext.toLocaleString()}。\n切换后可能因上下文超限报错，确认继续切换吗？`
-          );
-          if (!proceed) {
-            return;
-          }
-        } else if (targetContext && currentContextTokens === null && currentModelContext && currentModelContext > targetContext) {
-          const proceed = window.confirm(
-            `目标模型上下文上限更小（${targetContext.toLocaleString()}），但你还没填写“当前会话上下文”。\n如果当前会话已超过目标上限，切换后会报错。确认继续切换吗？`
-          );
-          if (!proceed) {
-            return;
-          }
-        }
-
-        const payload = buildModelPayload({
-          primary: modelEntry.ref,
-          providerId: modelEntry.providerId,
-          providerApi: modelEntry.providerApi,
-          providerBaseUrl: modelEntry.providerBaseUrl,
-          providerApiKey: "",
-          modelId: modelEntry.modelId,
-          modelName: modelEntry.modelName || modelEntry.modelId,
-          contextWindow: modelEntry.contextWindow || 200000,
-          maxTokens: modelEntry.maxTokens || 8192,
-          providerModels: []
-        });
-        saveModelSettings(payload, `已切换默认模型到 ${modelEntry.modelId}`).catch((error) =>
-          setMessage(error.message || String(error), "error")
-        );
+        switchDefaultModelByEntry(modelSettings, modelEntry).catch((error) => setMessage(error.message || String(error), "error"));
       });
       row.appendChild(switchBtn);
 
@@ -858,23 +973,30 @@ function setupDashboard() {
     return;
   }
   modelEditorState.dashboardBound = true;
-  const contextInput = document.querySelector("#dashboard_context_tokens");
-  if (!contextInput) {
-    return;
-  }
-
+  const contextInputs = Array.from(document.querySelectorAll("[data-dashboard-context-input]"));
+  const syncContextInputs = (valueText) => {
+    contextInputs.forEach((input) => {
+      if (String(input.value || "") !== valueText) {
+        input.value = valueText;
+      }
+    });
+  };
   const saved = toNonNegativeInt(localStorage.getItem(DASHBOARD_CONTEXT_KEY) || "");
   if (saved !== null) {
-    contextInput.value = String(saved);
+    syncContextInputs(String(saved));
   }
-
-  contextInput.addEventListener("input", () => {
-    const parsed = toNonNegativeInt(contextInput.value || "");
-    if (parsed === null) {
-      localStorage.removeItem(DASHBOARD_CONTEXT_KEY);
-      return;
-    }
-    localStorage.setItem(DASHBOARD_CONTEXT_KEY, String(parsed));
+  contextInputs.forEach((input) => {
+    input.addEventListener("input", () => {
+      const parsed = toNonNegativeInt(input.value || "");
+      if (parsed === null) {
+        localStorage.removeItem(DASHBOARD_CONTEXT_KEY);
+        syncContextInputs("");
+        return;
+      }
+      const next = String(parsed);
+      localStorage.setItem(DASHBOARD_CONTEXT_KEY, next);
+      syncContextInputs(next);
+    });
   });
 
   document.querySelectorAll("[data-dashboard-jump]").forEach((button) => {
@@ -901,6 +1023,34 @@ function setupDashboard() {
         }
         setMessage("仪表盘状态总览刷新完成", "ok");
       });
+  });
+
+  document.querySelector("#dashboard_quick_model_ref")?.addEventListener("change", () => {
+    const settings = modelEditorState.currentModelSettings;
+    const selectedRef = String(getInputValue("dashboard_quick_model_ref") || "").trim();
+    const entry = findModelEntryByRef(settings, selectedRef);
+    renderDashboardQuickSwitchHint(entry);
+  });
+
+  document.querySelector("#dashboard_quick_switch")?.addEventListener("click", () => {
+    const settings = modelEditorState.currentModelSettings;
+    if (!settings) {
+      setMessage("模型配置尚未加载完成，请稍后重试", "error");
+      return;
+    }
+    const selectedRef = String(getInputValue("dashboard_quick_model_ref") || "").trim();
+    if (!selectedRef) {
+      setMessage("请先选择目标模型", "error");
+      return;
+    }
+    const entry = findModelEntryByRef(settings, selectedRef);
+    if (!entry) {
+      setMessage("目标模型不存在，请刷新页面后重试", "error");
+      return;
+    }
+    switchDefaultModelByEntry(settings, entry, "已从仪表盘切换默认模型到").catch((error) =>
+      setMessage(error.message || String(error), "error")
+    );
   });
 }
 
@@ -2426,6 +2576,7 @@ function renderTemplatePreset(templateKey, options = {}) {
 function fillModelEditor(modelSettings) {
   const catalog = modelSettings?.catalog || { providers: [], modelRefs: [] };
   const catalogRefs = Array.isArray(catalog.modelRefs) ? catalog.modelRefs : [];
+  modelEditorState.currentModelSettings = modelSettings || null;
   modelEditorState.modelCatalog = {
     providers: Array.isArray(catalog.providers) ? catalog.providers : [],
     modelRefs: catalogRefs
@@ -2532,6 +2683,8 @@ function fillModelEditor(modelSettings) {
     maxTokens: modelSettings.maxTokens || selectedEntry.maxTokens,
     providerModels: []
   });
+
+  fillDashboardQuickSwitch(modelSettings);
 }
 
 function setupModelEditor() {

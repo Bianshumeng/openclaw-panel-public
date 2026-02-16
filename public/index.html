@@ -92,6 +92,27 @@
                 <input id="dashboard_current_thinking_strength" type="text" readonly />
               </label>
             </div>
+            <div class="grid">
+              <label>
+                当前会话上下文（Token）
+                <input
+                  id="dashboard_quick_context_tokens"
+                  data-dashboard-context-input="1"
+                  type="number"
+                  min="0"
+                  step="1"
+                  placeholder="用于切换时上下文超限提示"
+                />
+              </label>
+              <label>
+                快速切换默认模型
+                <select id="dashboard_quick_model_ref"></select>
+              </label>
+            </div>
+            <div class="actions">
+              <button id="dashboard_quick_switch" class="btn-soft" type="button">切换当前默认模型</button>
+            </div>
+            <p id="dashboard_quick_switch_hint" class="muted-line">选择目标模型后可直接在仪表盘切换，系统会做上下文风险提示。</p>
           </article>
 
           <article class="card">
@@ -347,6 +368,7 @@
                 当前会话上下文（Token）
                 <input
                   id="dashboard_context_tokens"
+                  data-dashboard-context-input="1"
                   type="number"
                   min="0"
                   step="1"
