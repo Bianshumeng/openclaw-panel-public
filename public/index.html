@@ -623,10 +623,14 @@
 
         <section class="panel" data-panel="panel-channel">
           <article class="card">
-            <h2>渠道配置保存</h2>
+            <h2>渠道配置保存（仅 OpenClaw 真实渠道）</h2>
             <p class="muted-line">修改完 Telegram / Feishu / Discord / Slack 配置后，统一点一次保存。</p>
+            <p class="muted-line">
+              范围说明：本页面只写入 `channels.telegram` / `channels.feishu` / `channels.discord` / `channels.slack`（以及飞书兼容所需
+              `accounts.main`），不会创建任何面板私有“虚拟渠道”。
+            </p>
             <div class="actions">
-              <button id="save_settings">保存渠道与全局配置</button>
+              <button id="save_settings">保存渠道配置</button>
             </div>
           </article>
 

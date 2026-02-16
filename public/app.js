@@ -3203,7 +3203,7 @@ async function saveSettings() {
     method: "PUT",
     body: JSON.stringify(payload)
   });
-  setMessage(`渠道与全局配置写入成功：${result.path}`, "ok");
+  setMessage(`渠道配置写入成功（模型保持当前值）：${result.path}`, "ok");
   await loadInitialData();
 }
 
