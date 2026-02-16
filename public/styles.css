@@ -578,6 +578,48 @@ button:hover {
   line-height: 1.5;
 }
 
+.chat-message-body strong {
+  font-weight: 700;
+}
+
+.chat-message-body code {
+  font-family: "JetBrains Mono", "Cascadia Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 1px 6px;
+  font-size: 12px;
+}
+
+.chat-message-body .chat-code {
+  margin: 6px 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--code-bg);
+  overflow-x: auto;
+}
+
+.chat-message-body .chat-code code {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  border-radius: 0;
+  font-size: 12px;
+}
+
+.chat-inline-hint {
+  min-height: 20px;
+}
+
+.chat-inline-hint.error {
+  color: var(--danger);
+}
+
+.chat-inline-hint.ok {
+  color: var(--success);
+}
+
 .chat-debug summary {
   cursor: pointer;
   font-size: 13px;

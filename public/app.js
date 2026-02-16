@@ -1196,6 +1196,26 @@ function setChatAttachmentHint(text) {
   hint.textContent = String(text || "").trim() || "支持点击上传、粘贴或拖拽文件（图片会显示预览）";
 }
 
+function setChatInlineHint(text, type = "") {
+  const hint = document.querySelector("#chat_inline_hint");
+  if (!hint) {
+    return;
+  }
+  hint.textContent = String(text || "").trim();
+  hint.classList.remove("error", "ok");
+  if (type === "error") {
+    hint.classList.add("error");
+  } else if (type === "ok") {
+    hint.classList.add("ok");
+  }
+}
+
+function reportChatActionError(error, fallback = "操作失败") {
+  const message = String(error?.message || error || "").trim() || fallback;
+  setChatInlineHint(message, "error");
+  setMessage(message, "error");
+}
+
 function formatFileSize(bytes) {
   const size = Number(bytes || 0);
   if (!Number.isFinite(size) || size <= 0) {
@@ -1401,6 +1421,21 @@ function normalizeChatContent(content) {
         if (!entry || typeof entry !== "object") {
           return "";
         }
+        if (entry.type === "toolCall" || entry.type === "tool_call") {
+          const toolName = String(entry.name || entry.tool || "unknown");
+          const args =
+            typeof entry.arguments === "string"
+              ? entry.arguments
+              : JSON.stringify(entry.arguments ?? entry.partialJson ?? {}, null, 2);
+          return `[工具调用] ${toolName}\n参数:\n${args}`;
+        }
+        if (entry.type === "toolResult" || entry.type === "tool_result") {
+          const resultText =
+            typeof entry.text === "string"
+              ? entry.text
+              : JSON.stringify(entry.details ?? entry.result ?? entry, null, 2);
+          return `[工具结果]\n${resultText}`;
+        }
         if (typeof entry.text === "string") {
           return entry.text;
         }
@@ -1421,6 +1456,47 @@ function normalizeChatContent(content) {
   return String(content ?? "");
 }
 
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function renderRichTextSegment(segment) {
+  let html = escapeHtml(segment);
+  html = html.replace(/\*\*([^\n*]+)\*\*/g, "<strong>$1</strong>");
+  html = html.replace(/`([^`\n]+)`/g, "<code>$1</code>");
+  html = html.replace(/\n/g, "<br>");
+  return `<span>${html}</span>`;
+}
+
+function renderRichMessageBody(text) {
+  const source = String(text || "");
+  if (!source) {
+    return "<span>(空消息)</span>";
+  }
+  const parts = source.split("```");
+  return parts
+    .map((part, index) => {
+      if (index % 2 === 0) {
+        return renderRichTextSegment(part);
+      }
+      const firstBreak = part.indexOf("\n");
+      let codeLang = "";
+      let codeBody = part;
+      if (firstBreak >= 0) {
+        codeLang = part.slice(0, firstBreak).trim();
+        codeBody = part.slice(firstBreak + 1);
+      }
+      const langAttr = codeLang ? ` data-lang="${escapeHtml(codeLang)}"` : "";
+      return `<pre class="chat-code"><code${langAttr}>${escapeHtml(codeBody)}</code></pre>`;
+    })
+    .join("");
+}
+
 function formatChatRole(role) {
   const normalized = String(role || "").trim().toLowerCase();
   if (normalized === "user") {
@@ -1432,7 +1508,13 @@ function formatChatRole(role) {
   if (normalized === "system") {
     return "系统";
   }
-  if (normalized === "tool" || normalized === "tool_use" || normalized === "tool_result") {
+  if (
+    normalized === "tool" ||
+    normalized === "tool_use" ||
+    normalized === "tool_result" ||
+    normalized === "toolresult" ||
+    normalized === "toolcall"
+  ) {
     return "工具";
   }
   return normalized || "未知";
@@ -1496,7 +1578,14 @@ function createChatMessageNode(item, { streaming = false, showThinking = true } 
 
   const body = document.createElement("div");
   body.className = "chat-message-body";
-  body.textContent = String(item?.body || "").trim() || "(空消息)";
+  const bodyText = String(item?.body || "").trim() || "(空消息)";
+  const shouldRenderRich =
+    role === "assistant" || role === "system" || role === "tool" || role === "toolresult" || role === "toolcall";
+  if (shouldRenderRich) {
+    body.innerHTML = renderRichMessageBody(bodyText);
+  } else {
+    body.textContent = bodyText;
+  }
   node.appendChild(body);
 
   const files = Array.isArray(item?.attachments) ? item.attachments : [];
@@ -1824,6 +1913,9 @@ async function loadChatSessions({ silent = false, preserveSelection = true, sele
   if (!silent) {
     setMessage(`会话列表刷新完成，共 ${sessions.length} 条`, "ok");
   }
+  if (silent) {
+    setChatInlineHint("");
+  }
 }
 
 async function loadChatHistory({ sessionKey = "", silent = false } = {}) {
@@ -1862,6 +1954,7 @@ async function createChatSession() {
     preserveSelection: false,
     selectedSessionKey: sessionKey
   });
+  setChatInlineHint("新会话创建成功", "ok");
   setMessage(`已创建新会话：${sessionKey}`, "ok");
 }
 
@@ -1944,6 +2037,7 @@ async function sendChatConsoleMessage() {
         : `消息已发送（status=${result.status || "unknown"}）`,
       "ok"
     );
+    setChatInlineHint("消息已发送，正在等待回复...", "ok");
   } catch (error) {
     setChatComposerSending(false);
     chatConsoleState.historyMessages = chatConsoleState.historyMessages.filter((item) => item.id !== optimisticMessage.id);
@@ -1969,7 +2063,7 @@ function setupChatAttachmentInput() {
     if (files.length === 0) {
       return;
     }
-    stageChatFiles(files).catch((error) => setMessage(error.message || String(error), "error"));
+    stageChatFiles(files).catch((error) => reportChatActionError(error, "附件处理失败"));
     fileInput.value = "";
   });
 
@@ -1998,7 +2092,7 @@ function setupChatAttachmentInput() {
       attachmentList?.classList.remove("is-dragover");
       const files = Array.from(event.dataTransfer?.files || []);
       if (files.length > 0) {
-        stageChatFiles(files).catch((error) => setMessage(error.message || String(error), "error"));
+        stageChatFiles(files).catch((error) => reportChatActionError(error, "附件处理失败"));
       }
     });
   });
@@ -2009,7 +2103,7 @@ function setupChatAttachmentInput() {
       return;
     }
     event.preventDefault();
-    stageChatFiles(files).catch((error) => setMessage(error.message || String(error), "error"));
+    stageChatFiles(files).catch((error) => reportChatActionError(error, "附件处理失败"));
   });
 }
 
@@ -2033,6 +2127,7 @@ async function abortChatConsoleRun() {
     result.aborted ? `已发送中止请求，runIds=${runIds.join(",") || "-"}` : "当前没有可中止的运行任务",
     result.aborted ? "ok" : "info"
   );
+  setChatInlineHint(result.aborted ? "已发送停止请求" : "当前没有可停止的任务", result.aborted ? "ok" : "");
   await loadChatHistory({ sessionKey, silent: true }).catch(() => {});
 }
 
@@ -2058,6 +2153,7 @@ async function resetChatConsoleSession() {
   setChatAttachmentHint("支持点击上传、粘贴或拖拽文件（图片会显示预览）");
   renderChatMessageList();
   setMessage(`会话已重置：${sessionKey}`, "ok");
+  setChatInlineHint("会话已清空", "ok");
   await loadChatHistory({ sessionKey, silent: true }).catch(() => {});
 }
 
@@ -2070,6 +2166,7 @@ function setupChatConsole() {
   setChatComposerSending(false);
   renderChatAttachments();
   setChatAttachmentHint("支持点击上传、粘贴或拖拽文件（图片会显示预览）");
+  setChatInlineHint("");
   setupChatAttachmentInput();
   const sessionSelect = document.querySelector("#chat_session_select");
   sessionSelect?.addEventListener("change", () => {
@@ -2084,35 +2181,40 @@ function setupChatConsole() {
   });
 
   document.querySelector("#chat_new_session")?.addEventListener("click", () => {
-    createChatSession().catch((error) => setMessage(error.message || String(error), "error"));
+    createChatSession().catch((error) => reportChatActionError(error, "新建会话失败"));
   });
   document.querySelector("#chat_refresh_sessions")?.addEventListener("click", () => {
-    loadChatSessions().catch((error) => setMessage(error.message || String(error), "error"));
+    loadChatSessions()
+      .then(() => setChatInlineHint("会话列表已刷新", "ok"))
+      .catch((error) => reportChatActionError(error, "刷新会话失败"));
   });
   document.querySelector("#chat_load_history")?.addEventListener("click", () => {
-    loadChatHistory().catch((error) => setMessage(error.message || String(error), "error"));
+    loadChatHistory()
+      .then(() => setChatInlineHint("会话历史已刷新", "ok"))
+      .catch((error) => reportChatActionError(error, "刷新历史失败"));
   });
   document.querySelector("#chat_reconnect_stream")?.addEventListener("click", () => {
     connectChatStream(chatConsoleState.selectedSessionKey, { force: true });
+    setChatInlineHint("已触发实时通道重连", "ok");
   });
   document.querySelector("#chat_send_message")?.addEventListener("click", () => {
-    sendChatConsoleMessage().catch((error) => setMessage(error.message || String(error), "error"));
+    sendChatConsoleMessage().catch((error) => reportChatActionError(error, "发送失败"));
   });
   const messageInput = document.querySelector("#chat_message_input");
   messageInput?.addEventListener("keydown", (event) => {
     if (event.key === "Enter" && !event.shiftKey) {
       event.preventDefault();
-      sendChatConsoleMessage().catch((error) => setMessage(error.message || String(error), "error"));
+      sendChatConsoleMessage().catch((error) => reportChatActionError(error, "发送失败"));
     }
   });
   document.querySelector("#chat_show_thinking")?.addEventListener("change", () => {
     renderChatMessageList();
   });
   document.querySelector("#chat_abort_run")?.addEventListener("click", () => {
-    abortChatConsoleRun().catch((error) => setMessage(error.message || String(error), "error"));
+    abortChatConsoleRun().catch((error) => reportChatActionError(error, "停止失败"));
   });
   document.querySelector("#chat_reset_session")?.addEventListener("click", () => {
-    resetChatConsoleSession().catch((error) => setMessage(error.message || String(error), "error"));
+    resetChatConsoleSession().catch((error) => reportChatActionError(error, "重置会话失败"));
   });
 
   window.addEventListener("beforeunload", () => {
