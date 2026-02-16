@@ -13,6 +13,8 @@
   --success: #1e7a3a;
   --danger: #b42318;
   --code-bg: #f5f7fb;
+  --inner-card-bg: #f2f5f9;
+  --inner-card-bg-strong: #eaf0f8;
 }
 
 body[data-theme="dark"] {
@@ -30,6 +32,8 @@ body[data-theme="dark"] {
   --success: #3fbf7f;
   --danger: #ff6d6d;
   --code-bg: #0f141d;
+  --inner-card-bg: #212936;
+  --inner-card-bg-strong: #263142;
 }
 
 * {
@@ -554,7 +558,7 @@ button:hover {
 .dashboard-kpi {
   border: 1px solid var(--border);
   border-radius: 10px;
-  background: var(--surface-muted);
+  background: var(--inner-card-bg);
   padding: 10px 12px;
   display: grid;
   gap: 6px;
@@ -599,10 +603,10 @@ button:hover {
 }
 
 .dashboard-runtime-card {
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--surface-muted);
-  padding: 10px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  padding: 0;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -618,11 +622,17 @@ button:hover {
 .dashboard-runtime-card .stack-list {
   min-height: 0;
   overflow: auto;
-  padding-right: 4px;
+  padding: 10px;
+  padding-right: 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--inner-card-bg);
 }
 
 .dashboard-channel-runtime-list .stack-item {
   min-height: 92px;
+  background: var(--inner-card-bg-strong);
+  border-color: var(--border);
 }
 
 .dashboard-skills-runtime-list {
@@ -638,6 +648,8 @@ button:hover {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  background: var(--inner-card-bg-strong);
+  border-color: var(--border);
 }
 
 .dashboard-skills-runtime-list .stack-item-row {
