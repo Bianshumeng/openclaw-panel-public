@@ -18,6 +18,7 @@
   --inner-card-bg-strong: #e0e5ee;
 }
 
+:root[data-theme="dark"],
 body[data-theme="dark"] {
   --bg: #111111;
   --surface: #1a1a1a;

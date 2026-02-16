@@ -4,7 +4,21 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>OpenClaw 龙虾控制台</title>
-    <link rel="stylesheet" href="/shoelace/themes/light.css" />
+        <script>
+      (function initThemeEarly() {
+        var theme = "light";
+        try {
+          var saved = window.localStorage.getItem("openclaw-panel-theme");
+          theme = saved === "dark" ? "dark" : "light";
+        } catch (_error) {
+          theme = "light";
+        }
+        var root = document.documentElement;
+        root.dataset.theme = theme;
+        root.classList.toggle("sl-theme-dark", theme === "dark");
+        root.classList.toggle("sl-theme-light", theme !== "dark");
+      })();
+    </script>    <link rel="stylesheet" href="/shoelace/themes/light.css" />
     <link rel="stylesheet" href="/shoelace/themes/dark.css" />
     <link rel="stylesheet" href="/styles.css" />
     <script type="module" src="/shoelace/shoelace-autoloader.js"></script>
@@ -41,40 +55,38 @@
         </header>
 
 <section class="panel is-visible" data-panel="panel-skills">
+          <!-- 板块一：技能总览 + 列表 -->
           <article class="card">
-            <h2>技能管理</h2>
-            <p class="muted-line">查看和管理你的 AI 技能，包括启停和配置。</p>
-            <div class="actions">
-              <button id="skills_refresh" type="button">刷新技能列表</button>
+            <div class="dashboard-overview-row">
+              <div>
+                <h2 style="margin:0;">技能管理</h2>
+                <p class="muted-line" style="margin-bottom:0;">管理 AI 技能的启停和配置</p>
+              </div>
+              <div class="actions">
+                <button id="skills_refresh" class="btn-soft" type="button">刷新列表</button>
+              </div>
             </div>
-            <div class="grid">
-              <label>
-                总数
-                <input id="skills_total" type="text" readonly />
-              </label>
-              <label>
-                已启用
-                <input id="skills_enabled" type="text" readonly />
-              </label>
-              <label>
-                已禁用
-                <input id="skills_disabled" type="text" readonly />
-              </label>
+            <div class="dashboard-stat-row">
+              <div class="dashboard-stat">
+                <span class="dashboard-stat-label">总数</span>
+                <span class="dashboard-stat-value"><input id="skills_total" type="text" readonly style="border:none;background:transparent;padding:0;font-size:inherit;font-weight:inherit;color:inherit;width:3em;" /></span>
+              </div>
+              <div class="dashboard-stat">
+                <span class="dashboard-stat-label">已启用</span>
+                <span class="dashboard-stat-value" style="color:var(--success);"><input id="skills_enabled" type="text" readonly style="border:none;background:transparent;padding:0;font-size:inherit;font-weight:inherit;color:inherit;width:3em;" /></span>
+              </div>
+              <div class="dashboard-stat">
+                <span class="dashboard-stat-label">已禁用</span>
+                <span class="dashboard-stat-value" style="color:var(--muted);"><input id="skills_disabled" type="text" readonly style="border:none;background:transparent;padding:0;font-size:inherit;font-weight:inherit;color:inherit;width:3em;" /></span>
+              </div>
             </div>
             <div id="skills_list" class="stack-list"></div>
           </article>
 
+          <!-- 板块二：调整技能设置 -->
           <article class="card">
-            <sl-details summary="查看技能配置（开发者）">
-              <h2>技能配置详情</h2>
-              <p class="muted-line">查看当前选中技能的有效配置（敏感字段已脱敏）。</p>
-              <pre id="skills_config_preview" class="output">请选择一个技能查看配置</pre>
-            </sl-details>
-          </article>
-
-          <article class="card">
-            <h2>修改技能设置</h2>
-            <p class="muted-line">只会写你填写的字段。留空代表不改；环境变量写成 <code>KEY=</code> 代表删除该键。</p>
+            <h2>调整技能</h2>
+            <p class="muted-line">选中上方的技能后，在这里修改设置。留空的项不会被改动。</p>
             <div class="grid">
               <label>
                 启用状态
@@ -93,26 +105,36 @@
                 <input id="skills_edit_clear_api_key" type="checkbox" />
               </label>
             </div>
-            <sl-details summary="高级设置（环境变量）">
+            <sl-details summary="高级设置：环境变量">
+              <p class="muted-line" style="margin-top:8px;">每行写一个 KEY=VALUE。要删除某个变量，写 KEY= 即可。</p>
               <label>
-                环境变量补丁（每行一个 KEY=VALUE）
+                环境变量
                 <textarea
                   id="skills_edit_env_patch"
-                  rows="6"
-                  placeholder="例如：&#10;HTTP_PROXY=http://127.0.0.1:7890&#10;OPENAI_BASE_URL=&#10;# 上面第二行表示删除 OPENAI_BASE_URL"
+                  rows="5"
+                  placeholder="例如：&#10;HTTP_PROXY=http://127.0.0.1:7890&#10;OPENAI_BASE_URL=&#10;（第二行表示删除该变量）"
                 ></textarea>
               </label>
             </sl-details>
-            <div class="actions">
+            <div class="actions" style="margin-top:12px;">
               <button id="skills_save_config" type="button">保存设置</button>
             </div>
-            <p id="skills_save_result" class="muted-line">请选择技能后再进行修改。</p>
+            <p id="skills_save_result" class="muted-line">请先选择一个技能，再修改设置。</p>
+          </article>
+
+          <!-- 板块三：技能配置详情（开发者，折叠） -->
+          <article class="card">
+            <sl-details summary="技能配置详情（高级）">
+              <p class="muted-line" style="margin-top:8px;">选择上方的技能后，这里会显示详细配置（敏感字段已脱敏）。</p>
+              <pre id="skills_config_preview" class="output">选择上方的技能后，这里会显示详细配置</pre>
+            </sl-details>
           </article>
         </section>
 
+        <!-- 操作记录 -->
         <section class="card">
-          <h2>操作时间线</h2>
-          <p class="muted-line">每次点击后的结果都会记录在这里，方便你定位问题。</p>
+          <h2>操作记录</h2>
+          <p class="muted-line">每次操作的结果都会记录在这里。</p>
           <pre id="messages" class="output"></pre>
         </section>
       </main>
@@ -121,4 +143,5 @@
     <script type="module" src="/app.js"></script>
   </body>
 </html>
+
 

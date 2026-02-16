@@ -1,10 +1,13 @@
 export async function requestJson(fetchImpl, url, options = {}) {
   const { allowBusinessError = false, ...fetchOptions } = options;
+  const headers = new Headers(fetchOptions.headers || {});
+  const hasBody = fetchOptions.body !== undefined && fetchOptions.body !== null;
+  if (hasBody && !headers.has("content-type")) {
+    headers.set("content-type", "application/json");
+  }
   const response = await fetchImpl(url, {
-    headers: {
-      "content-type": "application/json"
-    },
-    ...fetchOptions
+    ...fetchOptions,
+    headers
   });
 
   let payload = null;

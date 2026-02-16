@@ -4,7 +4,21 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>OpenClaw 龙虾控制台</title>
-    <link rel="stylesheet" href="/shoelace/themes/light.css" />
+        <script>
+      (function initThemeEarly() {
+        var theme = "light";
+        try {
+          var saved = window.localStorage.getItem("openclaw-panel-theme");
+          theme = saved === "dark" ? "dark" : "light";
+        } catch (_error) {
+          theme = "light";
+        }
+        var root = document.documentElement;
+        root.dataset.theme = theme;
+        root.classList.toggle("sl-theme-dark", theme === "dark");
+        root.classList.toggle("sl-theme-light", theme !== "dark");
+      })();
+    </script>    <link rel="stylesheet" href="/shoelace/themes/light.css" />
     <link rel="stylesheet" href="/shoelace/themes/dark.css" />
     <link rel="stylesheet" href="/styles.css" />
     <script type="module" src="/shoelace/shoelace-autoloader.js"></script>
@@ -42,90 +56,96 @@
 
 <section class="panel is-visible" data-panel="panel-channel">
           <article class="card">
-            <h2>消息渠道</h2>
-            <p class="muted-line">配置你的聊天平台连接，修改后点击保存生效。</p>
+            <h2>连接聊天平台</h2>
+            <p class="muted-line">选择你要连接的聊天平台，填好后点保存。</p>
             <p class="muted-line sr-only">
               范围说明：本页面只写入 `channels.telegram` / `channels.feishu` / `channels.discord` / `channels.slack`（以及飞书兼容所需
-              `accounts.main`），不会创建任何面板私有“虚拟渠道”。
+              `accounts.main`），不会创建任何面板私有"虚拟渠道"。
             </p>
             <div class="actions">
-              <button id="save_settings">保存渠道配置</button>
+              <button id="save_settings">保存所有设置</button>
             </div>
           </article>
 
+          <!-- Telegram -->
           <article class="card">
             <h2>Telegram</h2>
             <p class="muted-line sr-only">对应 channels.telegram.*，默认建议 DM 策略用 pairing。</p>
+            <label class="inline-check" style="margin-bottom:12px">
+              启用 Telegram
+              <input id="tg_enabled" type="checkbox" />
+            </label>
             <div class="grid">
-              <label class="inline-check">
-                启用 Telegram
-                <input id="tg_enabled" type="checkbox" />
-              </label>
               <label>
-                机器人令牌
+                Bot Token（从 BotFather 获取）
                 <input id="tg_bot_token" type="password" autocomplete="off" />
               </label>
               <label>
-                私聊权限
-                <select id="tg_dm_policy">
-                  <option value="pairing">配对验证（推荐）</option>
-                  <option value="allowlist">白名单</option>
-                  <option value="open">完全开放</option>
-                  <option value="disabled">关闭</option>
-                </select>
-              </label>
-              <label>
-                群聊权限
-                <select id="tg_group_policy">
-                  <option value="allowlist">白名单</option>
-                  <option value="open">完全开放</option>
-                  <option value="disabled">关闭</option>
-                </select>
-              </label>
-              <label>
-                消息发送方式
+                回复方式
                 <select id="tg_stream_mode">
-                  <option value="partial">逐步发送（推荐）</option>
-                  <option value="block">整条发送</option>
+                  <option value="partial">边想边回（推荐）</option>
+                  <option value="block">想好再回</option>
                   <option value="off">关闭</option>
                 </select>
               </label>
+            </div>
+            <div class="grid" style="margin-top:12px">
+              <label>
+                谁能私聊机器人
+                <select id="tg_dm_policy">
+                  <option value="pairing">需要验证身份（推荐）</option>
+                  <option value="allowlist">仅指定用户</option>
+                  <option value="open">所有人都能用</option>
+                  <option value="disabled">禁止</option>
+                </select>
+              </label>
+              <label>
+                谁能在群里用机器人
+                <select id="tg_group_policy">
+                  <option value="allowlist">仅指定用户</option>
+                  <option value="open">所有人都能用</option>
+                  <option value="disabled">禁止</option>
+                </select>
+              </label>
               <label class="inline-check">
-                群聊需要 @ 才回复
+                群里必须 @ 才回复
                 <input id="tg_require_mention" type="checkbox" />
               </label>
             </div>
-            <div class="grid">
-              <label>
-                允许的用户（每行一个）
-                <textarea id="tg_allow_from" rows="4"></textarea>
-              </label>
-              <label>
-                允许的群组（每行一个）
-                <textarea id="tg_group_allow_from" rows="4"></textarea>
-              </label>
+            <sl-details summary="允许使用的用户 / 群组 ID" style="margin-top:12px">
+              <div class="grid">
+                <label>
+                  允许使用的用户 ID（每行一个）
+                  <textarea id="tg_allow_from" rows="4"></textarea>
+                </label>
+                <label>
+                  允许使用的群组 ID（每行一个）
+                  <textarea id="tg_group_allow_from" rows="4"></textarea>
+                </label>
+              </div>
+            </sl-details>
+            <div class="actions" style="margin-top:12px">
+              <button id="test_telegram" class="btn-soft">测试连接</button>
+              <button id="save_and_test_telegram" class="btn-soft">保存并测试</button>
             </div>
-            <div class="actions">
-              <button id="test_telegram" class="btn-soft">测试 Telegram</button>
-              <button id="save_and_test_telegram" class="btn-soft">保存并测试 Telegram</button>
-            </div>
-            <p id="tg_test_result" class="muted-line">最近测试：未执行</p>
+            <p id="tg_test_result" class="muted-line">还没测试过</p>
           </article>
 
+          <!-- 飞书 -->
           <article class="card">
             <h2>飞书</h2>
             <p class="muted-line sr-only">对应 channels.feishu.*，兼容 accounts.main。</p>
+            <label class="inline-check" style="margin-bottom:12px">
+              启用飞书
+              <input id="fs_enabled" type="checkbox" />
+            </label>
             <div class="grid">
-              <label class="inline-check">
-                启用 Feishu
-                <input id="fs_enabled" type="checkbox" />
-              </label>
               <label>
                 App ID
                 <input id="fs_app_id" type="text" />
               </label>
               <label>
-                应用密钥
+                App Secret
                 <input id="fs_app_secret" type="password" autocomplete="off" />
               </label>
               <label>
@@ -138,168 +158,182 @@
               <label>
                 连接方式
                 <select id="fs_connection_mode">
-                  <option value="websocket">长连接（推荐）</option>
-                  <option value="webhook">回调模式</option>
+                  <option value="websocket">长连接（推荐，更稳定）</option>
+                  <option value="webhook">Webhook 回调</option>
                 </select>
               </label>
+            </div>
+            <div class="grid" style="margin-top:12px">
               <label>
-                私聊权限
+                谁能私聊机器人
                 <select id="fs_dm_policy">
-                  <option value="pairing">配对验证（推荐）</option>
-                  <option value="allowlist">白名单</option>
-                  <option value="open">完全开放</option>
+                  <option value="pairing">需要验证身份（推荐）</option>
+                  <option value="allowlist">仅指定用户</option>
+                  <option value="open">所有人都能用</option>
                 </select>
               </label>
               <label>
-                群聊权限
+                谁能在群里用机器人
                 <select id="fs_group_policy">
-                  <option value="allowlist">白名单</option>
-                  <option value="open">完全开放</option>
-                  <option value="disabled">关闭</option>
+                  <option value="allowlist">仅指定用户</option>
+                  <option value="open">所有人都能用</option>
+                  <option value="disabled">禁止</option>
                 </select>
               </label>
               <label class="inline-check">
-                群聊需要 @ 才回复
+                群里必须 @ 才回复
                 <input id="fs_require_mention" type="checkbox" />
               </label>
             </div>
-            <div class="grid">
-              <label>
-                允许的用户（每行一个）
-                <textarea id="fs_allow_from" rows="4"></textarea>
-              </label>
-              <label>
-                允许的群组（每行一个）
-                <textarea id="fs_group_allow_from" rows="4"></textarea>
-              </label>
+            <sl-details summary="允许使用的用户 / 群组 ID" style="margin-top:12px">
+              <div class="grid">
+                <label>
+                  允许使用的用户 ID（每行一个）
+                  <textarea id="fs_allow_from" rows="4"></textarea>
+                </label>
+                <label>
+                  允许使用的群组 ID（每行一个）
+                  <textarea id="fs_group_allow_from" rows="4"></textarea>
+                </label>
+              </div>
+            </sl-details>
+            <div class="actions" style="margin-top:12px">
+              <button id="test_feishu" class="btn-soft">测试连接</button>
+              <button id="save_and_test_feishu" class="btn-soft">保存并测试</button>
             </div>
-            <div class="actions">
-              <button id="test_feishu" class="btn-soft">测试 Feishu</button>
-              <button id="save_and_test_feishu" class="btn-soft">保存并测试 Feishu</button>
-            </div>
-            <p id="fs_test_result" class="muted-line">最近测试：未执行</p>
+            <p id="fs_test_result" class="muted-line">还没测试过</p>
           </article>
 
+          <!-- Discord -->
           <article class="card">
             <h2>Discord</h2>
             <p class="muted-line sr-only">
               对应 `channels.discord.*`，`requireMention` 映射到 `channels.discord.guilds["*"].requireMention`。
             </p>
+            <label class="inline-check" style="margin-bottom:12px">
+              启用 Discord
+              <input id="dc_enabled" type="checkbox" />
+            </label>
             <div class="grid">
-              <label class="inline-check">
-                启用 Discord
-                <input id="dc_enabled" type="checkbox" />
-              </label>
               <label>
-                机器人令牌
+                Bot Token
                 <input id="dc_token" type="password" autocomplete="off" />
               </label>
+            </div>
+            <div class="grid" style="margin-top:12px">
               <label>
-                私聊权限
+                谁能私聊机器人
                 <select id="dc_dm_policy">
-                  <option value="pairing">配对验证（推荐）</option>
-                  <option value="allowlist">白名单</option>
-                  <option value="open">完全开放</option>
-                  <option value="disabled">关闭</option>
+                  <option value="pairing">需要验证身份（推荐）</option>
+                  <option value="allowlist">仅指定用户</option>
+                  <option value="open">所有人都能用</option>
+                  <option value="disabled">禁止</option>
                 </select>
               </label>
               <label>
-                群聊权限
+                谁能在群里用机器人
                 <select id="dc_group_policy">
-                  <option value="allowlist">白名单</option>
-                  <option value="open">完全开放</option>
-                  <option value="disabled">关闭</option>
+                  <option value="allowlist">仅指定用户</option>
+                  <option value="open">所有人都能用</option>
+                  <option value="disabled">禁止</option>
                 </select>
               </label>
               <label class="inline-check">
-                允许其他机器人触发
+                允许其他 Bot 触发
                 <input id="dc_allow_bots" type="checkbox" />
               </label>
               <label class="inline-check">
-                群聊需要 @ 才回复
+                群里必须 @ 才回复
                 <input id="dc_require_mention" type="checkbox" />
               </label>
             </div>
-            <div class="grid">
-              <label>
-                允许的用户（每行一个）
-                <textarea id="dc_allow_from" rows="4"></textarea>
-              </label>
+            <sl-details summary="允许使用的用户 ID" style="margin-top:12px">
+              <div class="grid">
+                <label>
+                  允许使用的用户 ID（每行一个）
+                  <textarea id="dc_allow_from" rows="4"></textarea>
+                </label>
+              </div>
+            </sl-details>
+            <div class="actions" style="margin-top:12px">
+              <button id="test_discord" class="btn-soft">测试连接</button>
             </div>
-            <div class="actions">
-              <button id="test_discord" class="btn-soft">测试 Discord</button>
-            </div>
-            <p id="dc_test_result" class="muted-line">最近测试：未执行</p>
+            <p id="dc_test_result" class="muted-line">还没测试过</p>
           </article>
 
+          <!-- Slack -->
           <article class="card">
             <h2>Slack</h2>
             <p class="muted-line sr-only">对应 channels.slack.*，支持 socket/http 两种模式。</p>
+            <label class="inline-check" style="margin-bottom:12px">
+              启用 Slack
+              <input id="sl_enabled" type="checkbox" />
+            </label>
             <div class="grid">
-              <label class="inline-check">
-                启用 Slack
-                <input id="sl_enabled" type="checkbox" />
-              </label>
               <label>
                 连接模式
                 <select id="sl_mode">
-                  <option value="socket">socket</option>
-                  <option value="http">http</option>
+                  <option value="socket">Socket</option>
+                  <option value="http">HTTP</option>
                 </select>
               </label>
               <label>
-                机器人令牌（xoxb-...）
+                Bot Token（xoxb- 开头）
                 <input id="sl_bot_token" type="password" autocomplete="off" />
               </label>
               <label>
-                应用令牌（xapp-...，socket 模式常用）
+                App Token（xapp- 开头）
                 <input id="sl_app_token" type="password" autocomplete="off" />
               </label>
               <label>
-                签名密钥（http 模式必填）
+                Signing Secret（Webhook 模式必填）
                 <input id="sl_signing_secret" type="password" autocomplete="off" />
               </label>
+            </div>
+            <div class="grid" style="margin-top:12px">
               <label>
-                私聊权限
+                谁能私聊机器人
                 <select id="sl_dm_policy">
-                  <option value="pairing">配对验证（推荐）</option>
-                  <option value="allowlist">白名单</option>
-                  <option value="open">完全开放</option>
-                  <option value="disabled">关闭</option>
+                  <option value="pairing">需要验证身份（推荐）</option>
+                  <option value="allowlist">仅指定用户</option>
+                  <option value="open">所有人都能用</option>
+                  <option value="disabled">禁止</option>
                 </select>
               </label>
               <label>
-                群聊权限
+                谁能在群里用机器人
                 <select id="sl_group_policy">
-                  <option value="allowlist">白名单</option>
-                  <option value="open">完全开放</option>
-                  <option value="disabled">关闭</option>
+                  <option value="allowlist">仅指定用户</option>
+                  <option value="open">所有人都能用</option>
+                  <option value="disabled">禁止</option>
                 </select>
               </label>
               <label class="inline-check">
-                允许其他机器人触发
+                允许其他 Bot 触发
                 <input id="sl_allow_bots" type="checkbox" />
               </label>
               <label class="inline-check">
-                群聊需要 @ 才回复
+                群里必须 @ 才回复
                 <input id="sl_require_mention" type="checkbox" />
               </label>
             </div>
-            <div class="grid">
-              <label>
-                允许的用户（每行一个）
-                <textarea id="sl_allow_from" rows="4"></textarea>
-              </label>
+            <sl-details summary="允许使用的用户 ID" style="margin-top:12px">
+              <div class="grid">
+                <label>
+                  允许使用的用户 ID（每行一个）
+                  <textarea id="sl_allow_from" rows="4"></textarea>
+                </label>
+              </div>
+            </sl-details>
+            <div class="actions" style="margin-top:12px">
+              <button id="test_slack" class="btn-soft">测试连接</button>
             </div>
-            <div class="actions">
-              <button id="test_slack" class="btn-soft">测试 Slack</button>
-            </div>
-            <p id="sl_test_result" class="muted-line">最近测试：未执行</p>
+            <p id="sl_test_result" class="muted-line">还没测试过</p>
           </article>
         </section>
 
         <section class="card">
-          <h2>操作时间线</h2>
+          <h2>操作记录</h2>
           <p class="muted-line">每次点击后的结果都会记录在这里，方便你定位问题。</p>
           <pre id="messages" class="output"></pre>
         </section>
@@ -309,4 +343,5 @@
     <script type="module" src="/app.js"></script>
   </body>
 </html>
+
 

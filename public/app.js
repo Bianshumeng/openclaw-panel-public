@@ -288,6 +288,7 @@ function setupTabs() {
 
 function applyTheme(theme) {
   const value = theme === "dark" ? "dark" : "light";
+  document.documentElement.dataset.theme = value;
   document.body.dataset.theme = value;
   document.documentElement.classList.toggle("sl-theme-dark", value === "dark");
   document.documentElement.classList.toggle("sl-theme-light", value !== "dark");
@@ -3372,9 +3373,38 @@ async function checkUpdate({ silent = false } = {}) {
   }
 }
 
+async function resolveUpgradeTargetTag(rawTag = "") {
+  const directTag = String(rawTag || "").trim();
+  if (directTag) {
+    return directTag;
+  }
+
+  const latestInput = String(getInputValue("update_latest_tag") || "").trim();
+  if (latestInput) {
+    setInput("update_target_tag", latestInput);
+    return latestInput;
+  }
+
+  const result = await api("/api/update/check");
+  const latestTag = String(result?.result?.latestTag || "").trim();
+  if (!latestTag) {
+    throw new Error("无法自动获取最新版本，请先点击“检查新版本”或手工填写目标版本");
+  }
+  setInput("update_latest_tag", latestTag);
+  setInput("update_target_tag", latestTag);
+  return latestTag;
+}
+
 async function mutateVersion(action) {
-  const tag = String(getInputValue("update_target_tag") || "").trim();
+  let tag = String(getInputValue("update_target_tag") || "").trim();
+  if (!tag && action === "upgrade") {
+    tag = await resolveUpgradeTargetTag(tag);
+    setMessage(`未填写目标版本，已自动选择最新版本：${tag}`, "info");
+  }
   if (!tag) {
+    if (action === "rollback") {
+      throw new Error("请先输入回滚目标版本");
+    }
     throw new Error("请先输入目标版本");
   }
   const result = await api(`/api/update/${action}`, {
@@ -3433,7 +3463,7 @@ async function saveSettings() {
   await loadInitialData();
 }
 
-async function runService(action) {
+async function runService(action, { silentMessage = false, autoRefresh = true } = {}) {
   const result = await api(`/api/service/${action}`, {
     method: "POST",
     allowBusinessError: true
@@ -3451,7 +3481,9 @@ async function runService(action) {
       els.serviceState.classList.toggle("fail", true);
       els.serviceHint.textContent = payload.message || "服务状态读取失败，请检查容器或 systemd 权限。";
     }
-    setMessage(`service ${action}: 失败 - ${payload.message || "未知错误"}`, "error");
+    if (!silentMessage) {
+      setMessage(`service ${action}: 失败 - ${payload.message || "未知错误"}`, "error");
+    }
     return;
   }
 
@@ -3464,7 +3496,22 @@ async function runService(action) {
       ? "服务状态正常。你可以继续联调渠道或查看日志。"
       : "服务未运行。请先启动或检查 systemd 权限。";
   }
-  setMessage(`service ${action}: 成功`, "ok");
+  if (!silentMessage) {
+    setMessage(`service ${action}: 成功`, "ok");
+  }
+
+  if (autoRefresh && action !== "status" && els.serviceState && els.serviceHint) {
+    try {
+      await runService("status", { silentMessage: true, autoRefresh: false });
+      if (!silentMessage) {
+        setMessage("服务状态已自动刷新", "info");
+      }
+    } catch (error) {
+      if (!silentMessage) {
+        setMessage(`服务状态自动刷新失败：${error.message || String(error)}`, "error");
+      }
+    }
+  }
 }
 
 async function loadTail() {

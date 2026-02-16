@@ -4,7 +4,21 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>OpenClaw 龙虾控制台</title>
-    <link rel="stylesheet" href="/shoelace/themes/light.css" />
+        <script>
+      (function initThemeEarly() {
+        var theme = "light";
+        try {
+          var saved = window.localStorage.getItem("openclaw-panel-theme");
+          theme = saved === "dark" ? "dark" : "light";
+        } catch (_error) {
+          theme = "light";
+        }
+        var root = document.documentElement;
+        root.dataset.theme = theme;
+        root.classList.toggle("sl-theme-dark", theme === "dark");
+        root.classList.toggle("sl-theme-light", theme !== "dark");
+      })();
+    </script>    <link rel="stylesheet" href="/shoelace/themes/light.css" />
     <link rel="stylesheet" href="/shoelace/themes/dark.css" />
     <link rel="stylesheet" href="/styles.css" />
     <script type="module" src="/shoelace/shoelace-autoloader.js"></script>
@@ -23,7 +37,7 @@
           <a class="tab" data-tab-target="panel-skills" href="/skills">技能管理</a>
           <a class="tab" data-tab-target="panel-chat-console" href="/chat-console">智能对话</a>
           <a class="tab" data-tab-target="panel-model" href="/model">模型配置</a>
-          <a class="tab is-active" data-tab-target="panel-config-generator" href="/config-generator">高级工具</a>
+          <a class="tab is-active" data-tab-target="panel-config-generator" href="/config-generator">开发者工具</a>
           <a class="tab" data-tab-target="panel-channel" href="/channels">消息渠道</a>
           <a class="tab" data-tab-target="panel-update" href="/update">版本更新</a>
           <a class="tab" data-tab-target="panel-service" href="/service">服务控制</a>
@@ -42,13 +56,13 @@
 
 <section class="panel is-visible" data-panel="panel-config-generator">
           <article class="card">
-            <h2>高级配置工具</h2>
-            <p class="muted-line">普通用户请使用「模型配置」页面，这里面向开发者。</p>
-            <sl-details summary="展开配置工具">
+            <h2>开发者工具</h2>
+            <p class="muted-line">这个工具用于手动生成配置文件。如果你只是想切换模型，请去「模型配置」页面。</p>
+            <sl-details summary="打开配置生成器">
 
             <div class="grid">
               <label>
-                服务商
+                AI 服务商
                 <div class="field-stack">
                   <select id="cfg_provider">
                     <option value="aicodecat">aicodecat</option>
@@ -59,7 +73,7 @@
               </label>
 
               <label>
-                接口协议
+                API 协议
                 <div class="field-stack">
                   <select id="cfg_apimode">
                     <option value="anthropic-messages">anthropic-messages（Claude）</option>
@@ -75,7 +89,7 @@
 
             <div class="grid">
               <label>
-                接口地址
+                API 地址
                 <div class="field-stack">
                   <select id="cfg_baseurl">
                     <option value="https://aicode.cat/v1" selected>https://aicode.cat/v1 (GPT)</option>
@@ -88,24 +102,24 @@
               </label>
 
               <label>
-                模型 ID
+                模型标识
                 <div class="field-stack">
                   <select id="cfg_model_id"></select>
-                  <input id="cfg_model_id_custom" class="custom-field" type="text" placeholder="输入自定义模型 ID" />
+                  <input id="cfg_model_id_custom" class="custom-field" type="text" placeholder="输入自定义模型标识" />
                 </div>
               </label>
             </div>
 
             <div class="grid">
               <label>
-                密钥
-                <input id="cfg_apikey" type="password" autocomplete="off" placeholder="输入密钥" />
+                API 密钥
+                <input id="cfg_apikey" type="password" autocomplete="off" placeholder="输入 API 密钥" />
               </label>
               <label>
-                保留已有配置
+                合并到现有配置
                 <select id="cfg_inherit_existing">
-                  <option value="false" selected>否（只生成当前页面配置）</option>
-                  <option value="true">是（保留当前配置中的其他字段）</option>
+                  <option value="false" selected>否，生成全新配置</option>
+                  <option value="true">是，保留现有配置的其他设置</option>
                 </select>
               </label>
               <label>
@@ -115,7 +129,7 @@
             </div>
 
             <label>
-              原始配置
+              当前配置（粘贴你的 openclaw.json）
               <textarea id="cfg_input" rows="8" placeholder="粘贴你的 ~/.openclaw/openclaw.json"></textarea>
             </label>
 
@@ -125,15 +139,15 @@
             </div>
 
             <label>
-              生成结果
-              <pre id="cfg_output" class="output">响应将显示在这里</pre>
+              生成的配置
+              <pre id="cfg_output" class="output">点击「生成配置」后结果会显示在这里</pre>
             </label>
             </sl-details>
           </article>
         </section>
 
         <section class="card">
-          <h2>操作时间线</h2>
+          <h2>操作记录</h2>
           <p class="muted-line">每次点击后的结果都会记录在这里，方便你定位问题。</p>
           <pre id="messages" class="output"></pre>
         </section>
@@ -143,4 +157,5 @@
     <script type="module" src="/app.js"></script>
   </body>
 </html>
+
 

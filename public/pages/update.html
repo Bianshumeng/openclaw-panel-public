@@ -4,7 +4,21 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>OpenClaw 龙虾控制台</title>
-    <link rel="stylesheet" href="/shoelace/themes/light.css" />
+        <script>
+      (function initThemeEarly() {
+        var theme = "light";
+        try {
+          var saved = window.localStorage.getItem("openclaw-panel-theme");
+          theme = saved === "dark" ? "dark" : "light";
+        } catch (_error) {
+          theme = "light";
+        }
+        var root = document.documentElement;
+        root.dataset.theme = theme;
+        root.classList.toggle("sl-theme-dark", theme === "dark");
+        root.classList.toggle("sl-theme-light", theme !== "dark");
+      })();
+    </script>    <link rel="stylesheet" href="/shoelace/themes/light.css" />
     <link rel="stylesheet" href="/shoelace/themes/dark.css" />
     <link rel="stylesheet" href="/styles.css" />
     <script type="module" src="/shoelace/shoelace-autoloader.js"></script>
@@ -42,40 +56,52 @@
 
 <section class="panel is-visible" data-panel="panel-update">
           <article class="card">
-            <h2>OpenClaw 版本更新</h2>
-            <p class="muted-line">检查并升级到最新版本，升级失败时可一键回滚。</p>
+            <h2>检查更新</h2>
+            <p class="muted-line">看看有没有新版本，一键升级。</p>
 
-            <div class="status-row">
-              <span class="pill" id="update_state">未检查</span>
-              <span class="muted-line" id="update_hint">建议先点“检查更新”，再执行升级。</span>
+            <!-- 状态区：最醒目位置 -->
+            <div class="status-row" style="justify-content:center;margin:1.2rem 0 0.6rem;">
+              <span class="pill" id="update_state" style="font-size:1.05rem;padding:0.45rem 1.4rem;">还没检查</span>
             </div>
+            <p class="muted-line" id="update_hint" style="text-align:center;margin-bottom:1.2rem;">点下面的按钮检查一下</p>
 
-            <div class="grid">
+            <!-- 版本信息：紧凑两列 -->
+            <div class="grid" style="grid-template-columns:1fr 1fr;gap:0.75rem 1.2rem;">
               <label>
-                当前版本
+                你的版本
                 <input id="update_current_tag" type="text" readonly />
               </label>
               <label>
                 最新版本
                 <input id="update_latest_tag" type="text" readonly />
               </label>
-              <label>
-                目标版本
-                <input id="update_target_tag" type="text" placeholder="例如 v2026.2.14" />
-              </label>
             </div>
 
-            <div class="actions">
-              <button id="check_update">检查更新</button>
-              <button id="upgrade_update">升级到目标版本</button>
-              <button id="rollback_update" class="btn-soft">回滚到目标版本</button>
+            <!-- 主操作 -->
+            <div class="actions" style="margin-top:1rem;">
+              <button id="check_update">检查新版本</button>
+              <button id="upgrade_update">升级</button>
             </div>
+
+            <!-- 高级区：目标版本 + 回滚 -->
+            <details style="margin-top:1.2rem;">
+              <summary class="muted-line" style="cursor:pointer;user-select:none;">高级选项（指定版本 / 回滚）</summary>
+              <div style="margin-top:0.75rem;">
+                <label>
+                  要升级/回滚到的版本
+                  <input id="update_target_tag" type="text" placeholder="留空则升级到最新版" />
+                </label>
+                <div class="actions" style="margin-top:0.75rem;">
+                  <button id="rollback_update" class="btn-soft">回滚（遇到问题时用）</button>
+                </div>
+              </div>
+            </details>
           </article>
         </section>
 
         <section class="card">
-          <h2>操作时间线</h2>
-          <p class="muted-line">每次点击后的结果都会记录在这里，方便你定位问题。</p>
+          <h2>操作记录</h2>
+          <p class="muted-line">每次操作的结果都会记录在这里，方便你定位问题。</p>
           <pre id="messages" class="output"></pre>
         </section>
       </main>
@@ -84,4 +110,5 @@
     <script type="module" src="/app.js"></script>
   </body>
 </html>
+
 

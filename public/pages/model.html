@@ -4,7 +4,21 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>OpenClaw 龙虾控制台</title>
-    <link rel="stylesheet" href="/shoelace/themes/light.css" />
+        <script>
+      (function initThemeEarly() {
+        var theme = "light";
+        try {
+          var saved = window.localStorage.getItem("openclaw-panel-theme");
+          theme = saved === "dark" ? "dark" : "light";
+        } catch (_error) {
+          theme = "light";
+        }
+        var root = document.documentElement;
+        root.dataset.theme = theme;
+        root.classList.toggle("sl-theme-dark", theme === "dark");
+        root.classList.toggle("sl-theme-light", theme !== "dark");
+      })();
+    </script>    <link rel="stylesheet" href="/shoelace/themes/light.css" />
     <link rel="stylesheet" href="/shoelace/themes/dark.css" />
     <link rel="stylesheet" href="/styles.css" />
     <script type="module" src="/shoelace/shoelace-autoloader.js"></script>
@@ -41,23 +55,13 @@
         </header>
 
 <section class="panel is-visible" data-panel="panel-model">
-          <article class="card">
-            <h2>模型配置</h2>
-            <p class="muted-line">
-              选择你需要的操作：切换已有模型，或添加新的模型服务。
-            </p>
-            <div class="model-flow-grid">
-              <button class="btn-soft model-flow-btn" data-model-flow-jump="model_default_section" type="button">切换默认模型</button>
-              <button class="btn-soft model-flow-btn" data-model-flow-jump="model_provider_mode_section" type="button">添加新模型服务</button>
-            </div>
-          </article>
-
+          <!-- 第一板块：当前模型状态 + 快速切换 -->
           <article id="model_default_section" class="card">
-            <h2>切换默认模型</h2>
-            <p class="muted-line">选择要使用的默认模型，然后点击保存。</p>
+            <h2>当前使用的模型</h2>
+            <p class="muted-line">选好后点保存即可切换</p>
             <div class="grid">
               <label>
-                当前默认模型
+                正在使用
                 <select id="model_default_ref"></select>
               </label>
               <label class="sr-only">
@@ -81,7 +85,7 @@
                 <input id="model_current_id" type="text" readonly />
               </label>
             </div>
-            <sl-details summary="模型详细信息">
+            <sl-details summary="更多参数">
               <div class="grid">
                 <label>
                   模型名称
@@ -98,36 +102,38 @@
               </div>
             </sl-details>
             <div class="actions">
-              <button id="save_default_model">保存默认模型</button>
+              <button id="save_default_model">保存</button>
             </div>
             <p class="muted-line">提示：这里只切换默认模型，不会新增或删除模型服务。</p>
           </article>
 
+          <!-- 第二板块：所有模型（按提供商分组） -->
           <article class="card">
-            <h2>可用模型</h2>
-            <p class="muted-line">在这里直接按提供商查看并切换模型。切换前建议填写当前会话上下文，系统会在可能超限时提醒你。</p>
-            <sl-details summary="切换前检查（可选）">
+            <h2>所有模型</h2>
+            <p class="muted-line">按提供商分组展示，点击即可切换。</p>
+            <sl-details summary="从大模型切到小模型时，如果当前对话太长可能会报错">
               <div class="grid">
-                <label>
-                  当前对话已用量
+                <label class="sr-only">
+                  上下文用量
                   <input
                     id="dashboard_context_tokens"
                     data-dashboard-context-input="1"
                     type="number"
                     min="0"
                     step="1"
-                    placeholder="用于切换时上下文超限提示"
+                    placeholder="当前对话 token 数（可选）"
                   />
                 </label>
               </div>
-              <p id="dashboard_context_hint" class="muted-line">当目标模型上下文更短，且当前会话上下文超过目标上限时，将弹出风险提示。</p>
+              <p id="dashboard_context_hint" class="muted-line">切换到上下文更短的模型时，如果当前对话超过目标上限会弹出提醒。</p>
             </sl-details>
             <div id="model_provider_cards" class="provider-grid"></div>
           </article>
 
+          <!-- 第三板块：接入新的 AI 服务 -->
           <article id="model_provider_mode_section" class="card">
-            <h2>添加新模型服务</h2>
-            <p class="muted-line">基础配置适合绝大多数用户；只有你需要自定义 models JSON 时，再切换到自定义模式。</p>
+            <h2>接入新的 AI 服务</h2>
+            <p class="muted-line">大多数情况用快速配置就够了</p>
             <div class="model-provider-mode-switch">
               <button
                 class="btn-soft model-provider-mode-btn is-active"
@@ -141,15 +147,15 @@
                 高级模式
               </button>
             </div>
-            <p id="model_provider_mode_hint" class="muted-line">当前为快速配置模式：你通常只需要填写服务名称、接口地址和密钥。</p>
+            <p id="model_provider_mode_hint" class="muted-line">快速配置模式：填写服务名称、API 地址和密钥就行。</p>
           </article>
 
           <article id="model_provider_template_section" class="card" data-model-provider-mode-panel="template">
             <h2>快速配置</h2>
-            <p class="muted-line">选择模型类型，填写基本信息即可使用。</p>
+            <p class="muted-line">选择 AI 类型，填写基本信息即可使用。</p>
             <div class="grid">
               <label>
-                模型类型
+                AI 类型
                 <select id="model_template_key">
                   <option value="aicodecat-gpt">GPT 系列</option>
                   <option value="aicodecat-claude">Claude 系列</option>
@@ -157,15 +163,15 @@
                 </select>
               </label>
               <label>
-                服务名称
+                给这个服务起个名字
                 <input id="template_provider_id" type="text" />
               </label>
               <label>
-                接口地址
+                API 地址
                 <input id="template_base_url" type="url" />
               </label>
               <label>
-                密钥
+                API 密钥
                 <input id="template_api_key" type="password" autocomplete="off" />
               </label>
             </div>
@@ -196,7 +202,7 @@
               </div>
             </details>
             <label>
-              模板内置模型（可直接用）
+              包含的模型
               <pre id="template_model_preview" class="output"></pre>
             </label>
             <div class="actions">
@@ -210,47 +216,52 @@
             <p class="muted-line">需要完全自定义时，直接编辑模型 JSON 数组。每个模型至少要有 id 和 name。</p>
             <div class="grid">
               <label>
-                服务名称
+                给这个服务起个名字
                 <input id="custom_provider_id" type="text" placeholder="例如 my-provider" />
               </label>
               <label>
-                接口协议
-                <div class="field-stack">
-                  <select id="custom_api">
-                    <option value="openai-responses">openai-responses（GPT Responses）</option>
-                    <option value="openai-completions">openai-completions（GPT 兼容）</option>
-                    <option value="anthropic-messages">anthropic-messages（Claude）</option>
-                    <option value="google-generative-ai">google-generative-ai（Gemini）</option>
-                    <option value="custom">自定义</option>
-                  </select>
-                  <input id="custom_api_custom" class="custom-field" type="text" placeholder="输入自定义 API 模式" />
-                </div>
-              </label>
-              <label>
-                接口地址
+                API 地址
                 <input id="custom_base_url" type="url" placeholder="例如 https://api.example.com/v1" />
               </label>
               <label>
-                密钥
+                API 密钥
                 <input id="custom_api_key" type="password" autocomplete="off" />
               </label>
-              <label>
-                默认模型 ID
-                <div class="field-stack">
-                  <select id="custom_default_model_id"></select>
-                  <input
-                    id="custom_default_model_id_custom"
-                    class="custom-field"
-                    type="text"
-                    placeholder="输入 models 数组中的某个 id"
-                  />
-                </div>
-              </label>
-              <label class="inline-check">
-                保存后设为当前默认模型
-                <input id="custom_set_as_primary" type="checkbox" />
-              </label>
             </div>
+            <details>
+              <summary>高级参数（通常不用改）</summary>
+              <div class="grid">
+                <label>
+                  接口协议
+                  <div class="field-stack">
+                    <select id="custom_api">
+                      <option value="openai-responses">openai-responses（GPT Responses）</option>
+                      <option value="openai-completions">openai-completions（GPT 兼容）</option>
+                      <option value="anthropic-messages">anthropic-messages（Claude）</option>
+                      <option value="google-generative-ai">google-generative-ai（Gemini）</option>
+                      <option value="custom">自定义</option>
+                    </select>
+                    <input id="custom_api_custom" class="custom-field" type="text" placeholder="输入自定义 API 模式" />
+                  </div>
+                </label>
+                <label>
+                  默认模型 ID
+                  <div class="field-stack">
+                    <select id="custom_default_model_id"></select>
+                    <input
+                      id="custom_default_model_id_custom"
+                      class="custom-field"
+                      type="text"
+                      placeholder="输入 models 数组中的某个 id"
+                    />
+                  </div>
+                </label>
+                <label class="inline-check">
+                  保存后设为当前默认模型
+                  <input id="custom_set_as_primary" type="checkbox" />
+                </label>
+              </div>
+            </details>
             <label>
               models 数组 JSON
               <textarea id="custom_models_json" rows="10" placeholder='[{"id":"model-id","name":"模型名","reasoning":true,"input":["text","image"],"contextWindow":200000,"maxTokens":64000}]'></textarea>
@@ -262,8 +273,8 @@
         </section>
 
         <section class="card">
-          <h2>操作时间线</h2>
-          <p class="muted-line">每次点击后的结果都会记录在这里，方便你定位问题。</p>
+          <h2>操作记录</h2>
+          <p class="muted-line">每次操作的结果都会记录在这里。</p>
           <pre id="messages" class="output"></pre>
         </section>
       </main>
@@ -272,4 +283,5 @@
     <script type="module" src="/app.js"></script>
   </body>
 </html>
+
 

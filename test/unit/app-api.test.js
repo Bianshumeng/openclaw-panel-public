@@ -38,3 +38,35 @@ test("requestJson returns business payload when allowBusinessError=true", async 
   assert.equal(data.ok, false);
   assert.equal(data.result.message, "failed with details");
 });
+
+test("requestJson does not set content-type when body is missing", async () => {
+  let capturedHeaders;
+  const fetchImpl = async (_url, options = {}) => {
+    capturedHeaders = options.headers;
+    return {
+      ok: true,
+      status: 200,
+      json: async () => ({ ok: true })
+    };
+  };
+
+  await requestJson(fetchImpl, "/api/demo", { method: "POST" });
+  assert.equal(capturedHeaders instanceof Headers, true);
+  assert.equal(capturedHeaders.has("content-type"), false);
+});
+
+test("requestJson sets json content-type when body exists", async () => {
+  let capturedHeaders;
+  const fetchImpl = async (_url, options = {}) => {
+    capturedHeaders = options.headers;
+    return {
+      ok: true,
+      status: 200,
+      json: async () => ({ ok: true })
+    };
+  };
+
+  await requestJson(fetchImpl, "/api/demo", { method: "POST", body: JSON.stringify({ ping: true }) });
+  assert.equal(capturedHeaders instanceof Headers, true);
+  assert.equal(capturedHeaders.get("content-type"), "application/json");
+});
