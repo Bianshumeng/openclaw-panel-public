@@ -33,6 +33,20 @@ set_env_image() {
   fi
 }
 
+extract_image_repo() {
+  local image_ref="$1"
+  local without_digest="${image_ref%@*}"
+  local last_segment="${without_digest##*/}"
+
+  # Only remove tag if ':' appears in the last path segment.
+  if [[ "$last_segment" == *:* ]]; then
+    printf '%s\n' "${without_digest%:*}"
+    return
+  fi
+
+  printf '%s\n' "$without_digest"
+}
+
 if [[ $# -lt 1 ]]; then
   echo "用法: bash deploy/docker-rollback.sh <tag>"
   echo "示例: bash deploy/docker-rollback.sh v2026.2.14"
@@ -50,8 +64,8 @@ old_image="$(grep -E '^OPENCLAW_IMAGE=' ./.env | head -n1 | cut -d'=' -f2- || tr
 if [[ -z "$old_image" ]]; then
   old_image="ghcr.io/openclaw/openclaw:2026.2.14"
 fi
-image_repo="${old_image%:*}"
-if [[ -z "$image_repo" || "$image_repo" == "$old_image" ]]; then
+image_repo="$(extract_image_repo "$old_image")"
+if [[ -z "$image_repo" ]]; then
   image_repo="ghcr.io/openclaw/openclaw"
 fi
 image="${image_repo}:${tag}"
