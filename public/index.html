@@ -321,7 +321,7 @@
             </p>
             <div class="model-flow-grid">
               <button class="btn-soft model-flow-btn" data-model-flow-jump="model_default_section" type="button">路径 1：设置当前默认模型</button>
-              <button class="btn-soft model-flow-btn" data-model-flow-jump="model_provider_template_section" type="button">路径 2：添加新提供商</button>
+              <button class="btn-soft model-flow-btn" data-model-flow-jump="model_provider_mode_section" type="button">路径 2：添加新提供商</button>
             </div>
           </article>
 
@@ -392,7 +392,26 @@
             <div id="model_provider_cards" class="provider-grid"></div>
           </article>
 
-          <article id="model_provider_template_section" class="card">
+          <article id="model_provider_mode_section" class="card">
+            <h2>路径 2 工作模式</h2>
+            <p class="muted-line">基础配置适合绝大多数用户；只有你需要自定义 models JSON 时，再切换到自定义模式。</p>
+            <div class="model-provider-mode-switch">
+              <button
+                class="btn-soft model-provider-mode-btn is-active"
+                type="button"
+                data-model-provider-mode="template"
+                aria-pressed="true"
+              >
+                基础配置（推荐）
+              </button>
+              <button class="btn-soft model-provider-mode-btn" type="button" data-model-provider-mode="custom" aria-pressed="false">
+                自定义模式
+              </button>
+            </div>
+            <p id="model_provider_mode_hint" class="muted-line">当前为基础配置模式：你通常只需要填写提供商名称、API 地址和 API Key。</p>
+          </article>
+
+          <article id="model_provider_template_section" class="card" data-model-provider-mode-panel="template">
             <h2>路径 2：添加新提供商（基础配置）</h2>
             <p class="muted-line">选模板后只改“提供商名称 / URL / Key”就能直接用，适合小白快速上手。</p>
             <div class="grid">
@@ -409,19 +428,6 @@
                 <input id="template_provider_id" type="text" />
               </label>
               <label>
-                API 模式
-                <div class="field-stack">
-                  <select id="template_api">
-                    <option value="openai-responses">openai-responses（GPT Responses）</option>
-                    <option value="openai-completions">openai-completions（GPT 兼容）</option>
-                    <option value="anthropic-messages">anthropic-messages（Claude）</option>
-                    <option value="google-generative-ai">google-generative-ai（Gemini）</option>
-                    <option value="custom">自定义</option>
-                  </select>
-                  <input id="template_api_custom" class="custom-field" type="text" placeholder="输入自定义 API 模式" />
-                </div>
-              </label>
-              <label>
                 API 地址（Base URL）
                 <input id="template_base_url" type="url" />
               </label>
@@ -429,15 +435,33 @@
                 API Key
                 <input id="template_api_key" type="password" autocomplete="off" />
               </label>
-              <label>
-                设为默认模型
-                <select id="template_default_model_id"></select>
-              </label>
-              <label class="inline-check">
-                保存后设为当前默认模型
-                <input id="template_set_as_primary" type="checkbox" />
-              </label>
             </div>
+            <details>
+              <summary>高级参数（通常不用改）</summary>
+              <div class="grid">
+                <label>
+                  API 模式
+                  <div class="field-stack">
+                    <select id="template_api">
+                      <option value="openai-responses">openai-responses（GPT Responses）</option>
+                      <option value="openai-completions">openai-completions（GPT 兼容）</option>
+                      <option value="anthropic-messages">anthropic-messages（Claude）</option>
+                      <option value="google-generative-ai">google-generative-ai（Gemini）</option>
+                      <option value="custom">自定义</option>
+                    </select>
+                    <input id="template_api_custom" class="custom-field" type="text" placeholder="输入自定义 API 模式" />
+                  </div>
+                </label>
+                <label>
+                  设为默认模型
+                  <select id="template_default_model_id"></select>
+                </label>
+                <label class="inline-check">
+                  保存后设为当前默认模型
+                  <input id="template_set_as_primary" type="checkbox" />
+                </label>
+              </div>
+            </details>
             <label>
               模板内置模型（可直接用）
               <pre id="template_model_preview" class="output"></pre>
@@ -448,7 +472,7 @@
             <p class="muted-line">提示：这条路径默认只做“新增/写入提供商配置”；只有勾选“保存后设为当前默认模型”才会改动路径 1 的默认模型。</p>
           </article>
 
-          <article id="model_provider_custom_section" class="card">
+          <article id="model_provider_custom_section" class="card is-hidden" data-model-provider-mode-panel="custom">
             <h2>路径 2-B：自定义模式（高级）</h2>
             <p class="muted-line">需要完全自定义时，直接编辑模型 JSON 数组。每个模型至少要有 id 和 name。</p>
             <div class="grid">

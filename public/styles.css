@@ -335,6 +335,22 @@ button:hover {
   justify-content: flex-start;
 }
 
+.model-provider-mode-switch {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.model-provider-mode-btn.is-active {
+  border-color: var(--primary);
+  box-shadow: inset 0 0 0 1px var(--primary);
+  background: var(--surface);
+}
+
+.is-hidden {
+  display: none !important;
+}
+
 .provider-card {
   border: 1px solid var(--border);
   border-radius: 10px;

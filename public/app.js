@@ -144,6 +144,7 @@ const modelEditorState = {
   defaultModelRefs: [],
   currentModelSettings: null,
   currentModelPayload: null,
+  providerMode: "template",
   dashboardBound: false
 };
 
@@ -814,6 +815,29 @@ function fillDashboardQuickSwitch(modelSettings) {
 
   const selectedEntry = entries.find((entry) => entry.ref === select.value) || entries[0] || null;
   renderDashboardQuickSwitchHint(selectedEntry);
+}
+
+function setModelProviderMode(mode) {
+  const normalizedMode = String(mode || "").trim() === "custom" ? "custom" : "template";
+  modelEditorState.providerMode = normalizedMode;
+
+  const hintText =
+    normalizedMode === "custom"
+      ? "当前为自定义模式：请手工维护 models JSON，适合高级配置场景。"
+      : "当前为基础配置模式：你通常只需要填写提供商名称、API 地址和 API Key。";
+  setText("model_provider_mode_hint", hintText);
+
+  document.querySelectorAll("[data-model-provider-mode]").forEach((button) => {
+    const buttonMode = String(button.getAttribute("data-model-provider-mode") || "").trim();
+    const isActive = buttonMode === normalizedMode;
+    button.classList.toggle("is-active", isActive);
+    button.setAttribute("aria-pressed", isActive ? "true" : "false");
+  });
+
+  document.querySelectorAll("[data-model-provider-mode-panel]").forEach((section) => {
+    const panelMode = String(section.getAttribute("data-model-provider-mode-panel") || "").trim();
+    section.classList.toggle("is-hidden", panelMode !== normalizedMode);
+  });
 }
 
 function collectChannelSettings() {
@@ -2697,6 +2721,7 @@ function fillModelEditor(modelSettings) {
   });
   setInput("template_set_as_primary", false);
   setInput("custom_set_as_primary", false);
+  setModelProviderMode("template");
 
   fillDashboardQuickSwitch(modelSettings);
 }
@@ -2722,6 +2747,14 @@ function setupModelEditor() {
       setMessage(`已定位到：${target.querySelector("h2")?.textContent || targetId}`, "info");
     });
   });
+
+  document.querySelectorAll("[data-model-provider-mode]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const targetMode = String(button.getAttribute("data-model-provider-mode") || "").trim();
+      setModelProviderMode(targetMode);
+    });
+  });
+  setModelProviderMode(modelEditorState.providerMode || "template");
 
   const templateSelect = document.querySelector("#model_template_key");
   templateSelect?.addEventListener("change", () => {
