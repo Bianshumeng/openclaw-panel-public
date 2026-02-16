@@ -1,8 +1,9 @@
 :root {
   --bg: #f3f4f6;
   --surface: #ffffff;
-  --surface-muted: #f8fafc;
-  --border: #d6dbe3;
+  --surface-muted: #f3f5f8;
+  --border: #e2e6ec;
+  --border-strong: #bfc6d2;
   --text: #111827;
   --muted: #6b7280;
   --primary: #2457d6;
@@ -13,27 +14,28 @@
   --success: #1e7a3a;
   --danger: #b42318;
   --code-bg: #f5f7fb;
-  --inner-card-bg: #f2f5f9;
-  --inner-card-bg-strong: #eaf0f8;
+  --inner-card-bg: #e9ecf2;
+  --inner-card-bg-strong: #e0e5ee;
 }
 
 body[data-theme="dark"] {
-  --bg: #0f1115;
-  --surface: #171a21;
-  --surface-muted: #1d2330;
-  --border: #2b3242;
-  --text: #e8edf5;
-  --muted: #9aa4b3;
+  --bg: #111111;
+  --surface: #1a1a1a;
+  --surface-muted: #212121;
+  --border: #303030;
+  --border-strong: #424242;
+  --text: #e8e8e8;
+  --muted: #a0a0a0;
   --primary: #4f7cff;
   --primary-hover: #3d66dc;
   --primary-text: #ffffff;
-  --soft-button: #252d3d;
-  --soft-button-hover: #30394b;
+  --soft-button: #282828;
+  --soft-button-hover: #333333;
   --success: #3fbf7f;
   --danger: #ff6d6d;
-  --code-bg: #0f141d;
-  --inner-card-bg: #212936;
-  --inner-card-bg-strong: #263142;
+  --code-bg: #141414;
+  --inner-card-bg: #252525;
+  --inner-card-bg-strong: #2a2a2a;
 }
 
 * {
@@ -198,7 +200,7 @@ body {
 }
 
 .card {
-  border: 1px solid var(--border);
+  border: 2px solid var(--border-strong);
   border-radius: 10px;
   padding: 16px;
   background: var(--surface);
@@ -549,9 +551,22 @@ button:hover {
   background: var(--surface);
 }
 
+/* sr-only: 视觉隐藏但保留 DOM（屏幕阅读器 + JS 可访问） */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .dashboard-overview-row {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 12px;
   flex-wrap: wrap;
@@ -565,15 +580,25 @@ button:hover {
   font-weight: 600;
 }
 
-.dashboard-runtime-chip {
-  margin-bottom: 10px;
-  background: var(--inner-card-bg);
+.dashboard-hero-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 22px;
+  margin: 0;
 }
 
-.dashboard-upper-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+.dashboard-hero-status .dot {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+}
+
+.dashboard-hero-model {
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--muted);
+  margin-left: 4px;
 }
 
 .dashboard-surface-card {
@@ -585,49 +610,39 @@ button:hover {
   font-size: 19px;
 }
 
-.dashboard-kpi-grid {
+/* 扁平统计条（替代 KPI 卡片） */
+.dashboard-stat-row {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 8px;
+  margin-top: 8px;
 }
 
-.dashboard-kpi {
-  --padding: 12px;
-}
-
-.dashboard-kpi::part(base) {
-  border: 1px solid var(--border);
-  border-radius: 10px;
+.dashboard-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border-radius: 8px;
   background: var(--inner-card-bg);
-  box-shadow: none;
 }
 
-.dashboard-kpi[data-tone="warn"]::part(base) {
-  background: var(--surface);
-  border-color: #d9b8b4;
+.dashboard-stat-error {
+  background: #fef2f2;
 }
 
-body[data-theme="dark"] .dashboard-kpi[data-tone="warn"]::part(base) {
-  border-color: #6e4040;
+body[data-theme="dark"] .dashboard-stat-error {
+  background: #2a1515;
 }
 
-.dashboard-kpi-label {
-  margin: 0;
+.dashboard-stat-label {
   font-size: 12px;
   color: var(--muted);
 }
 
-.dashboard-kpi-value {
-  margin: 0;
+.dashboard-stat-value {
   font-size: 16px;
   font-weight: 700;
-  word-break: break-word;
-}
-
-.dashboard-kpi-meta {
-  margin: 0;
-  font-size: 12px;
-  color: var(--muted);
   word-break: break-word;
 }
 
@@ -642,6 +657,31 @@ body[data-theme="dark"] .dashboard-kpi[data-tone="warn"]::part(base) {
   justify-content: flex-start;
 }
 
+/* 模型切换行 */
+.dashboard-model-switch-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.dashboard-model-switch-label {
+  flex: 1 1 200px;
+}
+
+/* 技能切换按钮 */
+.dashboard-skills-toggle-btn {
+  margin-top: 6px;
+  font-size: 13px;
+}
+
+/* 扁平技能 item（替代 sl-card） */
+.dashboard-runtime-item-flat {
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--inner-card-bg);
+}
+
 .dashboard-runtime-grid {
   display: grid;
   grid-template-columns: minmax(280px, 340px) minmax(0, 1fr);
@@ -650,7 +690,6 @@ body[data-theme="dark"] .dashboard-kpi[data-tone="warn"]::part(base) {
 }
 
 .dashboard-runtime-card {
-  border: 1px solid var(--border);
   border-radius: 12px;
   background: var(--inner-card-bg);
   padding: 10px;
@@ -683,7 +722,6 @@ body[data-theme="dark"] .dashboard-kpi[data-tone="warn"]::part(base) {
   max-height: 540px;
   padding: 4px;
   border-radius: 10px;
-  border: 1px solid var(--border);
   background: var(--surface);
   display: grid;
   gap: 10px;
@@ -702,7 +740,7 @@ body[data-theme="dark"] .dashboard-kpi[data-tone="warn"]::part(base) {
 }
 
 .dashboard-runtime-item::part(base) {
-  border: 1px solid var(--border);
+  border: none;
   border-radius: 10px;
   background: var(--inner-card-bg);
   box-shadow: none;
@@ -738,7 +776,6 @@ body[data-theme="dark"] .dashboard-kpi[data-tone="warn"]::part(base) {
 
 .dashboard-list-empty {
   margin: 0;
-  border: 1px dashed var(--border);
   border-radius: 10px;
   background: var(--inner-card-bg);
   padding: 12px;
@@ -747,10 +784,6 @@ body[data-theme="dark"] .dashboard-kpi[data-tone="warn"]::part(base) {
 }
 
 @media (max-width: 1180px) {
-  .dashboard-upper-grid {
-    grid-template-columns: 1fr;
-  }
-
   .dashboard-runtime-grid {
     grid-template-columns: 1fr;
   }

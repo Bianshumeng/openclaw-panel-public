@@ -963,6 +963,24 @@ app.post("/api/update/rollback", async (request, reply) => {
   }
 });
 
+const PAGE_FILE_BY_PATH = {
+  "/": "pages/model.html",
+  "/dashboard": "pages/dashboard.html",
+  "/status-overview": "pages/dashboard.html",
+  "/skills": "pages/skills.html",
+  "/chat-console": "pages/chat-console.html",
+  "/model": "pages/model.html",
+  "/config-generator": "pages/config-generator.html",
+  "/channels": "pages/channels.html",
+  "/update": "pages/update.html",
+  "/service": "pages/service.html",
+  "/logs": "pages/logs.html"
+};
+
+app.get("/", async (_request, reply) => {
+  return reply.sendFile("pages/model.html");
+});
+
 app.setNotFoundHandler(async (request, reply) => {
   if (request.raw.url?.startsWith("/api/")) {
     reply.code(404);
@@ -970,6 +988,12 @@ app.setNotFoundHandler(async (request, reply) => {
       ok: false,
       message: "API not found"
     };
+  }
+  const rawUrl = String(request.raw.url || "/");
+  const pathname = rawUrl.split("?")[0] || "/";
+  const pageFile = PAGE_FILE_BY_PATH[pathname];
+  if (pageFile) {
+    return reply.sendFile(pageFile);
   }
   return reply.sendFile("index.html");
 });

@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OpenClaw 龙虾控制台</title>
+    <link rel="stylesheet" href="/shoelace/themes/light.css" />
+    <link rel="stylesheet" href="/shoelace/themes/dark.css" />
+    <link rel="stylesheet" href="/styles.css" />
+    <script type="module" src="/shoelace/shoelace-autoloader.js"></script>
+  </head>
+  <body data-theme="light">
+    <div class="layout">
+      <aside class="sidebar">
+        <div class="brand">
+          <p class="eyebrow">OpenClaw</p>
+          <h1>龙虾控制台</h1>
+          <p class="sub">管理你的 AI 助手：模型、渠道、技能，一站搞定。</p>
+        </div>
+
+                <nav class="tabs sidebar-tabs">
+          <a class="tab" data-tab-target="panel-dashboard" href="/dashboard">仪表盘</a>
+          <a class="tab" data-tab-target="panel-skills" href="/skills">技能管理</a>
+          <a class="tab" data-tab-target="panel-chat-console" href="/chat-console">智能对话</a>
+          <a class="tab" data-tab-target="panel-model" href="/model">模型配置</a>
+          <a class="tab" data-tab-target="panel-config-generator" href="/config-generator">高级工具</a>
+          <a class="tab" data-tab-target="panel-channel" href="/channels">消息渠道</a>
+          <a class="tab" data-tab-target="panel-update" href="/update">版本更新</a>
+          <a class="tab" data-tab-target="panel-service" href="/service">服务控制</a>
+          <a class="tab is-active" data-tab-target="panel-logs" href="/logs">运行日志</a>
+        </nav>
+      </aside>
+
+      <main class="content">
+        <header class="page-header">
+          <div>
+            <h2 class="page-title">龙虾控制台</h2>
+            <p class="page-subtitle">你的 AI 助手管理中心</p>
+          </div>
+          <button id="theme_toggle" class="btn-soft" type="button">切换到深夜模式</button>
+        </header>
+
+<section class="panel is-visible" data-panel="panel-logs">
+          <article class="card">
+            <h2>运行日志</h2>
+            <div class="actions">
+              <label class="filter">
+                关键字过滤
+                <input id="log_filter" type="text" placeholder="error / timeout / token ..." />
+              </label>
+              <button id="load_tail">加载最近日志</button>
+              <button id="start_stream">开始实时查看</button>
+              <button id="stop_stream" class="btn-soft">停止实时查看</button>
+              <button id="load_errors" class="btn-soft">查看最近错误</button>
+            </div>
+            <pre id="log_output" class="output"></pre>
+            <ul id="error_summary" class="error-list"></ul>
+          </article>
+        </section>
+
+        <section class="card">
+          <h2>操作时间线</h2>
+          <p class="muted-line">每次点击后的结果都会记录在这里，方便你定位问题。</p>
+          <pre id="messages" class="output"></pre>
+        </section>
+      </main>
+    </div>
+
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>
+

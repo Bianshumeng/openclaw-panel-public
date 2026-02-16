@@ -199,6 +199,9 @@ const els = {
 };
 
 function setMessage(message, type = "info") {
+  if (!els.messages) {
+    return;
+  }
   const line = `[${new Date().toLocaleTimeString()}][${type}] ${message}`;
   els.messages.textContent = `${line}\n${els.messages.textContent}`.slice(0, 12000);
 }
@@ -241,6 +244,7 @@ async function api(url, options = {}) {
 function setupTabs() {
   const tabs = Array.from(document.querySelectorAll(".tab"));
   const panels = Array.from(document.querySelectorAll(".panel"));
+  const hasPanel = (panelName) => panels.some((panel) => panel.dataset.panel === panelName);
 
   const activate = (panelName, { push = false, replace = false } = {}) => {
     tabs.forEach((tab) => {
@@ -260,8 +264,12 @@ function setupTabs() {
 
   tabs.forEach((tab) => {
     tab.addEventListener("click", (event) => {
+      const targetPanel = String(tab.dataset.tabTarget || "").trim();
+      if (!targetPanel || !hasPanel(targetPanel)) {
+        return;
+      }
       event.preventDefault();
-      activate(tab.dataset.tabTarget, { push: true });
+      activate(targetPanel, { push: true });
     });
   });
 
@@ -271,7 +279,11 @@ function setupTabs() {
 
   const initialPanel = panelByPath(window.location.pathname);
   const shouldNormalizePath = !isKnownPanelPath(window.location.pathname);
-  activate(initialPanel, { replace: shouldNormalizePath });
+  if (hasPanel(initialPanel)) {
+    activate(initialPanel, { replace: shouldNormalizePath });
+  } else if (panels.length > 0) {
+    activate(panels[0].dataset.panel, { replace: shouldNormalizePath });
+  }
 }
 
 function applyTheme(theme) {
@@ -461,8 +473,12 @@ function fillPanelMeta(config, deployment = {}) {
   const runtime = config.runtime?.mode || "systemd";
   const target =
     runtime === "docker" ? config.openclaw.container_name || config.openclaw.service_name : config.openclaw.service_name;
-  els.metaServiceName.textContent = `target: ${target}`;
-  els.metaLogSource.textContent = `log: ${config.log.source} (${runtime})`;
+  if (els.metaServiceName) {
+    els.metaServiceName.textContent = `target: ${target}`;
+  }
+  if (els.metaLogSource) {
+    els.metaLogSource.textContent = `log: ${config.log.source} (${runtime})`;
+  }
   setInput("dashboard_panel_local_url", deployment.panelLocalUrl || "-");
   setInput("dashboard_panel_public_url", deployment.panelPublicUrl || "未配置（请填写公网 IP + 端口）");
   setInput("dashboard_gateway_public_url", deployment.gatewayPublicUrl || "未配置（请填写公网 IP + 端口）");
@@ -475,11 +491,16 @@ function fillPanelMeta(config, deployment = {}) {
         "若为空，请在 <code>data/panel/panel.config.json</code> 的 <code>reverse_proxy</code> 中填写公网 IP 与端口。";
     }
   }
-  els.serviceHint.textContent =
-    runtime === "docker" ? "当前为 Docker 运行时，按钮将控制容器。" : "当前为 systemd 运行时，按钮将控制服务。";
+  if (els.serviceHint) {
+    els.serviceHint.textContent =
+      runtime === "docker" ? "当前为 Docker 运行时，按钮将控制容器。" : "当前为 systemd 运行时，按钮将控制服务。";
+  }
 }
 
 function setUpdateState(text, mode = "info") {
+  if (!els.updateState) {
+    return;
+  }
   els.updateState.textContent = text;
   els.updateState.classList.toggle("success", mode === "success");
   els.updateState.classList.toggle("fail", mode === "fail");
@@ -605,19 +626,6 @@ function fillDefaultModelOptions(selectEl, { includeCustom = false, selectedValu
   }
 
   return String(selectEl.value || "").trim();
-}
-
-function readGeneratorDefaultModelRefs() {
-  const modelSelect = document.querySelector("#cfg_model_id");
-  if (!modelSelect) {
-    return [];
-  }
-
-  return Array.from(modelSelect.options || [])
-    .map((option) => String(option.value || "").trim())
-    .filter((value) => value && value !== "custom")
-    .map((value) => buildDefaultModelEntry(value, value))
-    .filter(Boolean);
 }
 
 function toNonNegativeInt(value) {
@@ -797,12 +805,12 @@ function renderDashboardQuickSwitchHint(modelEntry) {
     setText("dashboard_quick_switch_hint", "请选择目标模型后再切换。");
     return;
   }
-  const contextText = modelEntry.contextWindow ? `${Number(modelEntry.contextWindow).toLocaleString()} tokens` : "-";
+  const parsedRef = parseModelRef(modelEntry.ref);
+  const modelId = String(modelEntry?.modelId || parsedRef.modelId || modelEntry?.modelName || "-").trim() || "-";
+  const providerId = String(modelEntry?.providerId || parsedRef.providerId || "-").trim() || "-";
   setText(
     "dashboard_quick_switch_hint",
-    `目标模型：${modelEntry.modelName || modelEntry.modelId} | 提供商：${modelEntry.providerId || "-"} | 上下文上限：${contextText} | 思考强度：${
-      modelEntry.thinkingStrength || "无"
-    }`
+    `将切换到：${modelId}（${providerId}）`
   );
 }
 
@@ -836,7 +844,10 @@ function fillDashboardQuickSwitch(modelSettings) {
   entries.forEach((entry) => {
     const option = document.createElement("option");
     option.value = entry.ref;
-    option.textContent = entry.modelName || entry.modelId || entry.ref;
+    const parsedRef = parseModelRef(entry.ref);
+    const modelId = String(entry?.modelId || parsedRef.modelId || entry?.modelName || entry.ref || "").trim();
+    const providerId = String(entry?.providerId || parsedRef.providerId || "-").trim() || "-";
+    option.textContent = `${modelId || "-"}（${providerId}）`;
     select.appendChild(option);
   });
 
@@ -1186,11 +1197,24 @@ function updateDashboardSummaryCards({ runtime = {}, model = {}, channels = {}, 
   setText("dashboard_summary_runtime", runtimeState);
   setText("dashboard_summary_runtime_meta", `模式: ${runtimeMode} | ${truncateText(runtime?.message || "-", 56)}`);
 
+  // 顶部大字状态同步
+  const heroEl = document.querySelector("#runtime_state");
+  if (heroEl) {
+    heroEl.textContent = runtime?.active ? "机器人运行中" : runtime?.ok === false ? "状态异常" : "未运行";
+    const dot = heroEl.previousElementSibling;
+    if (dot && dot.classList.contains("dot")) {
+      dot.style.background = runtime?.active ? "var(--success, #22c55e)" : "var(--danger, #ef4444)";
+    }
+  }
+
   const currentModel = model?.current && typeof model.current === "object" ? model.current : {};
   const modelId = String(currentModel?.modelName || currentModel?.modelId || "-");
   const modelProvider = String(currentModel?.providerId || "-");
   setText("dashboard_summary_model", modelId || "-");
   setText("dashboard_summary_model_meta", `提供商: ${modelProvider}`);
+  // 同步 hero 模型名 + 模型切换区显示
+  setText("dashboard_hero_model", modelId !== "-" ? `· ${modelId}` : "");
+  setText("dashboard_model_display", modelId || "-");
 
   const channelRuntime = channels?.runtime && typeof channels.runtime === "object" ? channels.runtime : {};
   const channelRunning = Number(channelRuntime?.running ?? 0);
@@ -1214,7 +1238,7 @@ function updateDashboardSummaryCards({ runtime = {}, model = {}, channels = {}, 
 
   const hint = document.querySelector("#dashboard_summary_hint");
   if (hint) {
-    hint.textContent = refreshedAt ? `最后刷新：${refreshedAt}` : "点击“刷新总览”后显示最新状态。";
+    hint.textContent = refreshedAt ? `最后刷新：${refreshedAt}` : '点击"刷新总览"后显示最新状态。';
   }
 }
 
@@ -1264,7 +1288,7 @@ function renderChannelRuntimeList(containerSelector, items = [], emptyText = "�
     meta.className = "stack-item-meta";
     const errorText = String(item?.lastError || "").trim();
     const probeText = formatLocalTime(item?.lastProbeAt);
-    meta.textContent = errorText ? `最近错误: ${errorText} | 最近探针: ${probeText}` : `最近探针: ${probeText}`;
+    meta.textContent = errorText ? `最近错误: ${errorText}` : `最近检查: ${probeText}`;
     body.appendChild(meta);
     node.appendChild(body);
     container.appendChild(node);
@@ -1281,12 +1305,24 @@ function renderSkillsRuntimeList(containerSelector, items = [], emptyText = "暂
     return;
   }
 
+  const total = items.length;
+  const enabledCount = items.filter((i) => i?.enabled).length;
+
+  // 摘要文字
+  const summaryEl = document.querySelector("#dashboard_skills_summary_text");
+  if (summaryEl) {
+    summaryEl.textContent = `${total} 个技能，${enabledCount} 个已启用`;
+  }
+
+  // 分为有问题 / 正常两组
+  const problemItems = items.filter((i) => !i?.enabled || i?.blocked || !i?.eligible);
+  const normalItems = items.filter((i) => i?.enabled && !i?.blocked && i?.eligible);
+
   container.innerHTML = "";
-  items.forEach((item) => {
-    const node = document.createElement("sl-card");
-    node.className = "dashboard-runtime-item dashboard-runtime-item-skill";
-    const body = document.createElement("div");
-    body.className = "dashboard-runtime-item-body";
+
+  const renderItem = (item) => {
+    const node = document.createElement("div");
+    node.className = "dashboard-runtime-item-flat dashboard-runtime-item-body";
 
     const top = document.createElement("div");
     top.className = "stack-item-row";
@@ -1297,26 +1333,51 @@ function renderSkillsRuntimeList(containerSelector, items = [], emptyText = "暂
 
     const chips = document.createElement("div");
     chips.className = "chip-line";
-
-    const enabledChip = createDashboardStatusTag(item?.enabled ? "已启用" : "已禁用", item?.enabled ? "success" : "neutral");
-    chips.appendChild(enabledChip);
-
-    const eligibleChip = createDashboardStatusTag(item?.eligible ? "可用" : "不可用", item?.eligible ? "primary" : "warning");
-    chips.appendChild(eligibleChip);
-
-    const blockedChip = createDashboardStatusTag(item?.blocked ? "受限" : "正常", item?.blocked ? "danger" : "success");
-    chips.appendChild(blockedChip);
-
+    // 三维状态合并为一个标签
+    let statusText, statusVariant;
+    if (item?.blocked) {
+      statusText = "受限"; statusVariant = "danger";
+    } else if (!item?.enabled) {
+      statusText = "已禁用"; statusVariant = "neutral";
+    } else if (!item?.eligible) {
+      statusText = "未就绪"; statusVariant = "warning";
+    } else {
+      statusText = "正常"; statusVariant = "success";
+    }
+    chips.appendChild(createDashboardStatusTag(statusText, statusVariant));
     top.appendChild(chips);
-    body.appendChild(top);
+    node.appendChild(top);
+    return node;
+  };
 
-    const meta = document.createElement("p");
-    meta.className = "stack-item-meta";
-    meta.textContent = `key: ${item?.key || "-"} | source: ${item?.source || "-"}`;
-    body.appendChild(meta);
-    node.appendChild(body);
-    container.appendChild(node);
+  // 先渲染有问题的
+  problemItems.forEach((item) => container.appendChild(renderItem(item)));
+
+  // 正常技能默认隐藏
+  const normalNodes = normalItems.map((item) => {
+    const n = renderItem(item);
+    n.style.display = "none";
+    n.dataset.skillNormal = "1";
+    container.appendChild(n);
+    return n;
   });
+
+  // 切换按钮
+  const toggleBtn = document.querySelector("#dashboard_skills_toggle_all");
+  if (toggleBtn) {
+    if (normalItems.length === 0) {
+      toggleBtn.style.display = "none";
+    } else {
+      toggleBtn.style.display = "";
+      toggleBtn.textContent = `显示全部 (${total})`;
+      let expanded = false;
+      toggleBtn.onclick = () => {
+        expanded = !expanded;
+        normalNodes.forEach((n) => (n.style.display = expanded ? "" : "none"));
+        toggleBtn.textContent = expanded ? "只看有问题的" : `显示全部 (${total})`;
+      };
+    }
+  }
 }
 
 function renderDashboardChannelRuntime(items = []) {
@@ -2805,30 +2866,20 @@ function fillModelEditor(modelSettings) {
     modelRefs: catalogRefs
   };
 
-  const generatorModelRefs = readGeneratorDefaultModelRefs();
   const selectableModelRefs = [];
   const seenRefs = new Set();
 
-  generatorModelRefs.forEach((baseEntry) => {
-    const matched = catalogRefs.find(
-      (item) => item?.ref === baseEntry.ref || (item?.providerId === baseEntry.providerId && item?.modelId === baseEntry.modelId)
-    );
-    const merged = matched ? { ...baseEntry, ...matched } : baseEntry;
-    const ref = String(merged?.ref || "").trim();
-    if (!ref || seenRefs.has(ref)) {
-      return;
-    }
-    seenRefs.add(ref);
-    selectableModelRefs.push(merged);
-  });
-
+  // 只使用当前配置文件中已经存在的模型，避免把模板默认模型误展示给用户。
   catalogRefs.forEach((entry) => {
     const ref = String(entry?.ref || "").trim();
     if (!ref || seenRefs.has(ref)) {
       return;
     }
     seenRefs.add(ref);
-    selectableModelRefs.push(entry);
+    selectableModelRefs.push({
+      ...entry,
+      ref
+    });
   });
 
   const currentPrimary = String(modelSettings?.primary || "").trim();
@@ -3294,7 +3345,9 @@ async function checkUpdate({ silent = false } = {}) {
 
   if (data.warning) {
     setUpdateState("检查异常", "fail");
-    els.updateHint.textContent = `已读取当前版本，但远程版本检查失败：${data.warning}`;
+    if (els.updateHint) {
+      els.updateHint.textContent = `已读取当前版本，但远程版本检查失败：${data.warning}`;
+    }
     updateDashboardVersionSummary(data);
     if (!silent) {
       setMessage(`更新检查告警：${data.warning}`, "error");
@@ -3304,10 +3357,14 @@ async function checkUpdate({ silent = false } = {}) {
 
   if (data.updateAvailable) {
     setUpdateState("有可用更新", "success");
-    els.updateHint.textContent = `当前 ${data.currentTag || "-"}，最新 ${data.latestTag || "-"}。`;
+    if (els.updateHint) {
+      els.updateHint.textContent = `当前 ${data.currentTag || "-"}，最新 ${data.latestTag || "-"}。`;
+    }
   } else {
     setUpdateState("已是最新", "success");
-    els.updateHint.textContent = `当前 ${data.currentTag || "-"}，无需升级。`;
+    if (els.updateHint) {
+      els.updateHint.textContent = `当前 ${data.currentTag || "-"}，无需升级。`;
+    }
   }
   updateDashboardVersionSummary(data);
   if (!silent) {
@@ -3328,7 +3385,9 @@ async function mutateVersion(action) {
   const payload = result.result || {};
   if (payload.ok) {
     setUpdateState(action === "upgrade" ? "升级成功" : "回滚成功", "success");
-    els.updateHint.textContent = `当前镜像：${payload.targetImage}`;
+    if (els.updateHint) {
+      els.updateHint.textContent = `当前镜像：${payload.targetImage}`;
+    }
     setInput("update_current_tag", payload.targetImage?.split(":").pop() || "");
     setMessage(`${action} 成功：${payload.targetImage}`, "ok");
     await runService("status");
@@ -3339,7 +3398,9 @@ async function mutateVersion(action) {
   setUpdateState(action === "upgrade" ? "升级失败" : "回滚失败", "fail");
   const rollbackNote = payload.rollbackMessage ? `；${payload.rollbackMessage}` : payload.rolledBack ? "；已自动回滚" : "";
   const detail = `${payload.message || "操作失败"}${rollbackNote}`;
-  els.updateHint.textContent = detail;
+  if (els.updateHint) {
+    els.updateHint.textContent = detail;
+  }
   setMessage(`${action} 失败：${detail}`, "error");
 }
 
@@ -3379,10 +3440,12 @@ async function runService(action) {
   });
   const payload = result.result || {};
   const output = payload.output || payload.message || "(empty)";
-  els.serviceOutput.textContent = output;
+  if (els.serviceOutput) {
+    els.serviceOutput.textContent = output;
+  }
 
   if (!result.ok) {
-    if (action === "status") {
+    if (action === "status" && els.serviceState && els.serviceHint) {
       els.serviceState.textContent = "状态异常";
       els.serviceState.classList.toggle("success", false);
       els.serviceState.classList.toggle("fail", true);
@@ -3392,7 +3455,7 @@ async function runService(action) {
     return;
   }
 
-  if (action === "status") {
+  if (action === "status" && els.serviceState && els.serviceHint) {
     const active = Boolean(payload.active);
     els.serviceState.textContent = active ? "运行中" : "未运行";
     els.serviceState.classList.toggle("success", active);
@@ -3405,6 +3468,9 @@ async function runService(action) {
 }
 
 async function loadTail() {
+  if (!els.logOutput) {
+    return;
+  }
   const filter = encodeURIComponent(String(getInputValue("log_filter") || ""));
   const result = await api(`/api/logs/tail?lines=200&filter=${filter}`);
   els.logOutput.textContent = result.lines.join("\n");
@@ -3413,12 +3479,14 @@ async function loadTail() {
 
 async function loadErrorSummary({ silent = false } = {}) {
   const result = await api("/api/logs/errors?count=20");
-  els.errorSummary.innerHTML = "";
-  result.lines.forEach((line) => {
-    const li = document.createElement("li");
-    li.textContent = line;
-    els.errorSummary.appendChild(li);
-  });
+  if (els.errorSummary) {
+    els.errorSummary.innerHTML = "";
+    result.lines.forEach((line) => {
+      const li = document.createElement("li");
+      li.textContent = line;
+      els.errorSummary.appendChild(li);
+    });
+  }
   updateDashboardErrorSummary(result.lines);
   if (!silent) {
     setMessage(`错误摘要加载完成，共 ${result.lines.length} 条`, "ok");
@@ -3435,6 +3503,9 @@ function stopStream() {
 
 function startStream() {
   stopStream();
+  if (!els.logOutput) {
+    throw new Error("当前页面未加载日志面板");
+  }
   const filter = encodeURIComponent(String(getInputValue("log_filter") || ""));
   stream = new EventSource(`/api/logs/stream?filter=${filter}`);
   stream.addEventListener("line", (event) => {
@@ -3562,7 +3633,7 @@ async function testSlack() {
   setMessage(`Slack 测试：${result.message}`, result.ok ? "ok" : "error");
 }
 
-document.querySelector("#save_settings").addEventListener("click", () => {
+document.querySelector("#save_settings")?.addEventListener("click", () => {
   saveSettings().catch((error) => setMessage(error.message, "error"));
 });
 
@@ -3572,71 +3643,97 @@ document.querySelectorAll("[data-action]").forEach((btn) => {
   });
 });
 
-document.querySelector("#load_tail").addEventListener("click", () => {
+document.querySelector("#load_tail")?.addEventListener("click", () => {
   loadTail().catch((error) => setMessage(error.message, "error"));
 });
 
-document.querySelector("#load_errors").addEventListener("click", () => {
+document.querySelector("#load_errors")?.addEventListener("click", () => {
   loadErrorSummary().catch((error) => setMessage(error.message, "error"));
 });
 
-document.querySelector("#start_stream").addEventListener("click", startStream);
-document.querySelector("#stop_stream").addEventListener("click", stopStream);
-document.querySelector("#test_telegram").addEventListener("click", () => {
+document.querySelector("#start_stream")?.addEventListener("click", startStream);
+document.querySelector("#stop_stream")?.addEventListener("click", stopStream);
+document.querySelector("#test_telegram")?.addEventListener("click", () => {
   testTelegram().catch((error) => setMessage(error.message, "error"));
 });
 document.querySelector("#save_and_test_telegram")?.addEventListener("click", () => {
   saveAndTestTelegram().catch((error) => setMessage(error.message, "error"));
 });
-document.querySelector("#test_feishu").addEventListener("click", () => {
+document.querySelector("#test_feishu")?.addEventListener("click", () => {
   testFeishu().catch((error) => setMessage(error.message, "error"));
 });
 document.querySelector("#save_and_test_feishu")?.addEventListener("click", () => {
   saveAndTestFeishu().catch((error) => setMessage(error.message, "error"));
 });
-document.querySelector("#test_discord").addEventListener("click", () => {
+document.querySelector("#test_discord")?.addEventListener("click", () => {
   testDiscord().catch((error) => {
     setChannelTestResult("dc_test_result", `接口不可用或测试失败：${error.message || "未知错误"}`, false);
     setMessage(error.message, "error");
   });
 });
-document.querySelector("#test_slack").addEventListener("click", () => {
+document.querySelector("#test_slack")?.addEventListener("click", () => {
   testSlack().catch((error) => {
     setChannelTestResult("sl_test_result", `接口不可用或测试失败：${error.message || "未知错误"}`, false);
     setMessage(error.message, "error");
   });
 });
-document.querySelector("#check_update").addEventListener("click", () => {
+document.querySelector("#check_update")?.addEventListener("click", () => {
   checkUpdate().catch((error) => setMessage(error.message, "error"));
 });
-document.querySelector("#upgrade_update").addEventListener("click", () => {
+document.querySelector("#upgrade_update")?.addEventListener("click", () => {
   mutateVersion("upgrade").catch((error) => setMessage(error.message, "error"));
 });
-document.querySelector("#rollback_update").addEventListener("click", () => {
+document.querySelector("#rollback_update")?.addEventListener("click", () => {
   mutateVersion("rollback").catch((error) => setMessage(error.message, "error"));
 });
 
+const hasPanel = (panelName) => Boolean(document.querySelector(`.panel[data-panel="${panelName}"]`));
+
 setupTheme();
 setupTabs();
-setupDashboard();
-setupSkillsPage();
-setupChatConsole();
-setupModelEditor();
-setupConfigGenerator();
+if (hasPanel("panel-dashboard")) {
+  setupDashboard();
+}
+if (hasPanel("panel-skills")) {
+  setupSkillsPage();
+}
+if (hasPanel("panel-chat-console")) {
+  setupChatConsole();
+}
+if (hasPanel("panel-model")) {
+  setupModelEditor();
+}
+if (hasPanel("panel-config-generator")) {
+  setupConfigGenerator();
+}
 
 loadInitialData()
   .then(() => {
-    els.runtimeState.textContent = "面板已连接";
+    if (els.runtimeState) {
+      els.runtimeState.textContent = "面板已连接";
+    }
     setMessage("初始化完成", "ok");
-    runService("status").catch(() => {});
-    loadTail().catch(() => {});
-    loadErrorSummary({ silent: true }).catch((error) => setMessage(`错误摘要加载失败：${error.message}`, "error"));
-    checkUpdate({ silent: true }).catch((error) => setMessage(`版本信息加载失败：${error.message}`, "error"));
-    loadStatusOverview({ silent: true }).catch((error) => setMessage(`状态总览加载失败：${error.message}`, "error"));
-    loadSkillsStatus({ silent: true }).catch((error) => setMessage(`Skills 页面加载失败：${error.message}`, "error"));
-    loadChatSessions({ silent: true }).catch((error) => setMessage(`智能对话页加载失败：${error.message}`, "error"));
+    if (els.serviceState) {
+      runService("status").catch(() => {});
+    }
+    if (els.logOutput) {
+      loadTail().catch(() => {});
+    }
+    if (hasPanel("panel-dashboard") || els.errorSummary) {
+      loadErrorSummary({ silent: true }).catch((error) => setMessage(`错误摘要加载失败：${error.message}`, "error"));
+      checkUpdate({ silent: true }).catch((error) => setMessage(`版本信息加载失败：${error.message}`, "error"));
+      loadStatusOverview({ silent: true }).catch((error) => setMessage(`状态总览加载失败：${error.message}`, "error"));
+    }
+    if (hasPanel("panel-skills")) {
+      loadSkillsStatus({ silent: true }).catch((error) => setMessage(`Skills 页面加载失败：${error.message}`, "error"));
+    }
+    if (hasPanel("panel-chat-console")) {
+      loadChatSessions({ silent: true }).catch((error) => setMessage(`智能对话页加载失败：${error.message}`, "error"));
+    }
   })
   .catch((error) => {
-    els.runtimeState.textContent = "面板连接失败";
+    if (els.runtimeState) {
+      els.runtimeState.textContent = "面板连接失败";
+    }
     setMessage(`初始化失败：${error.message}`, "error");
   });

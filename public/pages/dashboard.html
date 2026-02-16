@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OpenClaw 龙虾控制台</title>
+    <link rel="stylesheet" href="/shoelace/themes/light.css" />
+    <link rel="stylesheet" href="/shoelace/themes/dark.css" />
+    <link rel="stylesheet" href="/styles.css" />
+    <script type="module" src="/shoelace/shoelace-autoloader.js"></script>
+  </head>
+  <body data-theme="light">
+    <div class="layout">
+      <aside class="sidebar">
+        <div class="brand">
+          <p class="eyebrow">OpenClaw</p>
+          <h1>龙虾控制台</h1>
+          <p class="sub">管理你的 AI 助手：模型、渠道、技能，一站搞定。</p>
+        </div>
+
+                <nav class="tabs sidebar-tabs">
+          <a class="tab is-active" data-tab-target="panel-dashboard" href="/dashboard">仪表盘</a>
+          <a class="tab" data-tab-target="panel-skills" href="/skills">技能管理</a>
+          <a class="tab" data-tab-target="panel-chat-console" href="/chat-console">智能对话</a>
+          <a class="tab" data-tab-target="panel-model" href="/model">模型配置</a>
+          <a class="tab" data-tab-target="panel-config-generator" href="/config-generator">高级工具</a>
+          <a class="tab" data-tab-target="panel-channel" href="/channels">消息渠道</a>
+          <a class="tab" data-tab-target="panel-update" href="/update">版本更新</a>
+          <a class="tab" data-tab-target="panel-service" href="/service">服务控制</a>
+          <a class="tab" data-tab-target="panel-logs" href="/logs">运行日志</a>
+        </nav>
+      </aside>
+
+      <main class="content">
+        <header class="page-header">
+          <div>
+            <h2 class="page-title">龙虾控制台</h2>
+            <p class="page-subtitle">你的 AI 助手管理中心</p>
+          </div>
+          <button id="theme_toggle" class="btn-soft" type="button">切换到深夜模式</button>
+        </header>
+
+<section class="panel is-visible" data-panel="panel-dashboard">
+          <!-- ① 健康状态栏（原仪表盘总览，扁平化） -->
+          <article class="card dashboard-overview-card">
+            <div class="dashboard-overview-row">
+              <div>
+                <h2 class="dashboard-hero-status">
+                  <span class="dot"></span>
+                  <span id="runtime_state">面板已连接</span>
+                  <span class="dashboard-hero-model" id="dashboard_hero_model"></span>
+                </h2>
+              </div>
+              <div class="actions dashboard-overview-actions">
+                <sl-button id="dashboard_summary_refresh" variant="primary" size="small">刷新总览</sl-button>
+              </div>
+            </div>
+            <!-- 技术元数据：保留 ID，对小白隐藏 -->
+            <div class="sr-only" aria-hidden="true">
+              <span id="meta_service_name">service: -</span>
+              <span id="meta_log_source">log: -</span>
+            </div>
+            <div class="dashboard-stat-row">
+              <div class="dashboard-stat">
+                <span class="dashboard-stat-label">运行状态</span>
+                <span id="dashboard_summary_runtime" class="dashboard-stat-value">-</span>
+                <span id="dashboard_summary_runtime_meta" class="sr-only">等待刷新</span>
+              </div>
+              <div class="dashboard-stat">
+                <span class="dashboard-stat-label">当前模型</span>
+                <span id="dashboard_summary_model" class="dashboard-stat-value">-</span>
+                <span id="dashboard_summary_model_meta" class="sr-only">等待刷新</span>
+              </div>
+              <div class="dashboard-stat">
+                <span class="dashboard-stat-label">渠道</span>
+                <span id="dashboard_summary_channels" class="dashboard-stat-value">-</span>
+                <span id="dashboard_summary_channels_meta" class="sr-only">等待刷新</span>
+              </div>
+              <div class="dashboard-stat">
+                <span class="dashboard-stat-label">技能</span>
+                <span id="dashboard_summary_skills" class="dashboard-stat-value">-</span>
+                <span id="dashboard_summary_skills_meta" class="sr-only">等待刷新</span>
+              </div>
+              <div class="dashboard-stat dashboard-stat-error">
+                <span class="dashboard-stat-label">错误</span>
+                <span id="dashboard_summary_errors" class="dashboard-stat-value">-</span>
+                <span id="dashboard_summary_errors_meta" class="sr-only">等待刷新</span>
+              </div>
+              <div class="dashboard-stat">
+                <span class="dashboard-stat-label">版本</span>
+                <span id="dashboard_summary_version" class="dashboard-stat-value">-</span>
+                <span id="dashboard_summary_version_meta" class="sr-only">等待刷新</span>
+              </div>
+            </div>
+            <p id="dashboard_summary_hint" class="muted-line">点击"刷新总览"后显示最新状态。</p>
+          </article>
+
+          <!-- ② 快捷操作（提升到第 2 位） -->
+          <article class="card dashboard-surface-card">
+            <h2>我想要...</h2>
+            <div class="dashboard-quick-grid">
+              <button class="btn-soft dashboard-quick-btn" data-dashboard-jump="panel-chat-console" type="button">打开智能对话</button>
+              <button class="btn-soft dashboard-quick-btn" data-dashboard-jump="panel-model" type="button">配置模型</button>
+              <button class="btn-soft dashboard-quick-btn" data-dashboard-jump="panel-channel" type="button">配置消息渠道</button>
+              <button class="btn-soft dashboard-quick-btn" data-dashboard-jump="panel-skills" type="button">管理技能</button>
+              <button class="btn-soft dashboard-quick-btn" data-dashboard-jump="panel-update" type="button">检查版本更新</button>
+              <button class="btn-soft dashboard-quick-btn" data-dashboard-jump="panel-service" type="button">服务控制</button>
+            </div>
+          </article>
+
+          <!-- ③ 切换 AI 模型（精简版） -->
+          <article class="card dashboard-surface-card">
+            <h2>切换 AI 模型</h2>
+            <p class="muted-line">当前模型：<strong id="dashboard_model_display">-</strong></p>
+            <!-- 隐藏字段：保留 ID 防 JS 报错 -->
+            <div class="sr-only" aria-hidden="true">
+              <input id="dashboard_current_model" type="text" readonly />
+              <input id="dashboard_current_provider" type="text" readonly />
+              <input id="dashboard_current_context_window" type="text" readonly />
+              <input id="dashboard_current_thinking_strength" type="text" readonly />
+              <input id="dashboard_quick_context_tokens" data-dashboard-context-input="1" type="number" min="0" step="1" />
+            </div>
+            <div class="dashboard-model-switch-row">
+              <label class="dashboard-model-switch-label">
+                切换到
+                <select id="dashboard_quick_model_ref"></select>
+              </label>
+              <button id="dashboard_quick_switch" class="btn-soft" type="button">切换</button>
+            </div>
+            <p class="muted-line">从长上下文模型切到短上下文模型时，请确保当前会话已用上下文不超过目标模型上限，否则会报错。</p>
+            <p id="dashboard_quick_switch_hint" class="muted-line">选择目标模型后点击切换。</p>
+          </article>
+
+          <!-- ④ 地址与接入配置（折叠，默认收起） -->
+          <article class="card dashboard-surface-card">
+            <sl-details summary="地址与接入配置（初次部署时需要）">
+              <div class="grid">
+                <label>
+                  本地地址
+                  <input id="dashboard_panel_local_url" type="text" readonly />
+                </label>
+                <label>
+                  公网地址
+                  <input id="dashboard_panel_public_url" type="text" readonly />
+                </label>
+                <label>
+                  网关地址
+                  <input id="dashboard_gateway_public_url" type="text" readonly />
+                </label>
+                <label>
+                  Webhook 地址
+                  <input id="dashboard_webhook_base_url" type="text" readonly />
+                </label>
+              </div>
+              <p id="dashboard_public_hint" class="muted-line">
+                若为空，请在 <code>data/panel/panel.config.json</code> 的 <code>reverse_proxy</code> 中填写公网 IP 与端口。
+              </p>
+            </sl-details>
+          </article>
+
+          <!-- ⑤ 运行态明细（技能列表折叠/过滤） -->
+          <article class="card dashboard-surface-card">
+            <h2>运行态明细</h2>
+            <p class="muted-line">当前在跑什么一目了然。</p>
+            <div class="dashboard-runtime-grid">
+              <article class="dashboard-runtime-card">
+                <div class="dashboard-runtime-head">
+                  <h3>渠道运行态</h3>
+                  <span class="muted-line">最近检查与错误</span>
+                </div>
+                <div id="dashboard_channel_runtime_list" class="stack-list dashboard-channel-runtime-list"></div>
+              </article>
+              <article class="dashboard-runtime-card">
+                <div class="dashboard-runtime-head">
+                  <h3>技能运行态</h3>
+                  <span id="dashboard_skills_summary_text" class="muted-line">按技能展示状态</span>
+                </div>
+                <div id="dashboard_skills_runtime_list" class="stack-list dashboard-skills-runtime-list"></div>
+                <button id="dashboard_skills_toggle_all" class="btn-soft dashboard-skills-toggle-btn" type="button" style="display:none;">显示全部</button>
+              </article>
+            </div>
+          </article>
+        </section>
+
+        <section class="card">
+          <h2>操作时间线</h2>
+          <p class="muted-line">每次点击后的结果都会记录在这里，方便你定位问题。</p>
+          <pre id="messages" class="output"></pre>
+        </section>
+      </main>
+    </div>
+
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>
+
