@@ -325,21 +325,10 @@ function setupConfigGenerator() {
   }
 
   const fillGeneratorModelOptions = () => {
-    const currentValue = String(modelIdEl.value || "").trim();
-    modelIdEl.innerHTML = "";
-    DEFAULT_MODEL_OPTIONS.forEach((item) => {
-      const option = document.createElement("option");
-      option.value = item.id;
-      option.textContent = item.id;
-      modelIdEl.appendChild(option);
+    fillDefaultModelOptions(modelIdEl, {
+      includeCustom: true,
+      selectedValue: String(modelIdEl.value || "").trim()
     });
-    const customOption = document.createElement("option");
-    customOption.value = "custom";
-    customOption.textContent = "自定义";
-    modelIdEl.appendChild(customOption);
-
-    const hasCurrent = DEFAULT_MODEL_OPTIONS.some((item) => item.id === currentValue);
-    modelIdEl.value = hasCurrent ? currentValue : DEFAULT_MODEL_OPTIONS[0]?.id || "custom";
   };
 
   fillGeneratorModelOptions();
@@ -581,6 +570,38 @@ function buildDefaultModelEntry(modelId, modelName = "") {
     contextWindow: profile.contextWindow,
     maxTokens: profile.maxTokens
   };
+}
+
+function fillDefaultModelOptions(selectEl, { includeCustom = false, selectedValue = "" } = {}) {
+  if (!(selectEl instanceof HTMLSelectElement)) {
+    return "";
+  }
+
+  const currentValue = String(selectedValue || selectEl.value || "").trim();
+  selectEl.innerHTML = "";
+  DEFAULT_MODEL_OPTIONS.forEach((item) => {
+    const option = document.createElement("option");
+    option.value = item.id;
+    option.textContent = item.id;
+    selectEl.appendChild(option);
+  });
+
+  if (includeCustom) {
+    const customOption = document.createElement("option");
+    customOption.value = "custom";
+    customOption.textContent = "自定义";
+    selectEl.appendChild(customOption);
+  }
+
+  if (DEFAULT_MODEL_OPTIONS.some((item) => item.id === currentValue)) {
+    selectEl.value = currentValue;
+  } else if (includeCustom && currentValue === "custom") {
+    selectEl.value = "custom";
+  } else {
+    selectEl.value = DEFAULT_MODEL_OPTIONS[0]?.id || (includeCustom ? "custom" : "");
+  }
+
+  return String(selectEl.value || "").trim();
 }
 
 function readGeneratorDefaultModelRefs() {
@@ -2573,17 +2594,11 @@ function renderTemplatePreset(templateKey, options = {}) {
 
   const defaultModelSelect = document.querySelector("#template_default_model_id");
   if (defaultModelSelect) {
-    defaultModelSelect.innerHTML = "";
-    DEFAULT_MODEL_OPTIONS.forEach((item) => {
-      const option = document.createElement("option");
-      option.value = item.id;
-      option.textContent = item.id;
-      defaultModelSelect.appendChild(option);
+    fillDefaultModelOptions(defaultModelSelect, {
+      selectedValue: preferredModelId
     });
     const fallbackModelId = template.models[0]?.id || DEFAULT_MODEL_OPTIONS[0]?.id || "";
-    const targetModelId = preferredModelId && DEFAULT_MODEL_OPTIONS.some((item) => item.id === preferredModelId)
-      ? preferredModelId
-      : fallbackModelId;
+    const targetModelId = String(defaultModelSelect.value || "").trim() || fallbackModelId;
     defaultModelSelect.value = targetModelId;
   }
 
