@@ -1,4 +1,5 @@
 import path from "node:path";
+import fs from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import Fastify from "fastify";
 import fastifyStatic from "@fastify/static";
@@ -17,7 +18,7 @@ import { testDiscordBot, testFeishuBot, testSlackBot, testTelegramBot } from "./
 import { toPositiveInt } from "./utils.js";
 import { checkForUpdates, rollbackToTag, upgradeToTag } from "./docker-update.js";
 import { buildDashboardSummary } from "./dashboard-service.js";
-import { getSkillConfig, listSkillsStatus, setSkillEnabled } from "./skills-service.js";
+import { getSkillConfig, listSkillsStatus, prepareSkillConfigUpdate, setSkillEnabled } from "./skills-service.js";
 import {
   abortChatRun,
   createChatSession,
@@ -48,6 +49,32 @@ const tagPayloadSchema = z.object({
 const skillEnabledPayloadSchema = z.object({
   enabled: z.boolean()
 });
+const skillConfigPatchPayloadSchema = z
+  .object({
+    enabled: z.boolean().optional(),
+    apiKey: z.string().optional(),
+    clearApiKey: z.boolean().optional().default(false),
+    env: z.record(z.string()).optional()
+  })
+  .superRefine((payload, ctx) => {
+    const hasEnabled = typeof payload.enabled === "boolean";
+    const apiKey = String(payload.apiKey || "").trim();
+    const clearApiKey = payload.clearApiKey === true;
+    const envPatch = payload.env && typeof payload.env === "object" ? payload.env : {};
+    const hasEnv = Object.keys(envPatch).some((key) => String(key || "").trim());
+    if (!hasEnabled && !apiKey && !clearApiKey && !hasEnv) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "至少提供一个可写入字段（enabled/apiKey/clearApiKey/env）"
+      });
+    }
+    if (clearApiKey && apiKey) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "clearApiKey=true 时不能同时提供 apiKey"
+      });
+    }
+  });
 const chatHistoryQuerySchema = z.object({
   sessionKey: z.string().min(1, "sessionKey 不能为空"),
   limit: z.coerce.number().int().positive().max(1000).optional()
@@ -134,6 +161,88 @@ function buildDeploymentMeta(panelConfig) {
     hasPublicEndpoint: Boolean(panelPublicUrl),
     hasWebhookEndpoint: Boolean(webhookBaseUrl)
   };
+}
+
+function trimText(value) {
+  return String(value || "").trim();
+}
+
+function normalizeSkillConfigPatch(payload = {}) {
+  const patch = {};
+  if (typeof payload.enabled === "boolean") {
+    patch.enabled = payload.enabled;
+  }
+
+  const apiKey = trimText(payload.apiKey);
+  if (apiKey) {
+    patch.apiKey = apiKey;
+  }
+  if (payload.clearApiKey === true) {
+    patch.clearApiKey = true;
+  }
+
+  if (payload.env && typeof payload.env === "object" && !Array.isArray(payload.env)) {
+    const envPatch = {};
+    for (const [key, value] of Object.entries(payload.env)) {
+      const envKey = trimText(key);
+      if (!envKey) {
+        continue;
+      }
+      envPatch[envKey] = trimText(value);
+    }
+    if (Object.keys(envPatch).length > 0) {
+      patch.env = envPatch;
+    }
+  }
+
+  return patch;
+}
+
+function validateSkillConfigWriteback({ patch = {}, config = {} }) {
+  if (typeof patch.enabled === "boolean" && config.enabled !== patch.enabled) {
+    throw new Error("enabled 写回校验失败");
+  }
+  if (patch.clearApiKey === true && config.hasApiKey) {
+    throw new Error("apiKey 清除校验失败");
+  }
+  if (patch.apiKey && !config.hasApiKey) {
+    throw new Error("apiKey 写回校验失败");
+  }
+
+  if (patch.env && typeof patch.env === "object") {
+    const currentEnv = config.env && typeof config.env === "object" ? config.env : {};
+    for (const [key, value] of Object.entries(patch.env)) {
+      const expectedExists = Boolean(trimText(value));
+      const actualExists = Object.prototype.hasOwnProperty.call(currentEnv, key);
+      if (expectedExists && !actualExists) {
+        throw new Error(`环境变量写回校验失败：${key}`);
+      }
+      if (!expectedExists && actualExists) {
+        throw new Error(`环境变量删除校验失败：${key}`);
+      }
+    }
+  }
+}
+
+async function rollbackOpenClawConfig(pathname, backupPath) {
+  if (!pathname || !backupPath) {
+    return {
+      ok: false,
+      message: "缺少回滚路径"
+    };
+  }
+  try {
+    await fs.copyFile(backupPath, pathname);
+    return {
+      ok: true,
+      message: "已自动回滚到备份配置"
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      message: error.message || String(error)
+    };
+  }
 }
 
 app.get("/api/health", async () => {
@@ -261,6 +370,50 @@ app.get("/api/skills/:skillKey/config", async (request, reply) => {
       ok: true,
       result
     };
+  } catch (error) {
+    reply.code(400);
+    return {
+      ok: false,
+      message: error.message
+    };
+  }
+});
+
+app.put("/api/skills/:skillKey/config", async (request, reply) => {
+  try {
+    const skillKey = String(request.params?.skillKey || "").trim();
+    const rawPatch = skillConfigPatchPayloadSchema.parse(request.body || {});
+    const patch = normalizeSkillConfigPatch(rawPatch);
+    const { config: panelConfig } = await loadPanelConfig();
+    const prepared = await prepareSkillConfigUpdate({
+      panelConfig,
+      skillKey,
+      patch
+    });
+    const saved = await saveOpenClawConfig(panelConfig.openclaw.config_path, prepared.nextConfig);
+    try {
+      const config = await getSkillConfig({
+        panelConfig,
+        skillKey: prepared.skillKey
+      });
+      validateSkillConfigWriteback({
+        patch,
+        config
+      });
+      return {
+        ok: true,
+        result: {
+          skillKey: prepared.skillKey,
+          config,
+          path: saved.path,
+          backupPath: saved.backupPath
+        }
+      };
+    } catch (error) {
+      const rollback = await rollbackOpenClawConfig(saved.path, saved.backupPath);
+      const rollbackMessage = rollback.ok ? "已自动回滚到写入前版本。" : `自动回滚失败：${rollback.message}`;
+      throw new Error(`Skill 配置写入后校验失败：${error.message}。${rollbackMessage}`);
+    }
   } catch (error) {
     reply.code(400);
     return {

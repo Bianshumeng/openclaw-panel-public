@@ -96,6 +96,14 @@
 - 当 用户在二次确认弹窗中取消
 - 那么 系统不得发送 Skills 启停写入请求，并需给出“已取消操作”的可见反馈
 
+#### 场景：Skill 配置可视化写回
+- 当 用户在 Skills 页面提交 `enabled/apiKey/env` 的字段补丁
+- 那么 系统必须只写入用户填写字段，未填写字段保持不变，并在页面内显示结果
+
+#### 场景：写后校验与失败回滚
+- 当 Skill 配置写盘后回读校验失败
+- 那么 系统必须自动回滚到写入前备份，并返回明确根因
+
 ---
 
 ### 需求：渠道管理归属清晰
@@ -169,8 +177,10 @@
 | `POST /api/chat/abort` | HTTP | 是 | 需提供会话标识 | 新增接口 | 中止当前运行 |
 | `GET /api/chat/stream` | SSE/WS | 是 | 支持断线重连 | 新增接口 | 流式消息 |
 | `POST /api/chat/session/new` | HTTP | 是 | 自动生成新会话 key | 新增接口 | 智能对话页 |
-| `GET /api/skills` | HTTP | 是 | 返回技能状态列表 | 新增接口 | Skills 管理 |
-| `POST /api/skills/:id/toggle` | HTTP | 是 | 高风险动作需确认 | 新增接口 | Skills 启停 |
+| `GET /api/skills/status` | HTTP | 是 | 返回技能状态列表 | 新增接口 | Skills 列表 |
+| `GET /api/skills/:skillKey/config` | HTTP | 是 | 返回指定 Skill 的脱敏配置 | 新增接口 | Skills 配置查看 |
+| `PUT /api/skills/:skillKey/config` | HTTP | 是 | 仅允许 patch 写入，写后校验失败需回滚 | 新增接口 | Skills 配置写回 |
+| `POST /api/skills/:skillKey/enabled` | HTTP | 是 | 高风险动作需确认 | 新增接口 | Skills 启停 |
 
 ### 示例：发送消息请求（草案）
 ```json

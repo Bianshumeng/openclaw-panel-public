@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { getSkillConfig, listSkillsStatus, setSkillEnabled } from "../../src/skills-service.js";
+import { getSkillConfig, listSkillsStatus, prepareSkillConfigUpdate, setSkillEnabled } from "../../src/skills-service.js";
 
 test("listSkillsStatus normalizes skills payload", async () => {
   const result = await listSkillsStatus({
@@ -122,4 +122,119 @@ test("getSkillConfig returns empty defaults for missing skill entry", async () =
   assert.equal(result.enabled, null);
   assert.equal(result.hasApiKey, false);
   assert.equal(result.apiKeyMasked, "");
+});
+
+test("prepareSkillConfigUpdate updates enabled/apiKey/env and keeps original config immutable", async () => {
+  const currentConfig = {
+    skills: {
+      entries: {
+        "skill-a": {
+          enabled: false,
+          apiKey: "old-key",
+          env: {
+            KEEP: "yes",
+            REMOVE_ME: "1"
+          }
+        }
+      }
+    }
+  };
+
+  const result = await prepareSkillConfigUpdate({
+    panelConfig: { openclaw: { config_path: "/tmp/openclaw.json" } },
+    skillKey: "skill-a",
+    patch: {
+      enabled: true,
+      apiKey: "new-key",
+      env: {
+        REMOVE_ME: "",
+        ADD_ME: "ok"
+      }
+    },
+    deps: {
+      callGatewayRpc: async ({ method }) => {
+        if (method === "skills.status") {
+          return {
+            skills: [{ skillKey: "skill-a", name: "Skill A", disabled: false }]
+          };
+        }
+        throw new Error(`unexpected method: ${method}`);
+      },
+      loadOpenClawConfig: async () => currentConfig
+    }
+  });
+
+  assert.equal(result.skillKey, "skill-a");
+  assert.equal(result.previousEntry.enabled, false);
+  assert.equal(result.nextEntry.enabled, true);
+  assert.equal(result.nextEntry.apiKey, "new-key");
+  assert.deepEqual(result.nextEntry.env, {
+    KEEP: "yes",
+    ADD_ME: "ok"
+  });
+  assert.equal(currentConfig.skills.entries["skill-a"].enabled, false);
+  assert.equal(currentConfig.skills.entries["skill-a"].apiKey, "old-key");
+  assert.equal(currentConfig.skills.entries["skill-a"].env.REMOVE_ME, "1");
+});
+
+test("prepareSkillConfigUpdate supports clearApiKey and removing empty env map", async () => {
+  const result = await prepareSkillConfigUpdate({
+    panelConfig: { openclaw: { config_path: "/tmp/openclaw.json" } },
+    skillKey: "skill-a",
+    patch: {
+      clearApiKey: true,
+      env: {
+        ONLY: ""
+      }
+    },
+    deps: {
+      callGatewayRpc: async ({ method }) => {
+        if (method === "skills.status") {
+          return {
+            skills: [{ skillKey: "skill-a", name: "Skill A", disabled: false }]
+          };
+        }
+        throw new Error(`unexpected method: ${method}`);
+      },
+      loadOpenClawConfig: async () => ({
+        skills: {
+          entries: {
+            "skill-a": {
+              apiKey: "to-clear",
+              env: {
+                ONLY: "x"
+              }
+            }
+          }
+        }
+      })
+    }
+  });
+
+  assert.equal(Object.prototype.hasOwnProperty.call(result.nextEntry, "apiKey"), false);
+  assert.equal(Object.prototype.hasOwnProperty.call(result.nextEntry, "env"), false);
+});
+
+test("prepareSkillConfigUpdate rejects unknown skill key", async () => {
+  await assert.rejects(
+    prepareSkillConfigUpdate({
+      panelConfig: { openclaw: { config_path: "/tmp/openclaw.json" } },
+      skillKey: "missing-skill",
+      patch: {
+        enabled: true
+      },
+      deps: {
+        callGatewayRpc: async ({ method }) => {
+          if (method === "skills.status") {
+            return {
+              skills: [{ skillKey: "skill-a", name: "Skill A", disabled: false }]
+            };
+          }
+          throw new Error(`unexpected method: ${method}`);
+        },
+        loadOpenClawConfig: async () => ({})
+      }
+    }),
+    /未知技能/
+  );
 });

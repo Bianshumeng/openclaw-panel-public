@@ -160,6 +160,7 @@ const dashboardSummaryState = {
 const skillsPageState = {
   bound: false,
   selectedSkillKey: "",
+  selectedSkillConfig: null,
   skills: []
 };
 
@@ -1337,6 +1338,104 @@ async function loadStatusOverview({ silent = false } = {}) {
   }
 }
 
+function setSkillsSaveResult(text, mode = "") {
+  const node = document.querySelector("#skills_save_result");
+  if (!node) {
+    return;
+  }
+  node.textContent = String(text || "").trim() || "请选择 Skill 后再进行写回。";
+  node.classList.remove("success", "fail");
+  if (mode === "success") {
+    node.classList.add("success");
+  } else if (mode === "fail") {
+    node.classList.add("fail");
+  }
+}
+
+function resetSkillEditForm() {
+  setInput("skills_edit_enabled", "");
+  setInput("skills_edit_api_key", "");
+  setInput("skills_edit_clear_api_key", false);
+  setInput("skills_edit_env_patch", "");
+  const apiKeyInput = document.querySelector("#skills_edit_api_key");
+  if (apiKeyInput) {
+    apiKeyInput.disabled = false;
+  }
+}
+
+function parseSkillEnvPatch(rawText) {
+  const envPatch = {};
+  const lines = String(rawText || "").split(/\r?\n/);
+  lines.forEach((rawLine, index) => {
+    const line = String(rawLine || "").trim();
+    if (!line || line.startsWith("#")) {
+      return;
+    }
+    const splitAt = line.indexOf("=");
+    if (splitAt <= 0) {
+      throw new Error(`环境变量补丁格式错误（第 ${index + 1} 行），请使用 KEY=VALUE`);
+    }
+    const key = line.slice(0, splitAt).trim();
+    if (!key) {
+      throw new Error(`环境变量补丁格式错误（第 ${index + 1} 行），KEY 不能为空`);
+    }
+    const value = line.slice(splitAt + 1).trim();
+    envPatch[key] = value;
+  });
+  return envPatch;
+}
+
+function collectSkillConfigPatch() {
+  const patch = {};
+  const enabledValue = String(getInputValue("skills_edit_enabled") || "").trim();
+  if (enabledValue === "true") {
+    patch.enabled = true;
+  } else if (enabledValue === "false") {
+    patch.enabled = false;
+  }
+
+  const apiKey = String(getInputValue("skills_edit_api_key") || "").trim();
+  const clearApiKey = Boolean(getInputValue("skills_edit_clear_api_key"));
+  if (clearApiKey && apiKey) {
+    throw new Error("已勾选“清除当前 API Key”，请不要同时填写新的 API Key");
+  }
+  if (apiKey) {
+    patch.apiKey = apiKey;
+  }
+  if (clearApiKey) {
+    patch.clearApiKey = true;
+  }
+
+  const envPatch = parseSkillEnvPatch(getInputValue("skills_edit_env_patch"));
+  if (Object.keys(envPatch).length > 0) {
+    patch.env = envPatch;
+  }
+
+  if (Object.keys(patch).length === 0) {
+    throw new Error("没有可写入字段：请至少填写一项（启用状态/API Key/环境变量）");
+  }
+  return patch;
+}
+
+async function saveSkillConfigPatch() {
+  const skillKey = String(skillsPageState.selectedSkillKey || "").trim();
+  if (!skillKey) {
+    throw new Error("请先在上方列表选择一个 Skill");
+  }
+  const patch = collectSkillConfigPatch();
+  setSkillsSaveResult("正在写入 Skill 配置...", "");
+  const response = await api(`/api/skills/${encodeURIComponent(skillKey)}/config`, {
+    method: "PUT",
+    body: JSON.stringify(patch)
+  });
+  const result = response?.result && typeof response.result === "object" ? response.result : {};
+  setSkillsSaveResult(`写入成功：${skillKey}（备份：${result.backupPath || "无"}）`, "success");
+  setMessage(`Skill 配置写入成功：${skillKey}`, "ok");
+  resetSkillEditForm();
+  await loadSkillsStatus({ silent: true, preserveSelection: false, selectedSkillKey: skillKey });
+  await loadSkillConfig(skillKey, { silent: true });
+}
+
 function renderSkillsList(skills = []) {
   const container = document.querySelector("#skills_list");
   if (!container) {
@@ -1438,11 +1537,14 @@ async function loadSkillConfig(skillKey, { silent = false } = {}) {
     throw new Error("skillKey 不能为空");
   }
   const response = await api(`/api/skills/${encodeURIComponent(normalizedSkillKey)}/config`);
+  skillsPageState.selectedSkillConfig = response?.result || null;
   const preview = document.querySelector("#skills_config_preview");
   if (preview) {
     preview.textContent = JSON.stringify(response?.result || {}, null, 2);
   }
   skillsPageState.selectedSkillKey = normalizedSkillKey;
+  resetSkillEditForm();
+  setSkillsSaveResult(`已选择 Skill：${normalizedSkillKey}。按需填写补丁后再保存。`, "");
   renderSkillsList(skillsPageState.skills);
   if (!silent) {
     setMessage(`已加载 Skill 配置：${normalizedSkillKey}`, "ok");
@@ -1491,10 +1593,13 @@ async function loadSkillsStatus({ silent = false, preserveSelection = true, sele
   if (nextSelected) {
     await loadSkillConfig(nextSelected, { silent: true });
   } else {
+    skillsPageState.selectedSkillConfig = null;
     const preview = document.querySelector("#skills_config_preview");
     if (preview) {
       preview.textContent = "当前没有可查看的 Skill 配置";
     }
+    setSkillsSaveResult("当前没有可管理的 Skill，无法写回配置。", "fail");
+    resetSkillEditForm();
   }
   if (!silent) {
     setMessage(`Skills 列表刷新完成，共 ${skills.length} 项`, "ok");
@@ -1507,9 +1612,33 @@ function setupSkillsPage() {
   }
   skillsPageState.bound = true;
   const refreshBtn = document.querySelector("#skills_refresh");
+  const saveBtn = document.querySelector("#skills_save_config");
+  const clearApiKeyInput = document.querySelector("#skills_edit_clear_api_key");
+  const apiKeyInput = document.querySelector("#skills_edit_api_key");
+
+  clearApiKeyInput?.addEventListener("change", () => {
+    const shouldClear = Boolean(clearApiKeyInput.checked);
+    if (shouldClear && apiKeyInput) {
+      apiKeyInput.value = "";
+    }
+    if (apiKeyInput) {
+      apiKeyInput.disabled = shouldClear;
+    }
+  });
+
   refreshBtn?.addEventListener("click", () => {
     loadSkillsStatus().catch((error) => setMessage(error.message || String(error), "error"));
   });
+
+  saveBtn?.addEventListener("click", () => {
+    saveSkillConfigPatch().catch((error) => {
+      const message = error?.message || String(error);
+      setSkillsSaveResult(`写入失败：${message}`, "fail");
+      setMessage(message, "error");
+    });
+  });
+
+  setSkillsSaveResult("请选择 Skill 后再进行写回。", "");
 }
 
 function setChatStreamStatus(text) {

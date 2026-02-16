@@ -218,6 +218,41 @@
             <p class="muted-line">用于查看当前选中 Skill 在配置文件中的有效配置（敏感字段会脱敏）。</p>
             <pre id="skills_config_preview" class="output">请选择一个 Skill 查看配置</pre>
           </article>
+
+          <article class="card">
+            <h2>Skill 配置写回</h2>
+            <p class="muted-line">只会写你填写的字段。留空代表不改；环境变量写成 <code>KEY=</code> 代表删除该键。</p>
+            <div class="grid">
+              <label>
+                启用状态
+                <select id="skills_edit_enabled">
+                  <option value="" selected>保持不变</option>
+                  <option value="true">启用</option>
+                  <option value="false">禁用</option>
+                </select>
+              </label>
+              <label>
+                API Key（留空不改）
+                <input id="skills_edit_api_key" type="password" autocomplete="off" placeholder="输入新 API Key（可选）" />
+              </label>
+              <label class="inline-check">
+                清除当前 API Key
+                <input id="skills_edit_clear_api_key" type="checkbox" />
+              </label>
+            </div>
+            <label>
+              环境变量补丁（每行一个 KEY=VALUE）
+              <textarea
+                id="skills_edit_env_patch"
+                rows="6"
+                placeholder="例如：&#10;HTTP_PROXY=http://127.0.0.1:7890&#10;OPENAI_BASE_URL=&#10;# 上面第二行表示删除 OPENAI_BASE_URL"
+              ></textarea>
+            </label>
+            <div class="actions">
+              <button id="skills_save_config" type="button">保存 Skill 配置</button>
+            </div>
+            <p id="skills_save_result" class="muted-line">请选择 Skill 后再进行写回。</p>
+          </article>
         </section>
 
         <section class="panel" data-panel="panel-chat-console">

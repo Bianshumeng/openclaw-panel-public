@@ -110,6 +110,79 @@ export async function getSkillConfig({ panelConfig, skillKey, deps = {} }) {
   return normalizeSkillConfigEntry(normalizedSkillKey, rawEntry);
 }
 
+function normalizeEnvPatch(rawEnvPatch) {
+  if (!rawEnvPatch || typeof rawEnvPatch !== "object" || Array.isArray(rawEnvPatch)) {
+    return {};
+  }
+  return Object.fromEntries(
+    Object.entries(rawEnvPatch)
+      .map(([key, value]) => [trimString(key), trimString(value)])
+      .filter(([key]) => Boolean(key))
+  );
+}
+
+export async function prepareSkillConfigUpdate({ panelConfig, skillKey, patch = {}, deps = {} }) {
+  const normalizedSkillKey = trimString(skillKey);
+  if (!normalizedSkillKey) {
+    throw new Error("skillKey 不能为空");
+  }
+
+  const status = await listSkillsStatus({ panelConfig, deps });
+  const skillsMap = buildSkillMap(status.skills);
+  ensureKnownSkill(skillsMap, normalizedSkillKey);
+
+  const loadConfig = deps.loadOpenClawConfig || loadOpenClawConfig;
+  const currentConfig = await loadConfig(panelConfig?.openclaw?.config_path);
+  const nextConfig = structuredClone(currentConfig || {});
+  if (!nextConfig.skills || typeof nextConfig.skills !== "object") {
+    nextConfig.skills = {};
+  }
+  if (!nextConfig.skills.entries || typeof nextConfig.skills.entries !== "object") {
+    nextConfig.skills.entries = {};
+  }
+
+  const currentEntryRaw = nextConfig.skills.entries[normalizedSkillKey];
+  const previousEntry = currentEntryRaw && typeof currentEntryRaw === "object" ? structuredClone(currentEntryRaw) : {};
+  const nextEntry = previousEntry && typeof previousEntry === "object" ? { ...previousEntry } : {};
+
+  if (typeof patch.enabled === "boolean") {
+    nextEntry.enabled = patch.enabled;
+  }
+
+  const clearApiKey = patch.clearApiKey === true;
+  const apiKey = trimString(patch.apiKey);
+  if (clearApiKey) {
+    delete nextEntry.apiKey;
+  } else if (apiKey) {
+    nextEntry.apiKey = apiKey;
+  }
+
+  const envPatch = normalizeEnvPatch(patch.env);
+  if (Object.keys(envPatch).length > 0) {
+    const nextEnv = nextEntry.env && typeof nextEntry.env === "object" && !Array.isArray(nextEntry.env) ? { ...nextEntry.env } : {};
+    for (const [key, value] of Object.entries(envPatch)) {
+      if (!value) {
+        delete nextEnv[key];
+      } else {
+        nextEnv[key] = value;
+      }
+    }
+    if (Object.keys(nextEnv).length > 0) {
+      nextEntry.env = nextEnv;
+    } else {
+      delete nextEntry.env;
+    }
+  }
+
+  nextConfig.skills.entries[normalizedSkillKey] = nextEntry;
+  return {
+    skillKey: normalizedSkillKey,
+    nextConfig,
+    previousEntry,
+    nextEntry
+  };
+}
+
 export async function setSkillEnabled({ panelConfig, skillKey, enabled, deps = {} }) {
   const normalizedSkillKey = trimString(skillKey);
   if (!normalizedSkillKey) {
