@@ -48,7 +48,14 @@ test("upgradeToTag succeeds when new container starts", async () => {
     { match: /^docker pull ghcr\.io\/openclaw\/openclaw:2026\.2\.15$/, result: { ok: true, stdout: "pulled", stderr: "", message: "" } },
     { match: /^docker rm -f openclaw-gateway$/, result: { ok: true, stdout: "", stderr: "", message: "" } },
     { match: /^docker run -d --name openclaw-gateway .*ghcr\.io\/openclaw\/openclaw:2026\.2\.15/, result: { ok: true, stdout: "new-id", stderr: "", message: "" } },
-    { match: /^docker inspect --format \{\{\.State\.Running\}\} openclaw-gateway$/, result: { ok: true, stdout: "true", stderr: "", message: "" } }
+    {
+      match: /^docker inspect --format \{\{\.State\.Status\}\}\|\{\{\.RestartCount\}\} openclaw-gateway$/,
+      result: { ok: true, stdout: "running|0", stderr: "", message: "" }
+    },
+    {
+      match: /^docker inspect --format \{\{\.State\.Status\}\}\|\{\{\.RestartCount\}\} openclaw-gateway$/,
+      result: { ok: true, stdout: "running|0", stderr: "", message: "" }
+    }
   ]);
 
   const result = await upgradeToTag({
@@ -71,7 +78,14 @@ test("upgradeToTag auto rollbacks when start fails", async () => {
     { match: /^docker pull ghcr\.io\/openclaw\/openclaw:2026\.2\.14$/, result: { ok: true, stdout: "pulled", stderr: "", message: "" } },
     { match: /^docker rm -f openclaw-gateway$/, result: { ok: true, stdout: "", stderr: "", message: "" } },
     { match: /^docker run -d --name openclaw-gateway .*ghcr\.io\/openclaw\/openclaw:2026\.2\.14/, result: { ok: true, stdout: "old-id", stderr: "", message: "" } },
-    { match: /^docker inspect --format \{\{\.State\.Running\}\} openclaw-gateway$/, result: { ok: true, stdout: "true", stderr: "", message: "" } }
+    {
+      match: /^docker inspect --format \{\{\.State\.Status\}\}\|\{\{\.RestartCount\}\} openclaw-gateway$/,
+      result: { ok: true, stdout: "running|0", stderr: "", message: "" }
+    },
+    {
+      match: /^docker inspect --format \{\{\.State\.Status\}\}\|\{\{\.RestartCount\}\} openclaw-gateway$/,
+      result: { ok: true, stdout: "running|0", stderr: "", message: "" }
+    }
   ]);
 
   const result = await upgradeToTag({

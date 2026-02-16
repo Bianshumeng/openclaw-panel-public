@@ -230,11 +230,47 @@ export function buildDockerRunArgs(inspect, image) {
   };
 }
 
+function parseStateStatusLine(value) {
+  const text = ensureString(value).trim();
+  if (!text) {
+    return {
+      status: "",
+      restartCount: null
+    };
+  }
+  const [statusRaw, restartCountRaw] = text.split("|", 2);
+  const status = ensureString(statusRaw).trim().toLowerCase();
+  const parsedRestart = Number.parseInt(ensureString(restartCountRaw).trim(), 10);
+  return {
+    status,
+    restartCount: Number.isNaN(parsedRestart) ? null : parsedRestart
+  };
+}
+
 async function waitContainerRunning(containerName, runCmd = runCommand) {
-  for (let i = 0; i < 8; i += 1) {
-    const result = await runCmd("docker", ["inspect", "--format", "{{.State.Running}}", containerName]);
-    if (result.ok && result.stdout.trim() === "true") {
-      return true;
+  let stableRunningCount = 0;
+  let lastRestartCount = null;
+  for (let i = 0; i < 10; i += 1) {
+    const result = await runCmd("docker", ["inspect", "--format", "{{.State.Status}}|{{.RestartCount}}", containerName]);
+    if (result.ok) {
+      const snapshot = parseStateStatusLine(result.stdout);
+      if (snapshot.status === "running") {
+        if (lastRestartCount !== null && snapshot.restartCount === lastRestartCount) {
+          stableRunningCount += 1;
+        } else {
+          stableRunningCount = 1;
+        }
+        lastRestartCount = snapshot.restartCount;
+        if (stableRunningCount >= 2) {
+          return true;
+        }
+      } else {
+        stableRunningCount = 0;
+        lastRestartCount = snapshot.restartCount;
+      }
+    } else {
+      stableRunningCount = 0;
+      lastRestartCount = null;
     }
     await sleep(1000);
   }

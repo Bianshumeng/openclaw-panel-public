@@ -3760,6 +3760,7 @@ if (hasPanel("panel-model")) {
 if (hasPanel("panel-config-generator")) {
   setupConfigGenerator();
 }
+const isUpdatePage = hasPanel("panel-update");
 
 loadInitialData()
   .then(() => {
@@ -3783,6 +3784,9 @@ loadInitialData()
     }
     if (hasPanel("panel-chat-console")) {
       loadChatSessions({ silent: true }).catch((error) => setMessage(`智能对话页加载失败：${error.message}`, "error"));
+    }
+    if (isUpdatePage) {
+      checkUpdate({ silent: true }).catch((error) => setMessage(`版本信息加载失败：${error.message}`, "error"));
     }
   })
   .catch((error) => {
