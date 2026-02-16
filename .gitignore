@@ -5,3 +5,4 @@ dist/
 data/
 .env.bak*
 third_party/openclaw/
+third_party/ClawX/
