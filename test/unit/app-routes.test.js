@@ -4,6 +4,7 @@ import { isKnownPanelPath, panelByPath } from "../../public/app-routes.js";
 
 test("panelByPath maps known routes", () => {
   assert.equal(panelByPath("/dashboard"), "panel-dashboard");
+  assert.equal(panelByPath("/status-overview"), "panel-dashboard");
   assert.equal(panelByPath("/model"), "panel-model");
   assert.equal(panelByPath("/config-generator"), "panel-config-generator");
   assert.equal(panelByPath("/channels"), "panel-channel");
@@ -21,6 +22,7 @@ test("panelByPath falls back to model for unknown path", () => {
 test("isKnownPanelPath validates route list", () => {
   assert.equal(isKnownPanelPath("/"), true);
   assert.equal(isKnownPanelPath("/dashboard"), true);
+  assert.equal(isKnownPanelPath("/status-overview"), true);
   assert.equal(isKnownPanelPath("/logs"), true);
   assert.equal(isKnownPanelPath("/nothing"), false);
 });

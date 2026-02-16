@@ -17,7 +17,6 @@
 
         <nav class="tabs sidebar-tabs">
           <a class="tab" data-tab-target="panel-dashboard" href="/dashboard">仪表盘</a>
-          <a class="tab" data-tab-target="panel-status-overview" href="/status-overview">状态总览</a>
           <a class="tab" data-tab-target="panel-skills" href="/skills">Skills 管理</a>
           <a class="tab" data-tab-target="panel-chat-console" href="/chat-console">智能对话</a>
           <a class="tab is-active" data-tab-target="panel-model" href="/model">模型与提供商配置</a>
@@ -166,61 +165,6 @@
                 <div id="dashboard_skills_runtime_list" class="stack-list"></div>
               </article>
             </div>
-          </article>
-        </section>
-
-        <section class="panel" data-panel="panel-status-overview">
-          <article class="card">
-            <h2>状态总览（聚合）</h2>
-            <p class="muted-line">聚合 Gateway、Skills、渠道与模型状态，便于快速巡检。</p>
-            <div class="actions">
-              <button id="status_overview_refresh" type="button">刷新状态总览</button>
-            </div>
-            <div class="grid">
-              <label>
-                运行模式
-                <input id="status_runtime_mode" type="text" readonly />
-              </label>
-              <label>
-                服务状态
-                <input id="status_runtime_active" type="text" readonly />
-              </label>
-              <label>
-                提供商数量
-                <input id="status_model_provider_count" type="text" readonly />
-              </label>
-              <label>
-                可用模型总数
-                <input id="status_model_count" type="text" readonly />
-              </label>
-              <label>
-                已配置渠道
-                <input id="status_channel_configured" type="text" readonly />
-              </label>
-              <label>
-                运行中渠道
-                <input id="status_channel_running" type="text" readonly />
-              </label>
-              <label>
-                Skills 总数
-                <input id="status_skills_total" type="text" readonly />
-              </label>
-              <label>
-                已启用 Skills
-                <input id="status_skills_enabled" type="text" readonly />
-              </label>
-            </div>
-            <p id="status_overview_hint" class="muted-line">点击“刷新状态总览”后显示最新聚合状态。</p>
-          </article>
-
-          <article class="card">
-            <h2>渠道运行态</h2>
-            <div id="status_channel_runtime_list" class="stack-list"></div>
-          </article>
-
-          <article class="card">
-            <h2>Skills 运行态</h2>
-            <div id="status_skills_runtime_list" class="stack-list"></div>
           </article>
         </section>
 

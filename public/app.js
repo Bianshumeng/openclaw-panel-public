@@ -146,10 +146,6 @@ const modelEditorState = {
   dashboardBound: false
 };
 
-const statusOverviewState = {
-  bound: false
-};
-
 const dashboardSummaryState = {
   errorCount: null,
   latestError: "",
@@ -1102,16 +1098,8 @@ function renderSkillsRuntimeList(containerSelector, items = [], emptyText = "暂
   });
 }
 
-function renderStatusChannelRuntime(items = []) {
-  renderChannelRuntimeList("#status_channel_runtime_list", items, "暂无渠道运行数据");
-}
-
 function renderDashboardChannelRuntime(items = []) {
   renderChannelRuntimeList("#dashboard_channel_runtime_list", items, "暂无渠道运行数据");
-}
-
-function renderStatusSkillsRuntime(items = []) {
-  renderSkillsRuntimeList("#status_skills_runtime_list", items, "暂无 Skills 运行数据");
 }
 
 function renderDashboardSkillsRuntime(items = []) {
@@ -1123,40 +1111,10 @@ async function loadStatusOverview({ silent = false } = {}) {
   const summary = response?.summary && typeof response.summary === "object" ? response.summary : {};
   const runtime = summary.runtime && typeof summary.runtime === "object" ? summary.runtime : {};
   const model = summary.model && typeof summary.model === "object" ? summary.model : {};
-  const modelCounts = model.counts && typeof model.counts === "object" ? model.counts : {};
   const channels = summary.channels && typeof summary.channels === "object" ? summary.channels : {};
-  const configuredChannels =
-    channels.configured && typeof channels.configured === "object" ? channels.configured : {};
   const runtimeChannels = channels.runtime && typeof channels.runtime === "object" ? channels.runtime : {};
   const skills = summary.skills && typeof summary.skills === "object" ? summary.skills : {};
   const refreshedAt = new Date().toLocaleString();
-
-  setInput("status_runtime_mode", String(runtime.mode || "-"));
-  setInput("status_runtime_active", runtime.active ? "运行中" : runtime.ok === false ? "状态异常" : "未运行");
-  setInput("status_model_provider_count", String(modelCounts.providers ?? 0));
-  setInput("status_model_count", String(modelCounts.models ?? 0));
-  setInput("status_channel_configured", `${configuredChannels.enabled ?? 0}/${configuredChannels.total ?? 0}`);
-  setInput("status_channel_running", `${runtimeChannels.running ?? 0}/${runtimeChannels.total ?? 0}`);
-  setInput("status_skills_total", String(skills.total ?? 0));
-  setInput("status_skills_enabled", String(skills.enabled ?? 0));
-
-  const hintEl = document.querySelector("#status_overview_hint");
-  if (hintEl) {
-    const hints = [];
-    if (runtime?.message) {
-      hints.push(`服务: ${runtime.message}`);
-    }
-    if (runtimeChannels?.ok === false && runtimeChannels?.message) {
-      hints.push(`渠道: ${runtimeChannels.message}`);
-    }
-    if (skills?.ok === false && skills?.message) {
-      hints.push(`Skills: ${skills.message}`);
-    }
-    hintEl.textContent = hints.length > 0 ? hints.join(" | ") : `最后刷新：${refreshedAt}`;
-  }
-
-  renderStatusChannelRuntime(Array.isArray(runtimeChannels.items) ? runtimeChannels.items : []);
-  renderStatusSkillsRuntime(Array.isArray(skills.items) ? skills.items : []);
   renderDashboardChannelRuntime(Array.isArray(runtimeChannels.items) ? runtimeChannels.items : []);
   renderDashboardSkillsRuntime(Array.isArray(skills.items) ? skills.items : []);
   updateDashboardSummaryCards({
@@ -1170,17 +1128,6 @@ async function loadStatusOverview({ silent = false } = {}) {
   if (!silent) {
     setMessage("状态总览刷新完成", "ok");
   }
-}
-
-function setupStatusOverview() {
-  if (statusOverviewState.bound) {
-    return;
-  }
-  statusOverviewState.bound = true;
-  const refreshBtn = document.querySelector("#status_overview_refresh");
-  refreshBtn?.addEventListener("click", () => {
-    loadStatusOverview().catch((error) => setMessage(error.message || String(error), "error"));
-  });
 }
 
 function renderSkillsList(skills = []) {
@@ -3098,7 +3045,6 @@ document.querySelector("#rollback_update").addEventListener("click", () => {
 setupTheme();
 setupTabs();
 setupDashboard();
-setupStatusOverview();
 setupSkillsPage();
 setupChatConsole();
 setupModelEditor();
