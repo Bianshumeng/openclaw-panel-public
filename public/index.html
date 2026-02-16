@@ -19,7 +19,7 @@
           <a class="tab" data-tab-target="panel-dashboard" href="/dashboard">仪表盘</a>
           <a class="tab" data-tab-target="panel-status-overview" href="/status-overview">状态总览</a>
           <a class="tab" data-tab-target="panel-skills" href="/skills">Skills 管理</a>
-          <a class="tab" data-tab-target="panel-chat-console" href="/chat-console">对话控制台</a>
+          <a class="tab" data-tab-target="panel-chat-console" href="/chat-console">智能对话</a>
           <a class="tab is-active" data-tab-target="panel-model" href="/model">模型与提供商配置</a>
           <a class="tab" data-tab-target="panel-config-generator" href="/config-generator">配置生成器</a>
           <a class="tab" data-tab-target="panel-channel" href="/channels">渠道接入</a>
@@ -184,61 +184,85 @@
 
         <section class="panel" data-panel="panel-chat-console">
           <article class="card">
-            <h2>对话控制台（控制层）</h2>
-            <p class="muted-line">不替代主聊天页面，只用于调试会话、发送消息、查看运行与中止。</p>
-            <div class="actions">
-              <button id="chat_refresh_sessions" type="button">刷新会话列表</button>
-              <button id="chat_load_history" type="button">刷新会话历史</button>
-              <button id="chat_reconnect_stream" class="btn-soft" type="button">重连流式通道</button>
-            </div>
-            <div class="grid">
-              <label>
-                会话
-                <select id="chat_session_select"></select>
-              </label>
-              <label>
-                最近 Run ID
-                <input id="chat_last_run_id" type="text" readonly />
-              </label>
-              <label>
-                流式通道状态
-                <input id="chat_stream_status" type="text" readonly />
-              </label>
-              <label>
-                思考强度
-                <select id="chat_thinking_level">
-                  <option value="">默认</option>
-                  <option value="minimal">minimal</option>
-                  <option value="low">low</option>
-                  <option value="medium">medium</option>
-                  <option value="high">high</option>
-                </select>
-              </label>
-              <label>
-                幂等键（可选）
-                <input id="chat_idempotency_key" type="text" placeholder="留空自动生成" />
-              </label>
-            </div>
-            <label>
-              发送消息
-              <textarea id="chat_message_input" rows="4" placeholder="输入消息内容"></textarea>
-            </label>
-            <div class="actions">
-              <button id="chat_send_message" type="button">发送消息</button>
-              <button id="chat_abort_run" class="btn-soft" type="button">中止当前 Run</button>
-              <button id="chat_reset_session" class="btn-soft" type="button">重置会话</button>
-            </div>
-          </article>
+            <h2>智能对话</h2>
+            <p class="muted-line">面向小白用户的聊天工作台：选会话、发消息、看实时回复，必要时再展开高级调试信息。</p>
 
-          <article class="card">
-            <h2>会话历史</h2>
-            <pre id="chat_history_output" class="output">请选择会话后加载历史</pre>
-          </article>
+            <div class="chat-workspace">
+              <div class="chat-topbar">
+                <div class="actions">
+                  <button id="chat_new_session" type="button">新建会话</button>
+                  <button id="chat_refresh_sessions" class="btn-soft" type="button">刷新会话</button>
+                </div>
+                <div class="actions">
+                  <label class="inline-check">
+                    显示思考状态
+                    <input id="chat_show_thinking" type="checkbox" checked />
+                  </label>
+                  <label>
+                    推理强度
+                    <select id="chat_thinking_level">
+                      <option value="">自动</option>
+                      <option value="minimal">minimal</option>
+                      <option value="low">low</option>
+                      <option value="medium">medium</option>
+                      <option value="high">high</option>
+                    </select>
+                  </label>
+                </div>
+              </div>
 
-          <article class="card">
-            <h2>流式输出（SSE）</h2>
-            <p class="muted-line">实时展示 delta / final / aborted / thinking 等事件。</p>
-            <pre id="chat_stream_output" class="output">等待流式事件...</pre>
+              <div class="grid">
+                <label>
+                  当前会话
+                  <select id="chat_session_select"></select>
+                </label>
+                <label>
+                  最近任务 ID
+                  <input id="chat_last_run_id" type="text" readonly />
+                </label>
+                <label>
+                  实时通道状态
+                  <input id="chat_stream_status" type="text" readonly />
+                </label>
+              </div>
+
+              <div id="chat_messages" class="chat-messages">
+                <div class="chat-empty">请选择会话后开始对话</div>
+              </div>
+
+              <label>
+                输入消息
+                <textarea id="chat_message_input" rows="4" placeholder="输入后按 Enter 发送，Shift+Enter 换行"></textarea>
+              </label>
+
+              <div class="actions">
+                <button id="chat_send_message" type="button">发送消息</button>
+                <button id="chat_abort_run" class="btn-soft" type="button">停止回复</button>
+                <button id="chat_reset_session" class="btn-soft" type="button">清空当前会话</button>
+              </div>
+
+              <details class="chat-debug">
+                <summary>高级调试信息（排障用）</summary>
+                <div class="grid">
+                  <label>
+                    幂等键（可选）
+                    <input id="chat_idempotency_key" type="text" placeholder="留空自动生成" />
+                  </label>
+                </div>
+                <div class="actions">
+                  <button id="chat_load_history" class="btn-soft" type="button">刷新历史</button>
+                  <button id="chat_reconnect_stream" class="btn-soft" type="button">重连实时通道</button>
+                </div>
+                <label>
+                  会话历史（原始）
+                  <pre id="chat_history_output" class="output">请选择会话后加载历史</pre>
+                </label>
+                <label>
+                  流式事件（原始）
+                  <pre id="chat_stream_output" class="output">等待流式事件...</pre>
+                </label>
+              </details>
+            </div>
           </article>
         </section>
 

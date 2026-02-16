@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   abortChatRun,
+  createChatSession,
   createChatEventSubscription,
   getChatHistory,
   listChatSessions,
@@ -132,6 +133,40 @@ test("abortChatRun and resetChatSession forward payloads", async () => {
   assert.equal(abortResult.runIds[0], "run-1");
   assert.equal(resetResult.key, "agent:main:test");
   assert.equal(resetResult.entry.sessionId, "sid-new");
+});
+
+test("createChatSession derives canonical prefix and creates new session", async () => {
+  const trace = [];
+  const result = await createChatSession({
+    panelConfig: {},
+    deps: {
+      callGatewayRpc: async ({ method, params }) => {
+        trace.push({ method, params });
+        if (method === "sessions.list") {
+          return {
+            sessions: [
+              { key: "agent:prod:abc" },
+              { key: "agent:prod:def" }
+            ]
+          };
+        }
+        if (method === "sessions.reset") {
+          return {
+            key: params.key,
+            entry: { sessionId: "sid-new" }
+          };
+        }
+        throw new Error(`unexpected method: ${method}`);
+      }
+    }
+  });
+
+  assert.equal(trace[0].method, "sessions.list");
+  assert.equal(trace[1].method, "sessions.reset");
+  assert.equal(trace[1].params.reason, "new");
+  assert.match(String(trace[1].params.key || ""), /^agent:prod:session-\d+-[0-9a-f]{8}$/i);
+  assert.match(result.key, /^agent:prod:session-\d+-[0-9a-f]{8}$/i);
+  assert.equal(result.entry.sessionId, "sid-new");
 });
 
 test("createChatEventSubscription filters by session and emits terminal", async () => {

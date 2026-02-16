@@ -20,6 +20,7 @@ import { buildDashboardSummary } from "./dashboard-service.js";
 import { getSkillConfig, listSkillsStatus, setSkillEnabled } from "./skills-service.js";
 import {
   abortChatRun,
+  createChatSession,
   createChatEventSubscription,
   getChatHistory,
   listChatSessions,
@@ -69,6 +70,9 @@ const chatAbortPayloadSchema = z.object({
 const chatSessionResetPayloadSchema = z.object({
   sessionKey: z.string().min(1, "sessionKey 不能为空"),
   reason: z.enum(["new", "reset"]).optional().default("new")
+});
+const chatSessionNewPayloadSchema = z.object({
+  keyPrefix: z.string().optional().default("")
 });
 
 function ensureDockerMode(panelConfig) {
@@ -378,6 +382,27 @@ app.post("/api/chat/session/reset", async (request, reply) => {
       panelConfig,
       sessionKey: payload.sessionKey,
       reason: payload.reason
+    });
+    return {
+      ok: true,
+      result
+    };
+  } catch (error) {
+    reply.code(400);
+    return {
+      ok: false,
+      message: error.message
+    };
+  }
+});
+
+app.post("/api/chat/session/new", async (request, reply) => {
+  try {
+    const payload = chatSessionNewPayloadSchema.parse(request.body || {});
+    const { config: panelConfig } = await loadPanelConfig();
+    const result = await createChatSession({
+      panelConfig,
+      keyPrefix: payload.keyPrefix
     });
     return {
       ok: true,

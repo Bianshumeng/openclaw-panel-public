@@ -47,6 +47,35 @@ function normalizeSessionItem(item) {
   };
 }
 
+function getCanonicalSessionPrefix(sessions) {
+  const list = Array.isArray(sessions) ? sessions : [];
+  const canonical = list.find((item) => trimString(item?.key).startsWith("agent:"));
+  if (!canonical) {
+    return "";
+  }
+  const parts = trimString(canonical.key).split(":");
+  if (parts.length < 2) {
+    return "";
+  }
+  return `${parts[0]}:${parts[1]}`;
+}
+
+function normalizeSessionPrefix(value) {
+  const raw = trimString(value).replace(/:+$/, "");
+  if (!raw) {
+    return "";
+  }
+  if (raw.includes(":")) {
+    return raw;
+  }
+  return `agent:${raw}`;
+}
+
+function buildSessionKey(prefix) {
+  const finalPrefix = normalizeSessionPrefix(prefix) || "agent:main";
+  return `${finalPrefix}:session-${Date.now()}-${randomUUID().slice(0, 8)}`;
+}
+
 function normalizeChatEventPayload(eventFrame) {
   const payload = eventFrame?.payload && typeof eventFrame.payload === "object" ? eventFrame.payload : {};
   return {
@@ -163,6 +192,33 @@ export async function sendChatMessage({
     runId: trimString(payload?.runId),
     status: trimString(payload?.status),
     idempotencyKey: finalIdempotencyKey
+  };
+}
+
+export async function createChatSession({
+  panelConfig,
+  keyPrefix = "",
+  deps = {}
+}) {
+  let resolvedPrefix = normalizeSessionPrefix(keyPrefix);
+  if (!resolvedPrefix) {
+    try {
+      const listed = await listChatSessions({ panelConfig, deps });
+      resolvedPrefix = getCanonicalSessionPrefix(listed?.sessions);
+    } catch {
+      resolvedPrefix = "";
+    }
+  }
+  const sessionKey = buildSessionKey(resolvedPrefix || "agent:main");
+  const result = await resetChatSession({
+    panelConfig,
+    sessionKey,
+    reason: "new",
+    deps
+  });
+  return {
+    key: trimString(result?.key || sessionKey),
+    entry: result?.entry && typeof result.entry === "object" ? result.entry : {}
   };
 }
 

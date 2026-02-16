@@ -164,7 +164,10 @@ const chatConsoleState = {
   streamSource: null,
   streamSessionKey: "",
   streamLines: [],
-  streamDeltasByRunId: {}
+  streamDeltasByRunId: {},
+  streamThinkingByRunId: {},
+  historyMessages: [],
+  sending: false
 };
 
 const els = {
@@ -1170,6 +1173,19 @@ function setChatStreamStatus(text) {
   setInput("chat_stream_status", text || "");
 }
 
+function setChatComposerSending(sending) {
+  chatConsoleState.sending = Boolean(sending);
+  const sendButton = document.querySelector("#chat_send_message");
+  const abortButton = document.querySelector("#chat_abort_run");
+  if (sendButton) {
+    sendButton.disabled = chatConsoleState.sending;
+    sendButton.textContent = chatConsoleState.sending ? "发送中..." : "发送消息";
+  }
+  if (abortButton) {
+    abortButton.disabled = !chatConsoleState.sending;
+  }
+}
+
 function renderChatStreamLines() {
   const output = document.querySelector("#chat_stream_output");
   if (!output) {
@@ -1190,7 +1206,9 @@ function pushChatStreamLine(text) {
 function resetChatStreamOutput() {
   chatConsoleState.streamLines = [];
   chatConsoleState.streamDeltasByRunId = {};
+  chatConsoleState.streamThinkingByRunId = {};
   renderChatStreamLines();
+  renderChatMessageList();
 }
 
 function closeChatStreamSource() {
@@ -1216,6 +1234,188 @@ function extractStreamTextFromMessage(message) {
     .join("");
 }
 
+function normalizeChatContent(content) {
+  if (typeof content === "string") {
+    return content;
+  }
+  if (Array.isArray(content)) {
+    return content
+      .map((entry) => {
+        if (typeof entry === "string") {
+          return entry;
+        }
+        if (!entry || typeof entry !== "object") {
+          return "";
+        }
+        if (typeof entry.text === "string") {
+          return entry.text;
+        }
+        if (typeof entry.content === "string") {
+          return entry.content;
+        }
+        return JSON.stringify(entry);
+      })
+      .filter(Boolean)
+      .join("\n");
+  }
+  if (content && typeof content === "object") {
+    if (typeof content.text === "string") {
+      return content.text;
+    }
+    return JSON.stringify(content);
+  }
+  return String(content ?? "");
+}
+
+function formatChatRole(role) {
+  const normalized = String(role || "").trim().toLowerCase();
+  if (normalized === "user") {
+    return "你";
+  }
+  if (normalized === "assistant") {
+    return "助手";
+  }
+  if (normalized === "system") {
+    return "系统";
+  }
+  if (normalized === "tool" || normalized === "tool_use" || normalized === "tool_result") {
+    return "工具";
+  }
+  return normalized || "未知";
+}
+
+function normalizeChatMessage(message = {}, index = 0) {
+  const role = String(message?.role || message?.author || message?.type || "assistant").trim().toLowerCase() || "assistant";
+  const status = String(message?.status || "").trim();
+  const thinking = String(
+    message?.thinkingState || message?.thinking || message?.reasoning || message?.reasoningEffort || ""
+  ).trim();
+  const body = normalizeChatContent(
+    message?.content ?? message?.parts ?? message?.message ?? message?.delta ?? message?.text ?? ""
+  );
+  return {
+    id: `history-${index + 1}`,
+    role,
+    status,
+    thinking,
+    body: body || "(空消息)",
+    timestamp: message?.timestamp || message?.createdAt || message?.at || ""
+  };
+}
+
+function createChatMessageNode(item, { streaming = false, showThinking = true } = {}) {
+  const node = document.createElement("div");
+  const role = String(item?.role || "assistant").toLowerCase();
+  node.className = `chat-message ${role === "user" ? "user" : "assistant"}${streaming ? " streaming" : ""}`;
+
+  const header = document.createElement("div");
+  header.className = "chat-message-header";
+
+  const roleEl = document.createElement("span");
+  roleEl.className = "chat-role";
+  roleEl.textContent = formatChatRole(role);
+  header.appendChild(roleEl);
+
+  const metaEl = document.createElement("span");
+  metaEl.textContent = streaming ? "实时生成中..." : String(item?.status || "").trim() || "";
+  header.appendChild(metaEl);
+
+  node.appendChild(header);
+
+  if (showThinking && String(item?.thinking || "").trim()) {
+    const thinkingEl = document.createElement("span");
+    thinkingEl.className = "chat-thinking";
+    thinkingEl.textContent = `思考：${item.thinking}`;
+    node.appendChild(thinkingEl);
+  }
+
+  const body = document.createElement("div");
+  body.className = "chat-message-body";
+  body.textContent = String(item?.body || "").trim() || "(空消息)";
+  node.appendChild(body);
+  return node;
+}
+
+function renderChatMessageList() {
+  const container = document.querySelector("#chat_messages");
+  if (!container) {
+    return;
+  }
+  const showThinking = Boolean(getInputValue("chat_show_thinking"));
+  container.innerHTML = "";
+
+  const items = Array.isArray(chatConsoleState.historyMessages) ? chatConsoleState.historyMessages : [];
+  items.forEach((item) => {
+    container.appendChild(createChatMessageNode(item, { showThinking }));
+  });
+
+  Object.entries(chatConsoleState.streamDeltasByRunId).forEach(([runId, text]) => {
+    const thinking = String(chatConsoleState.streamThinkingByRunId[runId] || "").trim();
+    container.appendChild(
+      createChatMessageNode(
+        {
+          role: "assistant",
+          status: runId ? `runId: ${runId}` : "",
+          thinking,
+          body: String(text || "").trim() || "正在生成..."
+        },
+        { streaming: true, showThinking }
+      )
+    );
+  });
+
+  if (container.childElementCount === 0) {
+    const empty = document.createElement("div");
+    empty.className = "chat-empty";
+    empty.textContent = "请选择会话后开始对话";
+    container.appendChild(empty);
+  }
+
+  container.scrollTop = container.scrollHeight;
+}
+
+function renderChatHistory(history = {}) {
+  const output = document.querySelector("#chat_history_output");
+  if (!output) {
+    return;
+  }
+  const sessionKey = String(history.sessionKey || chatConsoleState.selectedSessionKey || "").trim();
+  const sessionId = String(history.sessionId || "").trim();
+  const thinkingLevel = String(history.thinkingLevel || "").trim();
+  const verboseLevel = String(history.verboseLevel || "").trim();
+  const messages = Array.isArray(history.messages) ? history.messages : [];
+
+  const lines = [];
+  lines.push(`sessionKey: ${sessionKey || "-"}`);
+  lines.push(`sessionId: ${sessionId || "-"}`);
+  lines.push(`thinkingLevel: ${thinkingLevel || "-"}`);
+  lines.push(`verboseLevel: ${verboseLevel || "-"}`);
+  lines.push(`messages: ${messages.length}`);
+
+  chatConsoleState.historyMessages = messages.map((message, index) => normalizeChatMessage(message, index));
+  renderChatMessageList();
+
+  messages.forEach((message, index) => {
+    const role = String(message?.role || message?.author || message?.type || "unknown").trim() || "unknown";
+    const status = String(message?.status || "").trim();
+    const thinkingState = String(
+      message?.thinkingState || message?.thinking || message?.reasoning || message?.reasoningEffort || ""
+    ).trim();
+    const content = normalizeChatContent(
+      message?.content ?? message?.parts ?? message?.message ?? message?.delta ?? message?.text ?? ""
+    );
+
+    lines.push("");
+    lines.push(`#${index + 1} ${role}${status ? ` [${status}]` : ""}`);
+    if (thinkingState) {
+      lines.push(`思考状态: ${thinkingState}`);
+    }
+    lines.push(content || "(empty)");
+  });
+
+  output.textContent = lines.join("\n");
+}
+
 function handleChatStreamEvent(payload) {
   const data = payload && typeof payload === "object" ? payload : {};
   const state = String(data.state || "").trim();
@@ -1232,11 +1432,8 @@ function handleChatStreamEvent(payload) {
       const previous = String(chatConsoleState.streamDeltasByRunId[runId] || "");
       chatConsoleState.streamDeltasByRunId[runId] = previous + deltaChunk;
     }
-    if (deltaChunk) {
-      pushChatStreamLine(`[chat:${state}] ${runId || "-"} ${deltaChunk}`);
-    } else {
-      pushChatStreamLine(`[chat:${state}] ${runId || "-"} (empty-delta)`);
-    }
+    pushChatStreamLine(`[chat:${state}] ${runId || "-"} ${deltaChunk || "(empty-delta)"}`);
+    renderChatMessageList();
     return;
   }
 
@@ -1246,7 +1443,10 @@ function handleChatStreamEvent(payload) {
     pushChatStreamLine(`[chat:final] ${runId || "-"} ${finalChunk}`);
     if (runId) {
       delete chatConsoleState.streamDeltasByRunId[runId];
+      delete chatConsoleState.streamThinkingByRunId[runId];
     }
+    setChatComposerSending(false);
+    renderChatMessageList();
     if (sessionKey) {
       loadChatHistory({ sessionKey, silent: true }).catch(() => {});
     }
@@ -1258,7 +1458,10 @@ function handleChatStreamEvent(payload) {
     pushChatStreamLine(`[chat:${state}] ${runId || "-"} ${reason || "-"}`);
     if (runId) {
       delete chatConsoleState.streamDeltasByRunId[runId];
+      delete chatConsoleState.streamThinkingByRunId[runId];
     }
+    setChatComposerSending(false);
+    renderChatMessageList();
     if (sessionKey) {
       loadChatHistory({ sessionKey, silent: true }).catch(() => {});
     }
@@ -1274,6 +1477,10 @@ function handleAgentStreamEvent(payload) {
   const phase = String(data.phase || "").trim() || "-";
   const runId = String(data.runId || "").trim() || "-";
   pushChatStreamLine(`[agent:${stream}] ${runId} phase=${phase}`);
+  if (runId !== "-") {
+    chatConsoleState.streamThinkingByRunId[runId] = phase;
+    renderChatMessageList();
+  }
 }
 
 function connectChatStream(sessionKey, { silent = false, force = false } = {}) {
@@ -1291,7 +1498,7 @@ function connectChatStream(sessionKey, { silent = false, force = false } = {}) {
   resetChatStreamOutput();
   setChatStreamStatus(`连接中 (${normalizedSessionKey})`);
   if (!silent) {
-    setMessage(`流式通道连接中：${normalizedSessionKey}`, "info");
+    setMessage(`实时通道连接中：${normalizedSessionKey}`, "info");
   }
 
   const query = new URLSearchParams({
@@ -1352,86 +1559,16 @@ function connectChatStream(sessionKey, { silent = false, force = false } = {}) {
     try {
       const payload = JSON.parse(event.data || "{}");
       pushChatStreamLine(`[stream:error] ${payload.message || "unknown error"}`);
+      setChatComposerSending(false);
     } catch {
       pushChatStreamLine("[stream:error] unknown error");
+      setChatComposerSending(false);
     }
   });
 
   source.addEventListener("error", () => {
     setChatStreamStatus("连接波动，浏览器重连中");
   });
-}
-
-function normalizeChatContent(content) {
-  if (typeof content === "string") {
-    return content;
-  }
-  if (Array.isArray(content)) {
-    return content
-      .map((entry) => {
-        if (typeof entry === "string") {
-          return entry;
-        }
-        if (!entry || typeof entry !== "object") {
-          return "";
-        }
-        if (typeof entry.text === "string") {
-          return entry.text;
-        }
-        if (typeof entry.content === "string") {
-          return entry.content;
-        }
-        return JSON.stringify(entry);
-      })
-      .filter(Boolean)
-      .join("\n");
-  }
-  if (content && typeof content === "object") {
-    if (typeof content.text === "string") {
-      return content.text;
-    }
-    return JSON.stringify(content);
-  }
-  return String(content ?? "");
-}
-
-function renderChatHistory(history = {}) {
-  const output = document.querySelector("#chat_history_output");
-  if (!output) {
-    return;
-  }
-  const sessionKey = String(history.sessionKey || chatConsoleState.selectedSessionKey || "").trim();
-  const sessionId = String(history.sessionId || "").trim();
-  const thinkingLevel = String(history.thinkingLevel || "").trim();
-  const verboseLevel = String(history.verboseLevel || "").trim();
-  const messages = Array.isArray(history.messages) ? history.messages : [];
-
-  const lines = [];
-  lines.push(`sessionKey: ${sessionKey || "-"}`);
-  lines.push(`sessionId: ${sessionId || "-"}`);
-  lines.push(`thinkingLevel: ${thinkingLevel || "-"}`);
-  lines.push(`verboseLevel: ${verboseLevel || "-"}`);
-  lines.push(`messages: ${messages.length}`);
-
-  messages.forEach((message, index) => {
-    const role = String(message?.role || message?.author || message?.type || "unknown").trim() || "unknown";
-    const status = String(message?.status || "").trim();
-    const thinkingState = String(
-      message?.thinkingState || message?.thinking || message?.reasoning || message?.reasoningEffort || ""
-    ).trim();
-    const content = normalizeChatContent(
-      message?.content ?? message?.parts ?? message?.message ?? message?.delta ?? message?.text ?? ""
-    );
-
-    lines.push("");
-    lines.push(`#${index + 1} ${role}${status ? ` [${status}]` : ""}`);
-    if (thinkingState) {
-      lines.push(`思考状态: ${thinkingState}`);
-    }
-    lines.push(content || "(empty)");
-  });
-
-  output.textContent = lines.join("\n");
 }
 
 function renderChatSessionSelect() {
@@ -1468,14 +1605,17 @@ function renderChatSessionSelect() {
   }
 }
 
-async function loadChatSessions({ silent = false, preserveSelection = true } = {}) {
+async function loadChatSessions({ silent = false, preserveSelection = true, selectedSessionKey = "" } = {}) {
   const response = await api("/api/chat/sessions");
   const result = response?.result && typeof response.result === "object" ? response.result : {};
   const sessions = Array.isArray(result.sessions) ? result.sessions : [];
   const previous = String(chatConsoleState.selectedSessionKey || "").trim();
+  const requested = String(selectedSessionKey || "").trim();
   chatConsoleState.sessions = sessions;
 
-  if (preserveSelection && previous && sessions.some((item) => item?.key === previous)) {
+  if (requested && sessions.some((item) => item?.key === requested)) {
+    chatConsoleState.selectedSessionKey = requested;
+  } else if (preserveSelection && previous && sessions.some((item) => item?.key === previous)) {
     chatConsoleState.selectedSessionKey = previous;
   } else {
     chatConsoleState.selectedSessionKey = String(sessions[0]?.key || "").trim();
@@ -1491,6 +1631,9 @@ async function loadChatSessions({ silent = false, preserveSelection = true } = {
   } else {
     closeChatStreamSource();
     setChatStreamStatus("未连接（暂无会话）");
+    chatConsoleState.historyMessages = [];
+    renderChatMessageList();
+    setChatComposerSending(false);
     const output = document.querySelector("#chat_history_output");
     if (output) {
       output.textContent = "暂无会话可展示";
@@ -1522,6 +1665,24 @@ async function loadChatHistory({ sessionKey = "", silent = false } = {}) {
   }
 }
 
+async function createChatSession() {
+  const response = await api("/api/chat/session/new", {
+    method: "POST",
+    body: JSON.stringify({})
+  });
+  const result = response?.result && typeof response.result === "object" ? response.result : {};
+  const sessionKey = String(result.key || "").trim();
+  if (!sessionKey) {
+    throw new Error("新建会话失败：未返回会话 key");
+  }
+  await loadChatSessions({
+    silent: true,
+    preserveSelection: false,
+    selectedSessionKey: sessionKey
+  });
+  setMessage(`已创建新会话：${sessionKey}`, "ok");
+}
+
 async function sendChatConsoleMessage() {
   const sessionKey = String(getInputValue("chat_session_select") || chatConsoleState.selectedSessionKey || "").trim();
   const message = String(getInputValue("chat_message_input") || "").trim();
@@ -1531,6 +1692,9 @@ async function sendChatConsoleMessage() {
   if (!message) {
     throw new Error("请输入消息内容");
   }
+  if (chatConsoleState.sending) {
+    throw new Error("当前正在生成回复，请稍候或先点击“停止回复”");
+  }
 
   const payload = {
     sessionKey,
@@ -1538,16 +1702,33 @@ async function sendChatConsoleMessage() {
     thinking: String(getInputValue("chat_thinking_level") || "").trim(),
     idempotencyKey: String(getInputValue("chat_idempotency_key") || "").trim()
   };
-  connectChatStream(sessionKey, { silent: true });
-  const response = await api("/api/chat/send", {
-    method: "POST",
-    body: JSON.stringify(payload)
+  chatConsoleState.historyMessages.push({
+    id: `local-user-${Date.now()}`,
+    role: "user",
+    status: "",
+    thinking: "",
+    body: message
   });
-  const result = response?.result && typeof response.result === "object" ? response.result : {};
-  chatConsoleState.lastRunId = String(result.runId || "").trim();
-  setInput("chat_last_run_id", chatConsoleState.lastRunId);
-  setInput("chat_message_input", "");
-  setMessage(`消息已发送（status=${result.status || "unknown"}）`, "ok");
+  renderChatMessageList();
+  setChatComposerSending(true);
+  connectChatStream(sessionKey, { silent: true });
+  try {
+    const response = await api("/api/chat/send", {
+      method: "POST",
+      body: JSON.stringify(payload)
+    });
+    const result = response?.result && typeof response.result === "object" ? response.result : {};
+    chatConsoleState.lastRunId = String(result.runId || "").trim();
+    setInput("chat_last_run_id", chatConsoleState.lastRunId);
+    setInput("chat_message_input", "");
+    if (!chatConsoleState.lastRunId) {
+      setChatComposerSending(false);
+    }
+    setMessage(`消息已发送（status=${result.status || "unknown"}）`, "ok");
+  } catch (error) {
+    setChatComposerSending(false);
+    throw error;
+  }
 }
 
 async function abortChatConsoleRun() {
@@ -1565,6 +1746,7 @@ async function abortChatConsoleRun() {
   });
   const result = response?.result && typeof response.result === "object" ? response.result : {};
   const runIds = Array.isArray(result.runIds) ? result.runIds : [];
+  setChatComposerSending(false);
   setMessage(
     result.aborted ? `已发送中止请求，runIds=${runIds.join(",") || "-"}` : "当前没有可中止的运行任务",
     result.aborted ? "ok" : "info"
@@ -1586,6 +1768,10 @@ async function resetChatConsoleSession() {
   });
   chatConsoleState.lastRunId = "";
   setInput("chat_last_run_id", "");
+  setChatComposerSending(false);
+  chatConsoleState.streamDeltasByRunId = {};
+  chatConsoleState.streamThinkingByRunId = {};
+  renderChatMessageList();
   setMessage(`会话已重置：${sessionKey}`, "ok");
   await loadChatHistory({ sessionKey, silent: true }).catch(() => {});
 }
@@ -1596,14 +1782,19 @@ function setupChatConsole() {
   }
   chatConsoleState.bound = true;
   setChatStreamStatus("未连接");
+  setChatComposerSending(false);
   const sessionSelect = document.querySelector("#chat_session_select");
   sessionSelect?.addEventListener("change", () => {
     const selected = String(sessionSelect.value || "").trim();
     chatConsoleState.selectedSessionKey = selected;
+    setChatComposerSending(false);
     connectChatStream(selected, { silent: true, force: true });
     loadChatHistory({ sessionKey: selected }).catch((error) => setMessage(error.message || String(error), "error"));
   });
 
+  document.querySelector("#chat_new_session")?.addEventListener("click", () => {
+    createChatSession().catch((error) => setMessage(error.message || String(error), "error"));
+  });
   document.querySelector("#chat_refresh_sessions")?.addEventListener("click", () => {
     loadChatSessions().catch((error) => setMessage(error.message || String(error), "error"));
   });
@@ -1615,6 +1806,16 @@ function setupChatConsole() {
   });
   document.querySelector("#chat_send_message")?.addEventListener("click", () => {
     sendChatConsoleMessage().catch((error) => setMessage(error.message || String(error), "error"));
+  });
+  const messageInput = document.querySelector("#chat_message_input");
+  messageInput?.addEventListener("keydown", (event) => {
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault();
+      sendChatConsoleMessage().catch((error) => setMessage(error.message || String(error), "error"));
+    }
+  });
+  document.querySelector("#chat_show_thinking")?.addEventListener("change", () => {
+    renderChatMessageList();
   });
   document.querySelector("#chat_abort_run")?.addEventListener("click", () => {
     abortChatConsoleRun().catch((error) => setMessage(error.message || String(error), "error"));
@@ -2347,7 +2548,7 @@ loadInitialData()
     checkUpdate().catch(() => {});
     loadStatusOverview({ silent: true }).catch((error) => setMessage(`状态总览加载失败：${error.message}`, "error"));
     loadSkillsStatus({ silent: true }).catch((error) => setMessage(`Skills 页面加载失败：${error.message}`, "error"));
-    loadChatSessions({ silent: true }).catch((error) => setMessage(`对话控制台加载失败：${error.message}`, "error"));
+    loadChatSessions({ silent: true }).catch((error) => setMessage(`智能对话页加载失败：${error.message}`, "error"));
   })
   .catch((error) => {
     els.runtimeState.textContent = "面板连接失败";
