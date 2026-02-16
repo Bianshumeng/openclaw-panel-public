@@ -150,6 +150,15 @@ const statusOverviewState = {
   bound: false
 };
 
+const dashboardSummaryState = {
+  errorCount: null,
+  latestError: "",
+  currentTag: "",
+  latestTag: "",
+  updateAvailable: false,
+  updateWarning: ""
+};
+
 const skillsPageState = {
   bound: false,
   selectedSkillKey: "",
@@ -205,6 +214,14 @@ function setInput(id, value) {
     return;
   }
   el.value = value ?? "";
+}
+
+function setText(id, value) {
+  const el = document.querySelector(`#${id}`);
+  if (!el) {
+    return;
+  }
+  el.textContent = value ?? "";
 }
 
 function getInputValue(id) {
@@ -863,15 +880,136 @@ function setupDashboard() {
     }
     localStorage.setItem(DASHBOARD_CONTEXT_KEY, String(parsed));
   });
+
+  document.querySelectorAll("[data-dashboard-jump]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const target = String(button.getAttribute("data-dashboard-jump") || "").trim();
+      if (!target) {
+        return;
+      }
+      const tab = document.querySelector(`.tab[data-tab-target="${target}"]`);
+      if (tab instanceof HTMLElement) {
+        tab.click();
+      }
+    });
+  });
+
+  document.querySelector("#dashboard_summary_refresh")?.addEventListener("click", () => {
+    Promise.allSettled([loadStatusOverview({ silent: true }), loadErrorSummary({ silent: true }), checkUpdate({ silent: true })])
+      .then((results) => {
+        const failed = results.filter((item) => item.status === "rejected");
+        if (failed.length > 0) {
+          const reasons = failed.map((item) => item.reason?.message || String(item.reason || "unknown"));
+          setMessage(`仪表盘刷新部分失败：${reasons.join(" | ")}`, "error");
+          return;
+        }
+        setMessage("仪表盘状态总览刷新完成", "ok");
+      });
+  });
 }
 
-function renderStatusChannelRuntime(items = []) {
-  const container = document.querySelector("#status_channel_runtime_list");
+function truncateText(value, max = 72) {
+  const text = String(value || "").replace(/\s+/g, " ").trim();
+  if (!text) {
+    return "";
+  }
+  if (text.length <= max) {
+    return text;
+  }
+  return `${text.slice(0, Math.max(0, max - 1))}…`;
+}
+
+function updateDashboardErrorSummary(lines = []) {
+  const list = Array.isArray(lines) ? lines : [];
+  const latestLine = list.length > 0 ? String(list[list.length - 1] || "").trim() : "";
+  dashboardSummaryState.errorCount = list.length;
+  dashboardSummaryState.latestError = latestLine;
+
+  if (list.length === 0) {
+    setText("dashboard_summary_errors", "无错误");
+    setText("dashboard_summary_errors_meta", "最近 20 条中未发现错误关键字");
+    return;
+  }
+
+  setText("dashboard_summary_errors", `${list.length} 条错误`);
+  setText("dashboard_summary_errors_meta", truncateText(latestLine, 80) || "已命中错误关键字");
+}
+
+function updateDashboardVersionSummary(updateResult = {}) {
+  const currentTag = String(updateResult?.currentTag || "").trim();
+  const latestTag = String(updateResult?.latestTag || "").trim();
+  const warning = String(updateResult?.warning || "").trim();
+  const hasUpdate = Boolean(updateResult?.updateAvailable);
+
+  dashboardSummaryState.currentTag = currentTag;
+  dashboardSummaryState.latestTag = latestTag;
+  dashboardSummaryState.updateAvailable = hasUpdate;
+  dashboardSummaryState.updateWarning = warning;
+
+  if (warning) {
+    setText("dashboard_summary_version", currentTag ? `当前 ${currentTag}` : "检查失败");
+    setText("dashboard_summary_version_meta", truncateText(`最新版本读取失败：${warning}`, 90));
+    return;
+  }
+
+  if (!currentTag && !latestTag) {
+    setText("dashboard_summary_version", "未读取");
+    setText("dashboard_summary_version_meta", "尚未获取版本信息");
+    return;
+  }
+
+  setText("dashboard_summary_version", hasUpdate ? `可升级到 ${latestTag || "-"}` : `当前 ${currentTag || "-"}`);
+  setText(
+    "dashboard_summary_version_meta",
+    hasUpdate ? `当前 ${currentTag || "-"}，检测到新版本` : `当前 ${currentTag || "-"}，已是最新`
+  );
+}
+
+function updateDashboardSummaryCards({ runtime = {}, model = {}, channels = {}, skills = {}, refreshedAt = "" } = {}) {
+  const runtimeMode = String(runtime?.mode || "-");
+  const runtimeState = runtime?.active ? "运行中" : runtime?.ok === false ? "状态异常" : "未运行";
+  setText("dashboard_summary_runtime", runtimeState);
+  setText("dashboard_summary_runtime_meta", `模式: ${runtimeMode} | ${truncateText(runtime?.message || "-", 56)}`);
+
+  const currentModel = model?.current && typeof model.current === "object" ? model.current : {};
+  const modelId = String(currentModel?.modelName || currentModel?.modelId || "-");
+  const modelProvider = String(currentModel?.providerId || "-");
+  setText("dashboard_summary_model", modelId || "-");
+  setText("dashboard_summary_model_meta", `提供商: ${modelProvider}`);
+
+  const channelRuntime = channels?.runtime && typeof channels.runtime === "object" ? channels.runtime : {};
+  const channelRunning = Number(channelRuntime?.running ?? 0);
+  const channelTotal = Number(channelRuntime?.total ?? 0);
+  setText("dashboard_summary_channels", `${channelRunning}/${channelTotal}`);
+  setText(
+    "dashboard_summary_channels_meta",
+    channelRuntime?.ok === false
+      ? `渠道状态读取失败: ${truncateText(channelRuntime?.message || "-", 56)}`
+      : "运行中 / 总渠道数"
+  );
+
+  const skillSummary = skills && typeof skills === "object" ? skills : {};
+  const skillEnabled = Number(skillSummary?.enabled ?? 0);
+  const skillTotal = Number(skillSummary?.total ?? 0);
+  setText("dashboard_summary_skills", `${skillEnabled}/${skillTotal}`);
+  setText(
+    "dashboard_summary_skills_meta",
+    skillSummary?.ok === false ? `Skills 状态读取失败: ${truncateText(skillSummary?.message || "-", 56)}` : "已启用 / 总技能数"
+  );
+
+  const hint = document.querySelector("#dashboard_summary_hint");
+  if (hint) {
+    hint.textContent = refreshedAt ? `最后刷新：${refreshedAt}` : "点击“刷新总览”后显示最新状态。";
+  }
+}
+
+function renderChannelRuntimeList(containerSelector, items = [], emptyText = "暂无渠道运行数据") {
+  const container = document.querySelector(containerSelector);
   if (!container) {
     return;
   }
   if (!Array.isArray(items) || items.length === 0) {
-    setStackListEmpty(container, "暂无渠道运行数据");
+    setStackListEmpty(container, emptyText);
     return;
   }
 
@@ -913,13 +1051,13 @@ function renderStatusChannelRuntime(items = []) {
   });
 }
 
-function renderStatusSkillsRuntime(items = []) {
-  const container = document.querySelector("#status_skills_runtime_list");
+function renderSkillsRuntimeList(containerSelector, items = [], emptyText = "暂无 Skills 运行数据") {
+  const container = document.querySelector(containerSelector);
   if (!container) {
     return;
   }
   if (!Array.isArray(items) || items.length === 0) {
-    setStackListEmpty(container, "暂无 Skills 运行数据");
+    setStackListEmpty(container, emptyText);
     return;
   }
 
@@ -964,6 +1102,22 @@ function renderStatusSkillsRuntime(items = []) {
   });
 }
 
+function renderStatusChannelRuntime(items = []) {
+  renderChannelRuntimeList("#status_channel_runtime_list", items, "暂无渠道运行数据");
+}
+
+function renderDashboardChannelRuntime(items = []) {
+  renderChannelRuntimeList("#dashboard_channel_runtime_list", items, "暂无渠道运行数据");
+}
+
+function renderStatusSkillsRuntime(items = []) {
+  renderSkillsRuntimeList("#status_skills_runtime_list", items, "暂无 Skills 运行数据");
+}
+
+function renderDashboardSkillsRuntime(items = []) {
+  renderSkillsRuntimeList("#dashboard_skills_runtime_list", items, "暂无 Skills 运行数据");
+}
+
 async function loadStatusOverview({ silent = false } = {}) {
   const response = await api("/api/dashboard/summary");
   const summary = response?.summary && typeof response.summary === "object" ? response.summary : {};
@@ -975,6 +1129,7 @@ async function loadStatusOverview({ silent = false } = {}) {
     channels.configured && typeof channels.configured === "object" ? channels.configured : {};
   const runtimeChannels = channels.runtime && typeof channels.runtime === "object" ? channels.runtime : {};
   const skills = summary.skills && typeof summary.skills === "object" ? summary.skills : {};
+  const refreshedAt = new Date().toLocaleString();
 
   setInput("status_runtime_mode", String(runtime.mode || "-"));
   setInput("status_runtime_active", runtime.active ? "运行中" : runtime.ok === false ? "状态异常" : "未运行");
@@ -997,11 +1152,20 @@ async function loadStatusOverview({ silent = false } = {}) {
     if (skills?.ok === false && skills?.message) {
       hints.push(`Skills: ${skills.message}`);
     }
-    hintEl.textContent = hints.length > 0 ? hints.join(" | ") : `最后刷新：${new Date().toLocaleString()}`;
+    hintEl.textContent = hints.length > 0 ? hints.join(" | ") : `最后刷新：${refreshedAt}`;
   }
 
   renderStatusChannelRuntime(Array.isArray(runtimeChannels.items) ? runtimeChannels.items : []);
   renderStatusSkillsRuntime(Array.isArray(skills.items) ? skills.items : []);
+  renderDashboardChannelRuntime(Array.isArray(runtimeChannels.items) ? runtimeChannels.items : []);
+  renderDashboardSkillsRuntime(Array.isArray(skills.items) ? skills.items : []);
+  updateDashboardSummaryCards({
+    runtime,
+    model,
+    channels,
+    skills,
+    refreshedAt
+  });
 
   if (!silent) {
     setMessage("状态总览刷新完成", "ok");
@@ -2672,7 +2836,7 @@ async function loadInitialData() {
   fillSettings(settings.settings);
 }
 
-async function checkUpdate() {
+async function checkUpdate({ silent = false } = {}) {
   const result = await api("/api/update/check");
   const data = result.result;
   setInput("update_current_tag", data.currentTag || "");
@@ -2684,7 +2848,10 @@ async function checkUpdate() {
   if (data.warning) {
     setUpdateState("检查异常", "fail");
     els.updateHint.textContent = `已读取当前版本，但远程版本检查失败：${data.warning}`;
-    setMessage(`更新检查告警：${data.warning}`, "error");
+    updateDashboardVersionSummary(data);
+    if (!silent) {
+      setMessage(`更新检查告警：${data.warning}`, "error");
+    }
     return;
   }
 
@@ -2695,7 +2862,10 @@ async function checkUpdate() {
     setUpdateState("已是最新", "success");
     els.updateHint.textContent = `当前 ${data.currentTag || "-"}，无需升级。`;
   }
-  setMessage(`版本检查完成：current=${data.currentTag || "-"} latest=${data.latestTag || "-"}`, "ok");
+  updateDashboardVersionSummary(data);
+  if (!silent) {
+    setMessage(`版本检查完成：current=${data.currentTag || "-"} latest=${data.latestTag || "-"}`, "ok");
+  }
 }
 
 async function mutateVersion(action) {
@@ -2794,7 +2964,7 @@ async function loadTail() {
   setMessage(`日志加载完成，共 ${result.lines.length} 行`, "ok");
 }
 
-async function loadErrorSummary() {
+async function loadErrorSummary({ silent = false } = {}) {
   const result = await api("/api/logs/errors?count=20");
   els.errorSummary.innerHTML = "";
   result.lines.forEach((line) => {
@@ -2802,7 +2972,10 @@ async function loadErrorSummary() {
     li.textContent = line;
     els.errorSummary.appendChild(li);
   });
-  setMessage(`错误摘要加载完成，共 ${result.lines.length} 条`, "ok");
+  updateDashboardErrorSummary(result.lines);
+  if (!silent) {
+    setMessage(`错误摘要加载完成，共 ${result.lines.length} 条`, "ok");
+  }
 }
 
 function stopStream() {
@@ -2937,8 +3110,8 @@ loadInitialData()
     setMessage("初始化完成", "ok");
     runService("status").catch(() => {});
     loadTail().catch(() => {});
-    loadErrorSummary().catch(() => {});
-    checkUpdate().catch(() => {});
+    loadErrorSummary({ silent: true }).catch((error) => setMessage(`错误摘要加载失败：${error.message}`, "error"));
+    checkUpdate({ silent: true }).catch((error) => setMessage(`版本信息加载失败：${error.message}`, "error"));
     loadStatusOverview({ silent: true }).catch((error) => setMessage(`状态总览加载失败：${error.message}`, "error"));
     loadSkillsStatus({ silent: true }).catch((error) => setMessage(`Skills 页面加载失败：${error.message}`, "error"));
     loadChatSessions({ silent: true }).catch((error) => setMessage(`智能对话页加载失败：${error.message}`, "error"));

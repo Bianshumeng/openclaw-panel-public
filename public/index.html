@@ -94,6 +94,79 @@
               </label>
             </div>
           </article>
+
+          <article class="card">
+            <div class="stack-item-row">
+              <div>
+                <h2>状态总览</h2>
+                <p class="muted-line">聚合运行状态、模型、渠道、Skills、错误摘要和版本信息，便于快速巡检。</p>
+              </div>
+              <div class="actions">
+                <button id="dashboard_summary_refresh" class="btn-soft" type="button">刷新总览</button>
+              </div>
+            </div>
+            <div class="dashboard-kpi-grid">
+              <article class="dashboard-kpi">
+                <p class="dashboard-kpi-label">运行状态</p>
+                <p id="dashboard_summary_runtime" class="dashboard-kpi-value">-</p>
+                <p id="dashboard_summary_runtime_meta" class="dashboard-kpi-meta">等待刷新</p>
+              </article>
+              <article class="dashboard-kpi">
+                <p class="dashboard-kpi-label">当前模型</p>
+                <p id="dashboard_summary_model" class="dashboard-kpi-value">-</p>
+                <p id="dashboard_summary_model_meta" class="dashboard-kpi-meta">等待刷新</p>
+              </article>
+              <article class="dashboard-kpi">
+                <p class="dashboard-kpi-label">渠道状态</p>
+                <p id="dashboard_summary_channels" class="dashboard-kpi-value">-</p>
+                <p id="dashboard_summary_channels_meta" class="dashboard-kpi-meta">等待刷新</p>
+              </article>
+              <article class="dashboard-kpi">
+                <p class="dashboard-kpi-label">Skills 状态</p>
+                <p id="dashboard_summary_skills" class="dashboard-kpi-value">-</p>
+                <p id="dashboard_summary_skills_meta" class="dashboard-kpi-meta">等待刷新</p>
+              </article>
+              <article class="dashboard-kpi">
+                <p class="dashboard-kpi-label">错误摘要</p>
+                <p id="dashboard_summary_errors" class="dashboard-kpi-value">-</p>
+                <p id="dashboard_summary_errors_meta" class="dashboard-kpi-meta">等待刷新</p>
+              </article>
+              <article class="dashboard-kpi">
+                <p class="dashboard-kpi-label">版本状态</p>
+                <p id="dashboard_summary_version" class="dashboard-kpi-value">-</p>
+                <p id="dashboard_summary_version_meta" class="dashboard-kpi-meta">等待刷新</p>
+              </article>
+            </div>
+            <p id="dashboard_summary_hint" class="muted-line">点击“刷新总览”后显示最新状态。</p>
+          </article>
+
+          <article class="card">
+            <h2>快捷操作</h2>
+            <p class="muted-line">按“你要做的事”直达，不用在侧边栏来回找入口。</p>
+            <div class="dashboard-quick-grid">
+              <button class="btn-soft dashboard-quick-btn" data-dashboard-jump="panel-chat-console" type="button">打开智能对话</button>
+              <button class="btn-soft dashboard-quick-btn" data-dashboard-jump="panel-model" type="button">配置模型与提供商</button>
+              <button class="btn-soft dashboard-quick-btn" data-dashboard-jump="panel-channel" type="button">配置渠道接入</button>
+              <button class="btn-soft dashboard-quick-btn" data-dashboard-jump="panel-skills" type="button">管理 Skills</button>
+              <button class="btn-soft dashboard-quick-btn" data-dashboard-jump="panel-update" type="button">检查版本更新</button>
+              <button class="btn-soft dashboard-quick-btn" data-dashboard-jump="panel-service" type="button">服务控制与排障</button>
+            </div>
+          </article>
+
+          <article class="card">
+            <h2>运行态明细</h2>
+            <p class="muted-line">展示当前已配置渠道和已启用技能，便于确认“现在到底在跑什么”。</p>
+            <div class="dashboard-runtime-grid">
+              <article class="dashboard-runtime-card">
+                <h3>渠道运行态</h3>
+                <div id="dashboard_channel_runtime_list" class="stack-list"></div>
+              </article>
+              <article class="dashboard-runtime-card">
+                <h3>Skills 运行态</h3>
+                <div id="dashboard_skills_runtime_list" class="stack-list"></div>
+              </article>
+            </div>
+          </article>
         </section>
 
         <section class="panel" data-panel="panel-status-overview">
