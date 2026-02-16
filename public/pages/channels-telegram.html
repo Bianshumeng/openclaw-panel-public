@@ -77,12 +77,13 @@
       }
 
       .tg-flow-step {
-        border: 1px solid var(--border);
+        border: 1px solid var(--border-strong);
         border-radius: 10px;
         padding: 12px;
-        background: var(--surface-muted);
+        background: var(--inner-card-bg);
         display: grid;
         gap: 10px;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
       }
 
       .tg-flow-step h3 {
@@ -94,6 +95,35 @@
         margin: 0;
         color: var(--muted);
         font-size: 13px;
+      }
+
+      .tg-flow-step input,
+      .tg-flow-step select,
+      .tg-flow-step textarea {
+        background: #ffffff;
+        border-color: #c6d2e4;
+      }
+
+      .tg-flow-step input:focus,
+      .tg-flow-step select:focus,
+      .tg-flow-step textarea:focus {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 2px rgba(36, 87, 214, 0.18);
+      }
+
+      :root[data-theme="light"] .tg-flow-step {
+        background: #e8eef8;
+      }
+
+      :root[data-theme="dark"] .tg-flow-step {
+        box-shadow: none;
+      }
+
+      :root[data-theme="dark"] .tg-flow-step input,
+      :root[data-theme="dark"] .tg-flow-step select,
+      :root[data-theme="dark"] .tg-flow-step textarea {
+        background: #141922;
+        border-color: #384558;
       }
 
       .tg-flow-arrow {
