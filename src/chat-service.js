@@ -1,9 +1,36 @@
 import { randomUUID } from "node:crypto";
+import { existsSync, readFileSync } from "node:fs";
+import { mkdir, writeFile } from "node:fs/promises";
+import path from "node:path";
 import { callGatewayRpc, subscribeGatewayEvents } from "./gateway-client.js";
+import { expandHome } from "./utils.js";
 
 const CHAT_GATEWAY_TIMEOUT_MS = 1_000;
 const CHAT_GATEWAY_RETRIES = 6;
 const CHAT_GATEWAY_RETRY_DELAY_MS = 1_000;
+const CHAT_ATTACHMENT_TIMEOUT_MS = 120_000;
+const ATTACHMENT_PREVIEW_MAX_BYTES = 2 * 1024 * 1024;
+const VISION_MIME_TYPES = new Set([
+  "image/png",
+  "image/jpeg",
+  "image/jpg",
+  "image/bmp",
+  "image/webp",
+  "image/gif"
+]);
+
+const MIME_EXTENSION_MAP = Object.freeze({
+  "image/png": ".png",
+  "image/jpeg": ".jpg",
+  "image/jpg": ".jpg",
+  "image/webp": ".webp",
+  "image/gif": ".gif",
+  "image/bmp": ".bmp",
+  "application/pdf": ".pdf",
+  "application/json": ".json",
+  "text/plain": ".txt",
+  "text/markdown": ".md"
+});
 
 function trimString(value) {
   return String(value || "").trim();
@@ -15,6 +42,129 @@ function toPositiveInt(value, fallback) {
     return fallback;
   }
   return Math.floor(parsed);
+}
+
+function inferExtension(fileName, mimeType) {
+  const ext = path.extname(String(fileName || "").trim());
+  if (ext) {
+    return ext;
+  }
+  const byMime = MIME_EXTENSION_MAP[String(mimeType || "").trim().toLowerCase()];
+  if (byMime) {
+    return byMime;
+  }
+  return "";
+}
+
+function sanitizeFileName(fileName, fallback = "file") {
+  const raw = String(fileName || "").trim();
+  if (!raw) {
+    return fallback;
+  }
+  const base = path.basename(raw).replace(/[<>:"/\\|?*\u0000-\u001F]/g, "_");
+  return base || fallback;
+}
+
+function normalizeBase64(input) {
+  const value = String(input || "").trim();
+  if (!value) {
+    return "";
+  }
+  const maybeDataUrl = value.match(/^data:[^;]+;base64,(.+)$/i);
+  return maybeDataUrl ? maybeDataUrl[1].trim() : value;
+}
+
+function resolveOutboundMediaDir(panelConfig) {
+  const configPath = expandHome(String(panelConfig?.openclaw?.config_path || "~/.openclaw/openclaw.json"));
+  const openclawRoot = path.dirname(configPath);
+  return path.join(openclawRoot, "media", "outbound");
+}
+
+function toPosixPath(value) {
+  return String(value || "").replace(/\\/g, "/");
+}
+
+function resolveGatewayMediaRoot(panelConfig) {
+  const explicit = trimString(
+    panelConfig?.openclaw?.gateway_media_root || process.env.OPENCLAW_GATEWAY_MEDIA_ROOT || ""
+  );
+  if (explicit) {
+    return explicit;
+  }
+  if (trimString(panelConfig?.runtime?.mode) === "docker") {
+    return "/home/node/.openclaw";
+  }
+  const configPath = expandHome(String(panelConfig?.openclaw?.config_path || "~/.openclaw/openclaw.json"));
+  return path.dirname(configPath);
+}
+
+function mapLocalPathToGatewayPath(panelConfig, absoluteLocalPath) {
+  const localOpenclawRoot = path.resolve(path.dirname(expandHome(String(panelConfig?.openclaw?.config_path || "~/.openclaw/openclaw.json"))));
+  const relative = path.relative(localOpenclawRoot, absoluteLocalPath);
+  if (!relative || relative.startsWith("..") || path.isAbsolute(relative)) {
+    return toPosixPath(absoluteLocalPath);
+  }
+  const gatewayRoot = toPosixPath(resolveGatewayMediaRoot(panelConfig)).replace(/\/+$/, "");
+  const relativePosix = toPosixPath(relative).replace(/^\/+/, "");
+  return `${gatewayRoot}/${relativePosix}`;
+}
+
+function buildMediaSendPayload(panelConfig, attachments = [], deps = {}) {
+  const list = Array.isArray(attachments) ? attachments : [];
+  if (list.length === 0) {
+    return {
+      imageAttachments: [],
+      fileReferences: []
+    };
+  }
+
+  const checkExists = deps.existsSync || existsSync;
+  const readBuffer = deps.readFileSync || readFileSync;
+  const allowedOutboundDir = path.resolve(resolveOutboundMediaDir(panelConfig));
+  const imageAttachments = [];
+  const fileReferences = [];
+
+  list.forEach((item, index) => {
+    if (!item || typeof item !== "object") {
+      throw new Error(`附件 #${index + 1} 格式错误`);
+    }
+
+    const filePath = trimString(item.stagedPath || item.filePath);
+    const fileName = sanitizeFileName(item.fileName, `file-${index + 1}`);
+    const mimeType = trimString(item.mimeType).toLowerCase() || "application/octet-stream";
+
+    if (!filePath) {
+      throw new Error(`附件缺少 stagedPath：${fileName}`);
+    }
+    const resolvedFilePath = path.resolve(filePath);
+    const normalizedAllowed = process.platform === "win32" ? allowedOutboundDir.toLowerCase() : allowedOutboundDir;
+    const normalizedResolved = process.platform === "win32" ? resolvedFilePath.toLowerCase() : resolvedFilePath;
+    const allowedPrefix = `${normalizedAllowed}${path.sep}`;
+    if (normalizedResolved !== normalizedAllowed && !normalizedResolved.startsWith(allowedPrefix)) {
+      throw new Error(`附件路径非法：${fileName}`);
+    }
+    if (!checkExists(resolvedFilePath)) {
+      throw new Error(`附件文件不存在：${fileName}`);
+    }
+
+    const gatewayFilePath = mapLocalPathToGatewayPath(panelConfig, resolvedFilePath);
+    fileReferences.push(`[media attached: ${gatewayFilePath} (${mimeType}) | ${gatewayFilePath}]`);
+
+    if (!VISION_MIME_TYPES.has(mimeType)) {
+      return;
+    }
+    const fileBuffer = readBuffer(resolvedFilePath);
+    imageAttachments.push({
+      content: fileBuffer.toString("base64"),
+      mimeType,
+      fileName
+    });
+  });
+
+  return {
+    imageAttachments,
+    fileReferences
+  };
 }
 
 async function callChatRpc(panelConfig, method, params, deps = {}, options = {}) {
@@ -171,19 +321,24 @@ export async function sendChatMessage({
   }
 
   const finalIdempotencyKey = trimString(idempotencyKey) || randomUUID();
+  const { imageAttachments, fileReferences } = buildMediaSendPayload(panelConfig, attachments, deps);
+  const refs = fileReferences.join("\n");
+  const finalMessage = refs ? (normalizedMessage ? `${normalizedMessage}\n\n${refs}` : refs) : normalizedMessage;
+  const resolvedTimeout = toPositiveInt(timeoutMs, imageAttachments.length > 0 ? CHAT_ATTACHMENT_TIMEOUT_MS : CHAT_GATEWAY_TIMEOUT_MS);
+
   const payload = await callChatRpc(
     panelConfig,
     "chat.send",
     {
       sessionKey: normalizedSessionKey,
-      message: normalizedMessage,
+      message: finalMessage,
       thinking: trimString(thinking),
-      attachments: Array.isArray(attachments) ? attachments : [],
+      attachments: imageAttachments,
       idempotencyKey: finalIdempotencyKey
     },
     deps,
     {
-      timeoutMs: toPositiveInt(timeoutMs, CHAT_GATEWAY_TIMEOUT_MS)
+      timeoutMs: resolvedTimeout
     }
   );
 
@@ -192,6 +347,54 @@ export async function sendChatMessage({
     runId: trimString(payload?.runId),
     status: trimString(payload?.status),
     idempotencyKey: finalIdempotencyKey
+  };
+}
+
+export async function stageChatAttachment({
+  panelConfig,
+  fileName,
+  mimeType = "application/octet-stream",
+  base64,
+  deps = {}
+}) {
+  const normalizedBase64 = normalizeBase64(base64);
+  if (!normalizedBase64) {
+    throw new Error("base64 不能为空");
+  }
+
+  let buffer;
+  try {
+    buffer = Buffer.from(normalizedBase64, "base64");
+  } catch {
+    throw new Error("base64 格式无效");
+  }
+  if (!buffer || buffer.length === 0) {
+    throw new Error("附件内容为空");
+  }
+
+  const safeName = sanitizeFileName(fileName);
+  const normalizedMimeType = trimString(mimeType).toLowerCase() || "application/octet-stream";
+  const ext = inferExtension(safeName, normalizedMimeType);
+  const id = randomUUID();
+  const outboundDir = resolveOutboundMediaDir(panelConfig);
+  const stagedPath = path.join(outboundDir, `${id}${ext}`);
+
+  const makeDir = deps.mkdir || mkdir;
+  const write = deps.writeFile || writeFile;
+  await makeDir(outboundDir, { recursive: true });
+  await write(stagedPath, buffer, { mode: 0o644 });
+
+  const preview = normalizedMimeType.startsWith("image/") && buffer.length <= ATTACHMENT_PREVIEW_MAX_BYTES
+    ? `data:${normalizedMimeType};base64,${normalizedBase64}`
+    : null;
+
+  return {
+    id,
+    fileName: safeName,
+    mimeType: normalizedMimeType,
+    fileSize: buffer.length,
+    stagedPath,
+    preview
   };
 }
 

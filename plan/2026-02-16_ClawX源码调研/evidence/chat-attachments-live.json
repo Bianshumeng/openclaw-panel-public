@@ -1,0 +1,43 @@
+{
+  "health": {
+    "ok": true,
+    "service": "openclaw-panel",
+    "timestamp": "2026-02-16T08:42:32.337Z"
+  },
+  "session": {
+    "ok": true,
+    "result": {
+      "key": "agent:main:session-1771231352502-5f93297c",
+      "entry": {
+        "sessionId": "a6537a5f-e7b0-4c06-803a-780e055a18a8",
+        "updatedAt": 1771231352643,
+        "systemSent": false,
+        "abortedLastRun": false,
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "totalTokens": 0,
+        "totalTokensFresh": true
+      }
+    }
+  },
+  "staged": {
+    "ok": true,
+    "result": {
+      "id": "8b563052-3fae-4589-aaa0-ba377b7a55f1",
+      "fileName": "note.txt",
+      "mimeType": "text/plain",
+      "fileSize": 15,
+      "stagedPath": "/data/openclaw/media/outbound/8b563052-3fae-4589-aaa0-ba377b7a55f1.txt",
+      "preview": null
+    }
+  },
+  "sent": {
+    "ok": true,
+    "result": {
+      "sessionKey": "agent:main:session-1771231352502-5f93297c",
+      "runId": "b65a4983-a8ce-48c0-9c13-b9db0ed1dff5",
+      "status": "started",
+      "idempotencyKey": "b65a4983-a8ce-48c0-9c13-b9db0ed1dff5"
+    }
+  }
+}

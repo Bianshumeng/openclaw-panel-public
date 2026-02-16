@@ -21,7 +21,8 @@
     "container_name": "openclaw-gateway",
     "image_repo": "ghcr.io/openclaw/openclaw",
     "gateway_port": 18789,
-    "gateway_ws_url": ""
+    "gateway_ws_url": "",
+    "gateway_media_root": "/home/node/.openclaw"
   },
   "docker": {
     "enabled": true

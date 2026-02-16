@@ -1,0 +1,134 @@
+{
+  "session": {
+    "ok": true,
+    "result": {
+      "key": "agent:main:session-1771231535668-5a3c1e4b",
+      "entry": {
+        "sessionId": "16752fc1-6014-4f39-9b04-8cb6ab31676b",
+        "updatedAt": 1771231535816,
+        "systemSent": false,
+        "abortedLastRun": false,
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "totalTokens": 0,
+        "totalTokensFresh": true
+      }
+    }
+  },
+  "staged": {
+    "ok": true,
+    "result": {
+      "id": "e6b71e16-3385-4d7a-9da4-62c3b36df10e",
+      "fileName": "map-test-2.txt",
+      "mimeType": "text/plain",
+      "fileSize": 26,
+      "stagedPath": "/data/openclaw/media/outbound/e6b71e16-3385-4d7a-9da4-62c3b36df10e.txt",
+      "preview": null
+    }
+  },
+  "sent": {
+    "ok": true,
+    "result": {
+      "sessionKey": "agent:main:session-1771231535668-5a3c1e4b",
+      "runId": "437f1bf8-a806-4094-8ab9-387d9f0fa2a9",
+      "status": "started",
+      "idempotencyKey": "437f1bf8-a806-4094-8ab9-387d9f0fa2a9"
+    }
+  },
+  "history": {
+    "ok": true,
+    "result": {
+      "sessionKey": "agent:main:session-1771231535668-5a3c1e4b",
+      "sessionId": "16752fc1-6014-4f39-9b04-8cb6ab31676b",
+      "thinkingLevel": "off",
+      "verboseLevel": "",
+      "messages": [
+        {
+          "role": "user",
+          "content": [
+            {
+              "type": "text",
+              "text": "Conversation info (untrusted metadata):\n```json\n{\n  \"conversation_label\": \"openclaw-panel\"\n}\n```\n\n[Mon 2026-02-16 08:45 UTC] 读取附件并只回复ok [media attached: /home/node/.openclaw/media/outbound/e6b71e16-3385-4d7a-9da4-62c3b36df10e.txt (text/plain) | /home/node/.openclaw/media/outbound/e6b71e16-3385-4d7a-9da4-62c3b36df10e.txt]"
+            }
+          ],
+          "timestamp": 1771231536742
+        },
+        {
+          "role": "assistant",
+          "content": [
+            {
+              "type": "toolCall",
+              "id": "call_cZKP9r8ICVTnNOvnWtU1s8Hu|fc_02d30d43fcfb303f016992d9320df481958fdd92c127be9e85",
+              "name": "read",
+              "arguments": {
+                "file_path": "/home/node/.openclaw/media/outbound/e6b71e16-3385-4d7a-9da4-62c3b36df10e.txt"
+              },
+              "partialJson": "{\"file_path\":\"/home/node/.openclaw/media/outbound/e6b71e16-3385-4d7a-9da4-62c3b36df10e.txt\"}"
+            }
+          ],
+          "api": "openai-responses",
+          "provider": "aicodecat-gpt",
+          "model": "gpt-5.2",
+          "usage": {
+            "input": 205,
+            "output": 55,
+            "cacheRead": 11520,
+            "cacheWrite": 0,
+            "totalTokens": 11780,
+            "cost": {
+              "input": 0.00035875,
+              "output": 0.00077,
+              "cacheRead": 0.002016,
+              "cacheWrite": 0,
+              "total": 0.00314475
+            }
+          },
+          "stopReason": "toolUse",
+          "timestamp": 1771231536762
+        },
+        {
+          "role": "toolResult",
+          "toolCallId": "call_cZKP9r8ICVTnNOvnWtU1s8Hu|fc_02d30d43fcfb303f016992d9320df481958fdd92c127be9e85",
+          "toolName": "read",
+          "content": [
+            {
+              "type": "text",
+              "text": "attachment-path-map-test-2"
+            }
+          ],
+          "isError": false,
+          "timestamp": 1771231539286
+        },
+        {
+          "role": "assistant",
+          "content": [
+            {
+              "type": "text",
+              "text": "ok",
+              "textSignature": "msg_02d30d43fcfb303f016992d934c7348195aed17900ac9f41f9"
+            }
+          ],
+          "api": "openai-responses",
+          "provider": "aicodecat-gpt",
+          "model": "gpt-5.2",
+          "usage": {
+            "input": 273,
+            "output": 5,
+            "cacheRead": 11520,
+            "cacheWrite": 0,
+            "totalTokens": 11798,
+            "cost": {
+              "input": 0.00047775,
+              "output": 7E-05,
+              "cacheRead": 0.002016,
+              "cacheWrite": 0,
+              "total": 0.00256375
+            }
+          },
+          "stopReason": "stop",
+          "timestamp": 1771231539316
+        }
+      ]
+    }
+  }
+}

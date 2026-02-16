@@ -1,4 +1,7 @@
 import assert from "node:assert/strict";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
 import test from "node:test";
 import {
   abortChatRun,
@@ -7,7 +10,8 @@ import {
   getChatHistory,
   listChatSessions,
   resetChatSession,
-  sendChatMessage
+  sendChatMessage,
+  stageChatAttachment
 } from "../../src/chat-service.js";
 
 test("listChatSessions normalizes session list payload", async () => {
@@ -95,6 +99,126 @@ test("sendChatMessage sends idempotent request and returns run info", async () =
   assert.match(result.idempotencyKey, /^[0-9a-f-]{36}$/i);
   assert.equal(result.runId, "run-1");
   assert.equal(result.status, "started");
+});
+
+test("sendChatMessage builds media references and image attachments for staged files", async () => {
+  const calls = [];
+  const imageBytes = Buffer.from("fake-image-content");
+  const stagedPath = "/tmp/openclaw/media/outbound/test-image.png";
+  const result = await sendChatMessage({
+    panelConfig: { openclaw: { config_path: "/tmp/openclaw/openclaw.json" } },
+    sessionKey: "agent:main:test",
+    message: "请看附件",
+    attachments: [
+      {
+        fileName: "test-image.png",
+        mimeType: "image/png",
+        stagedPath
+      }
+    ],
+    deps: {
+      existsSync: () => true,
+      readFileSync: () => imageBytes,
+      callGatewayRpc: async (payload) => {
+        calls.push(payload);
+        return { runId: "run-2", status: "started" };
+      }
+    }
+  });
+
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].method, "chat.send");
+  assert.match(calls[0].params.message, /\[media attached: .*test-image\.png \(image\/png\) \| .*test-image\.png\]/);
+  assert.equal(calls[0].params.attachments.length, 1);
+  assert.equal(calls[0].params.attachments[0].mimeType, "image/png");
+  assert.equal(calls[0].params.attachments[0].content, imageBytes.toString("base64"));
+  assert.equal(calls[0].timeoutMs, 120000);
+  assert.equal(result.runId, "run-2");
+});
+
+test("sendChatMessage maps local staged path to gateway media root in docker mode", async () => {
+  const calls = [];
+  await sendChatMessage({
+    panelConfig: {
+      runtime: { mode: "docker" },
+      openclaw: {
+        config_path: "/data/openclaw/openclaw.json",
+        gateway_media_root: "/home/node/.openclaw"
+      }
+    },
+    sessionKey: "agent:main:test",
+    message: "请读取附件",
+    attachments: [
+      {
+        fileName: "doc.txt",
+        mimeType: "text/plain",
+        stagedPath: "/data/openclaw/media/outbound/doc.txt"
+      }
+    ],
+    deps: {
+      existsSync: () => true,
+      readFileSync: () => Buffer.from("text"),
+      callGatewayRpc: async (payload) => {
+        calls.push(payload);
+        return { runId: "run-map", status: "started" };
+      }
+    }
+  });
+
+  assert.equal(calls.length, 1);
+  assert.match(
+    calls[0].params.message,
+    /\[media attached: \/home\/node\/\.openclaw\/media\/outbound\/doc\.txt \(text\/plain\) \| \/home\/node\/\.openclaw\/media\/outbound\/doc\.txt\]/
+  );
+});
+
+test("stageChatAttachment writes staged file under media outbound", async () => {
+  const tmpRoot = await mkdtemp(path.join(os.tmpdir(), "panel-chat-stage-"));
+  try {
+    const panelConfig = {
+      openclaw: {
+        config_path: path.join(tmpRoot, "openclaw.json")
+      }
+    };
+
+    const staged = await stageChatAttachment({
+      panelConfig,
+      fileName: "note.txt",
+      mimeType: "text/plain",
+      base64: Buffer.from("hello staged file").toString("base64")
+    });
+
+    assert.match(staged.stagedPath, /media[\\/]outbound[\\/]/);
+    assert.equal(staged.fileName, "note.txt");
+    assert.equal(staged.mimeType, "text/plain");
+    const saved = await readFile(staged.stagedPath, "utf8");
+    assert.equal(saved, "hello staged file");
+  } finally {
+    await rm(tmpRoot, { recursive: true, force: true });
+  }
+});
+
+test("sendChatMessage rejects attachments outside outbound dir", async () => {
+  await assert.rejects(
+    sendChatMessage({
+      panelConfig: { openclaw: { config_path: "/tmp/openclaw/openclaw.json" } },
+      sessionKey: "agent:main:test",
+      message: "x",
+      attachments: [
+        {
+          fileName: "secrets.txt",
+          mimeType: "text/plain",
+          stagedPath: "/etc/passwd"
+        }
+      ],
+      deps: {
+        existsSync: () => true,
+        readFileSync: () => Buffer.from("mock"),
+        callGatewayRpc: async () => ({ runId: "run-bad", status: "started" })
+      }
+    }),
+    /附件路径非法/
+  );
 });
 
 test("abortChatRun and resetChatSession forward payloads", async () => {

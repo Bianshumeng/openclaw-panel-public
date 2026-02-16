@@ -167,7 +167,9 @@ const chatConsoleState = {
   streamDeltasByRunId: {},
   streamThinkingByRunId: {},
   historyMessages: [],
-  sending: false
+  sending: false,
+  attachments: [],
+  staging: false
 };
 
 const els = {
@@ -1186,6 +1188,158 @@ function setChatComposerSending(sending) {
   }
 }
 
+function setChatAttachmentHint(text) {
+  const hint = document.querySelector("#chat_attachment_hint");
+  if (!hint) {
+    return;
+  }
+  hint.textContent = String(text || "").trim() || "支持点击上传、粘贴或拖拽文件（图片会显示预览）";
+}
+
+function formatFileSize(bytes) {
+  const size = Number(bytes || 0);
+  if (!Number.isFinite(size) || size <= 0) {
+    return "-";
+  }
+  if (size < 1024) {
+    return `${size} B`;
+  }
+  if (size < 1024 * 1024) {
+    return `${(size / 1024).toFixed(1)} KB`;
+  }
+  return `${(size / (1024 * 1024)).toFixed(2)} MB`;
+}
+
+function renderChatAttachments() {
+  const container = document.querySelector("#chat_attachment_list");
+  if (!container) {
+    return;
+  }
+  container.innerHTML = "";
+  const items = Array.isArray(chatConsoleState.attachments) ? chatConsoleState.attachments : [];
+  if (items.length === 0) {
+    const empty = document.createElement("div");
+    empty.className = "chat-empty";
+    empty.textContent = "当前没有附件";
+    container.appendChild(empty);
+    return;
+  }
+
+  items.forEach((item, index) => {
+    const node = document.createElement("div");
+    node.className = "chat-attachment-item";
+
+    const row = document.createElement("div");
+    row.className = "chat-attachment-row";
+
+    const info = document.createElement("div");
+    const name = document.createElement("div");
+    name.className = "chat-attachment-name";
+    name.textContent = String(item.fileName || "file");
+    const meta = document.createElement("div");
+    meta.className = "chat-attachment-meta";
+    meta.textContent = `${String(item.mimeType || "application/octet-stream")} | ${formatFileSize(item.fileSize)}`;
+    info.appendChild(name);
+    info.appendChild(meta);
+
+    const removeBtn = document.createElement("button");
+    removeBtn.type = "button";
+    removeBtn.className = "btn-soft";
+    removeBtn.dataset.attachmentIndex = String(index);
+    removeBtn.textContent = "移除";
+
+    row.appendChild(info);
+    row.appendChild(removeBtn);
+    node.appendChild(row);
+
+    if (item.preview && String(item.mimeType || "").startsWith("image/")) {
+      const image = document.createElement("img");
+      image.className = "chat-attachment-preview";
+      image.src = item.preview;
+      image.alt = String(item.fileName || "image");
+      node.appendChild(image);
+    }
+    container.appendChild(node);
+  });
+}
+
+function removeChatAttachmentByIndex(index) {
+  if (!Array.isArray(chatConsoleState.attachments)) {
+    return;
+  }
+  if (!Number.isInteger(index) || index < 0 || index >= chatConsoleState.attachments.length) {
+    return;
+  }
+  chatConsoleState.attachments.splice(index, 1);
+  renderChatAttachments();
+  setChatAttachmentHint(`已移除附件，当前 ${chatConsoleState.attachments.length} 个`);
+}
+
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const raw = String(reader.result || "");
+      const match = raw.match(/^data:[^;]+;base64,(.+)$/i);
+      resolve(match ? match[1] : raw);
+    };
+    reader.onerror = () => {
+      reject(new Error(`读取文件失败：${file?.name || "unknown"}`));
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+async function stageChatFile(file) {
+  const fileName = String(file?.name || "").trim() || "file";
+  const mimeType = String(file?.type || "").trim() || "application/octet-stream";
+  const base64 = await fileToBase64(file);
+  const response = await api("/api/chat/attachments/stage", {
+    method: "POST",
+    body: JSON.stringify({
+      fileName,
+      mimeType,
+      base64
+    })
+  });
+  return response?.result && typeof response.result === "object" ? response.result : null;
+}
+
+async function stageChatFiles(files) {
+  const list = Array.from(files || []).filter(Boolean);
+  if (list.length === 0) {
+    return;
+  }
+  if (chatConsoleState.staging) {
+    setChatAttachmentHint("附件还在处理中，请稍候再操作");
+    return;
+  }
+  chatConsoleState.staging = true;
+  setChatAttachmentHint(`正在处理附件（${list.length} 个）...`);
+  try {
+    for (const file of list) {
+      const staged = await stageChatFile(file);
+      if (!staged) {
+        continue;
+      }
+      const stagedPath = String(staged.stagedPath || "").trim();
+      if (!stagedPath) {
+        continue;
+      }
+      const existedIndex = chatConsoleState.attachments.findIndex((item) => item.stagedPath === stagedPath);
+      if (existedIndex >= 0) {
+        chatConsoleState.attachments[existedIndex] = staged;
+      } else {
+        chatConsoleState.attachments.push(staged);
+      }
+    }
+    renderChatAttachments();
+    setChatAttachmentHint(`附件已就绪：${chatConsoleState.attachments.length} 个`);
+  } finally {
+    chatConsoleState.staging = false;
+  }
+}
+
 function renderChatStreamLines() {
   const output = document.querySelector("#chat_stream_output");
   if (!output) {
@@ -1293,13 +1447,24 @@ function normalizeChatMessage(message = {}, index = 0) {
   const body = normalizeChatContent(
     message?.content ?? message?.parts ?? message?.message ?? message?.delta ?? message?.text ?? ""
   );
+  const attachments = Array.isArray(message?._attachedFiles)
+    ? message._attachedFiles
+        .map((entry) => ({
+          fileName: String(entry?.fileName || "").trim(),
+          mimeType: String(entry?.mimeType || "").trim() || "application/octet-stream",
+          fileSize: Number(entry?.fileSize || 0) || 0,
+          preview: String(entry?.preview || "").trim() || ""
+        }))
+        .filter((entry) => entry.fileName)
+    : [];
   return {
     id: `history-${index + 1}`,
     role,
     status,
     thinking,
     body: body || "(空消息)",
-    timestamp: message?.timestamp || message?.createdAt || message?.at || ""
+    timestamp: message?.timestamp || message?.createdAt || message?.at || "",
+    attachments
   };
 }
 
@@ -1333,6 +1498,19 @@ function createChatMessageNode(item, { streaming = false, showThinking = true } 
   body.className = "chat-message-body";
   body.textContent = String(item?.body || "").trim() || "(空消息)";
   node.appendChild(body);
+
+  const files = Array.isArray(item?.attachments) ? item.attachments : [];
+  if (files.length > 0) {
+    const fileList = document.createElement("div");
+    fileList.className = "chip-line";
+    files.forEach((entry) => {
+      const chip = document.createElement("span");
+      chip.className = "mini-chip";
+      chip.textContent = `${String(entry?.fileName || "file")} (${formatFileSize(entry?.fileSize)})`;
+      fileList.appendChild(chip);
+    });
+    node.appendChild(fileList);
+  }
   return node;
 }
 
@@ -1621,6 +1799,10 @@ async function loadChatSessions({ silent = false, preserveSelection = true, sele
     chatConsoleState.selectedSessionKey = String(sessions[0]?.key || "").trim();
   }
 
+  chatConsoleState.attachments = [];
+  renderChatAttachments();
+  setChatAttachmentHint("支持点击上传、粘贴或拖拽文件（图片会显示预览）");
+
   renderChatSessionSelect();
   if (chatConsoleState.selectedSessionKey) {
     connectChatStream(chatConsoleState.selectedSessionKey, { silent: true });
@@ -1686,30 +1868,63 @@ async function createChatSession() {
 async function sendChatConsoleMessage() {
   const sessionKey = String(getInputValue("chat_session_select") || chatConsoleState.selectedSessionKey || "").trim();
   const message = String(getInputValue("chat_message_input") || "").trim();
+  const attachments = Array.isArray(chatConsoleState.attachments) ? [...chatConsoleState.attachments] : [];
   if (!sessionKey) {
     throw new Error("请先选择会话");
   }
-  if (!message) {
-    throw new Error("请输入消息内容");
+  if (!message && attachments.length === 0) {
+    throw new Error("请输入消息或添加至少一个附件");
   }
   if (chatConsoleState.sending) {
     throw new Error("当前正在生成回复，请稍候或先点击“停止回复”");
+  }
+  if (chatConsoleState.staging) {
+    throw new Error("附件仍在处理中，请稍候再发送");
   }
 
   const payload = {
     sessionKey,
     message,
     thinking: String(getInputValue("chat_thinking_level") || "").trim(),
-    idempotencyKey: String(getInputValue("chat_idempotency_key") || "").trim()
+    idempotencyKey: String(getInputValue("chat_idempotency_key") || "").trim(),
+    attachments: attachments.map((item) => ({
+      fileName: String(item?.fileName || "").trim() || "file",
+      mimeType: String(item?.mimeType || "").trim() || "application/octet-stream",
+      fileSize: Number(item?.fileSize || 0) || 0,
+      stagedPath: String(item?.stagedPath || "").trim(),
+      preview: String(item?.preview || "").trim() || ""
+    }))
   };
-  chatConsoleState.historyMessages.push({
+  if (payload.attachments.some((item) => !item.stagedPath)) {
+    throw new Error("存在未完成的附件，请重新添加后再发送");
+  }
+
+  const optimisticMessage = {
     id: `local-user-${Date.now()}`,
     role: "user",
-    status: "",
+    status: payload.attachments.length > 0 ? `附件 ${payload.attachments.length} 个` : "",
     thinking: "",
-    body: message
-  });
+    body: message || "(仅附件)",
+    attachments: payload.attachments
+      .map((item) => ({
+        fileName: item.fileName,
+        mimeType: item.mimeType,
+        fileSize: item.fileSize,
+        preview: item.preview
+      }))
+      .filter((item) => item.fileName)
+  };
+  chatConsoleState.historyMessages.push(optimisticMessage);
+  chatConsoleState.attachments = [];
+  renderChatAttachments();
+  setChatAttachmentHint("支持点击上传、粘贴或拖拽文件（图片会显示预览）");
+  setInput("chat_message_input", "");
+  setInput("chat_file_input", "");
+
+  chatConsoleState.streamDeltasByRunId = {};
+  chatConsoleState.streamThinkingByRunId = {};
   renderChatMessageList();
+
   setChatComposerSending(true);
   connectChatStream(sessionKey, { silent: true });
   try {
@@ -1720,15 +1935,82 @@ async function sendChatConsoleMessage() {
     const result = response?.result && typeof response.result === "object" ? response.result : {};
     chatConsoleState.lastRunId = String(result.runId || "").trim();
     setInput("chat_last_run_id", chatConsoleState.lastRunId);
-    setInput("chat_message_input", "");
     if (!chatConsoleState.lastRunId) {
       setChatComposerSending(false);
     }
-    setMessage(`消息已发送（status=${result.status || "unknown"}）`, "ok");
+    setMessage(
+      payload.attachments.length > 0
+        ? `消息和附件已发送（status=${result.status || "unknown"}，附件=${payload.attachments.length}）`
+        : `消息已发送（status=${result.status || "unknown"}）`,
+      "ok"
+    );
   } catch (error) {
     setChatComposerSending(false);
+    chatConsoleState.historyMessages = chatConsoleState.historyMessages.filter((item) => item.id !== optimisticMessage.id);
+    chatConsoleState.attachments = attachments;
+    renderChatAttachments();
+    renderChatMessageList();
     throw error;
   }
+}
+
+function setupChatAttachmentInput() {
+  const fileInput = document.querySelector("#chat_file_input");
+  const pickBtn = document.querySelector("#chat_pick_files");
+  const attachmentList = document.querySelector("#chat_attachment_list");
+  const messageInput = document.querySelector("#chat_message_input");
+
+  pickBtn?.addEventListener("click", () => {
+    fileInput?.click();
+  });
+
+  fileInput?.addEventListener("change", () => {
+    const files = Array.from(fileInput.files || []);
+    if (files.length === 0) {
+      return;
+    }
+    stageChatFiles(files).catch((error) => setMessage(error.message || String(error), "error"));
+    fileInput.value = "";
+  });
+
+  attachmentList?.addEventListener("click", (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) {
+      return;
+    }
+    const idx = Number.parseInt(String(target.dataset.attachmentIndex || ""), 10);
+    if (Number.isInteger(idx)) {
+      removeChatAttachmentByIndex(idx);
+    }
+  });
+
+  const dragTargets = [messageInput, attachmentList].filter(Boolean);
+  dragTargets.forEach((node) => {
+    node.addEventListener("dragover", (event) => {
+      event.preventDefault();
+      attachmentList?.classList.add("is-dragover");
+    });
+    node.addEventListener("dragleave", () => {
+      attachmentList?.classList.remove("is-dragover");
+    });
+    node.addEventListener("drop", (event) => {
+      event.preventDefault();
+      attachmentList?.classList.remove("is-dragover");
+      const files = Array.from(event.dataTransfer?.files || []);
+      if (files.length > 0) {
+        stageChatFiles(files).catch((error) => setMessage(error.message || String(error), "error"));
+      }
+    });
+  });
+
+  messageInput?.addEventListener("paste", (event) => {
+    const files = Array.from(event.clipboardData?.files || []);
+    if (files.length === 0) {
+      return;
+    }
+    event.preventDefault();
+    stageChatFiles(files).catch((error) => setMessage(error.message || String(error), "error"));
+  });
 }
 
 async function abortChatConsoleRun() {
@@ -1771,6 +2053,9 @@ async function resetChatConsoleSession() {
   setChatComposerSending(false);
   chatConsoleState.streamDeltasByRunId = {};
   chatConsoleState.streamThinkingByRunId = {};
+  chatConsoleState.attachments = [];
+  renderChatAttachments();
+  setChatAttachmentHint("支持点击上传、粘贴或拖拽文件（图片会显示预览）");
   renderChatMessageList();
   setMessage(`会话已重置：${sessionKey}`, "ok");
   await loadChatHistory({ sessionKey, silent: true }).catch(() => {});
@@ -1783,11 +2068,17 @@ function setupChatConsole() {
   chatConsoleState.bound = true;
   setChatStreamStatus("未连接");
   setChatComposerSending(false);
+  renderChatAttachments();
+  setChatAttachmentHint("支持点击上传、粘贴或拖拽文件（图片会显示预览）");
+  setupChatAttachmentInput();
   const sessionSelect = document.querySelector("#chat_session_select");
   sessionSelect?.addEventListener("change", () => {
     const selected = String(sessionSelect.value || "").trim();
     chatConsoleState.selectedSessionKey = selected;
     setChatComposerSending(false);
+    chatConsoleState.attachments = [];
+    renderChatAttachments();
+    setChatAttachmentHint("支持点击上传、粘贴或拖拽文件（图片会显示预览）");
     connectChatStream(selected, { silent: true, force: true });
     loadChatHistory({ sessionKey: selected }).catch((error) => setMessage(error.message || String(error), "error"));
   });

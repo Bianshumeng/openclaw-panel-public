@@ -25,7 +25,8 @@ import {
   getChatHistory,
   listChatSessions,
   resetChatSession,
-  sendChatMessage
+  sendChatMessage,
+  stageChatAttachment
 } from "./chat-service.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -73,6 +74,11 @@ const chatSessionResetPayloadSchema = z.object({
 });
 const chatSessionNewPayloadSchema = z.object({
   keyPrefix: z.string().optional().default("")
+});
+const chatAttachmentStagePayloadSchema = z.object({
+  fileName: z.string().min(1, "fileName 不能为空"),
+  mimeType: z.string().optional().default("application/octet-stream"),
+  base64: z.string().min(1, "base64 不能为空")
 });
 
 function ensureDockerMode(panelConfig) {
@@ -403,6 +409,29 @@ app.post("/api/chat/session/new", async (request, reply) => {
     const result = await createChatSession({
       panelConfig,
       keyPrefix: payload.keyPrefix
+    });
+    return {
+      ok: true,
+      result
+    };
+  } catch (error) {
+    reply.code(400);
+    return {
+      ok: false,
+      message: error.message
+    };
+  }
+});
+
+app.post("/api/chat/attachments/stage", async (request, reply) => {
+  try {
+    const payload = chatAttachmentStagePayloadSchema.parse(request.body || {});
+    const { config: panelConfig } = await loadPanelConfig();
+    const result = await stageChatAttachment({
+      panelConfig,
+      fileName: payload.fileName,
+      mimeType: payload.mimeType,
+      base64: payload.base64
     });
     return {
       ok: true,

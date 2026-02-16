@@ -33,7 +33,8 @@ const panelConfigSchema = z.object({
       container_name: z.string().default("openclaw-gateway"),
       image_repo: z.string().default("ghcr.io/openclaw/openclaw"),
       gateway_port: z.number().int().positive().default(18789),
-      gateway_ws_url: z.string().default("")
+      gateway_ws_url: z.string().default(""),
+      gateway_media_root: z.string().default("")
     })
     .default({}),
   docker: z
