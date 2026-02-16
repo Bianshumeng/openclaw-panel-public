@@ -2615,13 +2615,20 @@ function renderTemplatePreset(templateKey, options = {}) {
   }
 
   setInput("custom_models_json", JSON.stringify(template.models, null, 2));
-  setInput("custom_api", apiMode || template.api);
+  setSelectValueWithCustom("custom_api", "custom_api_custom", apiMode || template.api);
   setInput("custom_base_url", isAicodecatTemplate ? resolveAicodecatBaseUrl(apiMode) : template.baseUrl);
   setInput("custom_provider_id", template.providerId);
-  setInput(
-    "custom_default_model_id",
-    String(getInputValue("template_default_model_id") || template.models[0]?.id || DEFAULT_MODEL_OPTIONS[0]?.id || "")
+  const customDefaultModelSelect = document.querySelector("#custom_default_model_id");
+  const nextDefaultModelId = String(
+    getInputValue("template_default_model_id") || template.models[0]?.id || DEFAULT_MODEL_OPTIONS[0]?.id || ""
   );
+  if (customDefaultModelSelect) {
+    fillDefaultModelOptions(customDefaultModelSelect, {
+      includeCustom: true,
+      selectedValue: nextDefaultModelId
+    });
+  }
+  setSelectValueWithCustom("custom_default_model_id", "custom_default_model_id_custom", nextDefaultModelId);
 }
 
 function fillModelEditor(modelSettings) {
@@ -2846,6 +2853,86 @@ function setupModelEditor() {
   });
   refreshTemplateApiCustomInput();
 
+  const customApiSelect = document.querySelector("#custom_api");
+  const customApiCustomInput = document.querySelector("#custom_api_custom");
+  const customDefaultModelSelect = document.querySelector("#custom_default_model_id");
+  const customDefaultModelCustomInput = document.querySelector("#custom_default_model_id_custom");
+  const customProviderInput = document.querySelector("#custom_provider_id");
+
+  const syncCustomByApiMode = () => {
+    const providerId = String(getInputValue("custom_provider_id") || "").trim();
+    const apiMode = getSelectValueWithCustom("custom_api", "custom_api_custom");
+    if (!providerId || !apiMode) {
+      return;
+    }
+    const isAicodecatProvider = providerId === AICODECAT_PROVIDER || providerId.startsWith("aicodecat-");
+    if (!isAicodecatProvider) {
+      return;
+    }
+    const resolvedProviderId = resolveProviderId(AICODECAT_PROVIDER, apiMode);
+    setInput("custom_provider_id", resolvedProviderId);
+    setInput("custom_base_url", resolveAicodecatBaseUrl(apiMode));
+  };
+
+  const syncCustomByModelSelection = () => {
+    const providerId = String(getInputValue("custom_provider_id") || "").trim();
+    const selectedModelId = getSelectValueWithCustom("custom_default_model_id", "custom_default_model_id_custom");
+    if (!providerId || !selectedModelId) {
+      return;
+    }
+    const isAicodecatProvider = providerId === AICODECAT_PROVIDER || providerId.startsWith("aicodecat-");
+    if (!isAicodecatProvider) {
+      return;
+    }
+    const family = modelFamilyById(selectedModelId);
+    const profile = MODEL_PROFILE_BY_FAMILY[family] || MODEL_PROFILE_BY_FAMILY.gpt;
+    const providerApi = profile.apiMode;
+    setSelectValueWithCustom("custom_api", "custom_api_custom", providerApi);
+    syncCustomByApiMode();
+  };
+
+  const refreshCustomApiCustomInput = () => {
+    if (!customApiSelect || !customApiCustomInput) {
+      return;
+    }
+    const useCustom = String(customApiSelect.value || "") === "custom";
+    customApiCustomInput.classList.toggle("is-visible", useCustom);
+  };
+
+  const refreshCustomDefaultModelCustomInput = () => {
+    if (!customDefaultModelSelect || !customDefaultModelCustomInput) {
+      return;
+    }
+    const useCustom = String(customDefaultModelSelect.value || "") === "custom";
+    customDefaultModelCustomInput.classList.toggle("is-visible", useCustom);
+  };
+
+  customApiSelect?.addEventListener("change", () => {
+    refreshCustomApiCustomInput();
+    syncCustomByApiMode();
+  });
+  customApiCustomInput?.addEventListener("input", () => {
+    if (String(customApiSelect?.value || "") !== "custom") {
+      return;
+    }
+    syncCustomByApiMode();
+  });
+  customDefaultModelSelect?.addEventListener("change", () => {
+    refreshCustomDefaultModelCustomInput();
+    syncCustomByModelSelection();
+  });
+  customDefaultModelCustomInput?.addEventListener("input", () => {
+    if (String(customDefaultModelSelect?.value || "") !== "custom") {
+      return;
+    }
+    syncCustomByModelSelection();
+  });
+  customProviderInput?.addEventListener("change", () => {
+    syncCustomByApiMode();
+  });
+  refreshCustomApiCustomInput();
+  refreshCustomDefaultModelCustomInput();
+
   defaultSelect.addEventListener("change", () => {
     const selectedRef = String(defaultSelect.value || "");
     const entry = modelEditorState.defaultModelRefs.find((item) => item.ref === selectedRef);
@@ -2924,10 +3011,10 @@ function setupModelEditor() {
 
   document.querySelector("#save_provider_custom")?.addEventListener("click", () => {
     const providerId = String(getInputValue("custom_provider_id") || "").trim();
-    const providerApi = String(getInputValue("custom_api") || "").trim();
+    const providerApi = getSelectValueWithCustom("custom_api", "custom_api_custom");
     const providerBaseUrl = String(getInputValue("custom_base_url") || "").trim();
     const providerApiKey = String(getInputValue("custom_api_key") || "").trim();
-    const defaultModelId = String(getInputValue("custom_default_model_id") || "").trim();
+    const defaultModelId = getSelectValueWithCustom("custom_default_model_id", "custom_default_model_id_custom");
     const rawModels = String(getInputValue("custom_models_json") || "").trim();
     if (!providerId || !providerApi || !providerBaseUrl || !rawModels) {
       setMessage("自定义配置不完整，请至少填写提供商名称 / API 模式 / URL / models JSON", "error");

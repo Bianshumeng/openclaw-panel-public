@@ -482,7 +482,16 @@
               </label>
               <label>
                 API 模式
-                <input id="custom_api" type="text" placeholder="例如 openai-responses" />
+                <div class="field-stack">
+                  <select id="custom_api">
+                    <option value="openai-responses">openai-responses（GPT Responses）</option>
+                    <option value="openai-completions">openai-completions（GPT 兼容）</option>
+                    <option value="anthropic-messages">anthropic-messages（Claude）</option>
+                    <option value="google-generative-ai">google-generative-ai（Gemini）</option>
+                    <option value="custom">自定义</option>
+                  </select>
+                  <input id="custom_api_custom" class="custom-field" type="text" placeholder="输入自定义 API 模式" />
+                </div>
               </label>
               <label>
                 API 地址（Base URL）
@@ -494,7 +503,15 @@
               </label>
               <label>
                 默认模型 ID
-                <input id="custom_default_model_id" type="text" placeholder="填 models 数组中的某个 id" />
+                <div class="field-stack">
+                  <select id="custom_default_model_id"></select>
+                  <input
+                    id="custom_default_model_id_custom"
+                    class="custom-field"
+                    type="text"
+                    placeholder="输入 models 数组中的某个 id"
+                  />
+                </div>
               </label>
               <label class="inline-check">
                 保存后设为当前默认模型
