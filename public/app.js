@@ -1376,7 +1376,12 @@ function renderSkillsList(skills = []) {
     toggleBtn.type = "button";
     toggleBtn.textContent = skill?.enabled ? "禁用" : "启用";
     toggleBtn.addEventListener("click", () => {
-      setSkillEnabled(String(skill?.key || ""), !Boolean(skill?.enabled)).catch((error) =>
+      const nextEnabled = !Boolean(skill?.enabled);
+      if (!confirmSkillToggle(skill, nextEnabled)) {
+        setMessage(`已取消 Skill 操作：${skill?.name || skill?.key || "未命名 Skill"}`, "info");
+        return;
+      }
+      setSkillEnabled(String(skill?.key || ""), nextEnabled).catch((error) =>
         setMessage(error.message || String(error), "error")
       );
     });
@@ -1412,6 +1417,19 @@ function renderSkillsList(skills = []) {
     node.appendChild(chips);
     container.appendChild(node);
   });
+}
+
+function confirmSkillToggle(skill, nextEnabled) {
+  const skillName = skill?.name || skill?.key || "未命名 Skill";
+  if (!nextEnabled) {
+    return window.confirm(`你正在禁用 Skill「${skillName}」。\n这可能影响已有工作流，确认继续吗？`);
+  }
+  if (skill?.blocked || !skill?.eligible) {
+    return window.confirm(
+      `Skill「${skillName}」当前存在运行限制（${skill?.blocked ? "白名单阻塞" : "环境未满足"}）。\n继续启用配置吗？`
+    );
+  }
+  return true;
 }
 
 async function loadSkillConfig(skillKey, { silent = false } = {}) {
