@@ -1221,6 +1221,7 @@ function renderChannelRuntimeList(containerSelector, items = [], emptyText = "�
   items.forEach((item) => {
     const node = document.createElement("article");
     node.className = "stack-item";
+    node.title = `${item?.name || item?.key || "未命名 Skill"}\nkey: ${item?.key || "-"}\nsource: ${item?.source || "-"}`;
 
     const top = document.createElement("div");
     top.className = "stack-item-row";
