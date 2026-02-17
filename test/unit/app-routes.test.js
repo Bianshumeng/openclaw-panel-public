@@ -18,10 +18,10 @@ test("panelByPath maps known routes", () => {
   assert.equal(panelByPath("/logs"), "panel-logs");
 });
 
-test("panelByPath falls back to model for unknown path", () => {
-  assert.equal(panelByPath("/unknown"), "panel-model");
-  assert.equal(panelByPath(""), "panel-model");
-  assert.equal(panelByPath("/"), "panel-model");
+test("panelByPath falls back to dashboard for unknown path", () => {
+  assert.equal(panelByPath("/unknown"), "panel-dashboard");
+  assert.equal(panelByPath(""), "panel-dashboard");
+  assert.equal(panelByPath("/"), "panel-dashboard");
 });
 
 test("isKnownPanelPath validates route list", () => {

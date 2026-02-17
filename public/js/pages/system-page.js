@@ -21,7 +21,6 @@ const UPDATE_TARGET_CONFIG = Object.freeze({
     label: "龙虾 Bot",
     stateId: "bot_update_state",
     hintId: "bot_update_hint",
-    imageRepoId: "bot_update_image_repo",
     currentTagId: "bot_update_current_tag",
     latestTagId: "bot_update_latest_tag",
     targetTagId: "bot_update_target_tag"
@@ -30,7 +29,6 @@ const UPDATE_TARGET_CONFIG = Object.freeze({
     label: "龙虾控制台",
     stateId: "panel_update_state",
     hintId: "panel_update_hint",
-    imageRepoId: "panel_update_image_repo",
     currentTagId: "panel_update_current_tag",
     latestTagId: "panel_update_latest_tag",
     targetTagId: "panel_update_target_tag"
@@ -517,7 +515,6 @@ async function checkUpdate({ silent = false, target = "bot" } = {}) {
   const result = await api(`/api/update/check?target=${encodeURIComponent(targetKey)}`);
   const data = result.result || {};
 
-  setInput(targetConfig.imageRepoId, data.imageRepo || "");
   setInput(targetConfig.currentTagId, data.currentTag || "");
   setInput(targetConfig.latestTagId, data.latestTag || "");
   if (!String(getInputValue(targetConfig.targetTagId) || "").trim() && data.latestTag) {

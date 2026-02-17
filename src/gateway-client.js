@@ -345,7 +345,7 @@ function buildConnectParams({ token, password, nonce, role, scopes, deviceIdenti
     client: {
       id: "cli",
       displayName: "openclaw-panel",
-      version: "0.1.0",
+      version: "0.1.1",
       platform: process.platform,
       mode: "cli",
       instanceId: randomUUID()

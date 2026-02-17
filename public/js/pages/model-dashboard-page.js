@@ -317,7 +317,6 @@ function applyModelRawConfigPayload(payload = {}) {
   }
   editor.value = String(payload.rawText || "");
   modelRawConfigState.lastSyncMtimeMs = Number.isFinite(Number(payload.mtimeMs)) ? Number(payload.mtimeMs) : null;
-  setText("model_raw_config_path", String(payload.path || "-"));
   setText("model_raw_config_mtime", payload.mtimeMs ? formatLocalTime(payload.mtimeMs) : "-");
   setText("model_raw_config_size", Number.isFinite(payload.size) ? `${payload.size} bytes` : "-");
 }

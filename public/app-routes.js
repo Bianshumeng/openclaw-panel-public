@@ -16,7 +16,7 @@ const CHANNEL_DETAIL_ROUTES = ["/channels/telegram", "/channels/feishu", "/chann
 export function panelByPath(pathname) {
   const path = String(pathname || "").trim() || "/";
   if (path === "/") {
-    return "panel-model";
+    return "panel-dashboard";
   }
   if (path === "/status-overview") {
     return "panel-dashboard";
@@ -25,7 +25,7 @@ export function panelByPath(pathname) {
     return "panel-channel";
   }
   const matched = Object.entries(PANEL_ROUTES).find(([, route]) => route === path);
-  return matched ? matched[0] : "panel-model";
+  return matched ? matched[0] : "panel-dashboard";
 }
 
 export function isKnownPanelPath(pathname) {

@@ -1347,7 +1347,7 @@ app.post("/api/update/rollback", async (request, reply) => {
 });
 
 const PAGE_FILE_BY_PATH = {
-  "/": "pages/model.html",
+  "/": "pages/dashboard.html",
   "/dashboard": "pages/dashboard.html",
   "/status-overview": "pages/dashboard.html",
   "/skills": "pages/skills.html",
@@ -1366,7 +1366,7 @@ const PAGE_FILE_BY_PATH = {
 };
 
 app.get("/", async (_request, reply) => {
-  return reply.sendFile("pages/model.html");
+  return reply.sendFile("pages/dashboard.html");
 });
 
 app.setNotFoundHandler(async (request, reply) => {
