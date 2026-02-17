@@ -4,7 +4,13 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "镜像版本（可带 v 前缀；留空时取 third_party/openclaw/package.json）"
+        description: "镜像版本（可带 v 前缀；留空时取 Bot 源码 package.json）"
+        required: false
+      bot_repo:
+        description: "Bot 源码仓库（owner/repo）"
+        required: false
+      bot_ref:
+        description: "Bot 源码分支/Tag（默认 main）"
         required: false
   push:
     branches:
@@ -26,6 +32,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Checkout bot source
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.bot_repo || 'Bianshumeng/Openclaw-myMY' }}
+          ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.bot_ref || 'main' }}
+          path: bot-src
+          token: ${{ secrets.BOT_REPO_READ_TOKEN != '' && secrets.BOT_REPO_READ_TOKEN || github.token }}
+
       - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -33,8 +47,8 @@ jobs:
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          username: ${{ secrets.GHCR_TOKEN != '' && 'Bianshumeng' || github.actor }}
+          password: ${{ secrets.GHCR_TOKEN != '' && secrets.GHCR_TOKEN || github.token }}
 
       - name: Resolve image metadata
         id: meta
@@ -43,12 +57,12 @@ jobs:
           if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
             raw="${{ github.event.inputs.version }}"
             if [[ -z "$raw" ]]; then
-              raw="$(node -p "require('./third_party/openclaw/package.json').version")"
+              raw="$(node -p "require('./bot-src/package.json').version")"
             fi
           elif [[ "${GITHUB_REF}" == refs/tags/bot-v* ]]; then
             raw="${GITHUB_REF_NAME#bot-v}"
           else
-            raw="$(node -p "require('./third_party/openclaw/package.json').version")"
+            raw="$(node -p "require('./bot-src/package.json').version")"
           fi
           version="${raw#v}"
           image="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/openclaw-mymy"
@@ -63,8 +77,8 @@ jobs:
       - name: Build and push openclaw bot image
         uses: docker/build-push-action@v6
         with:
-          context: third_party/openclaw
-          file: third_party/openclaw/Dockerfile
+          context: bot-src
+          file: bot-src/Dockerfile
           push: true
           tags: |
             ${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.version }}
