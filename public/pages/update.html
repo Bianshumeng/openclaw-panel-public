@@ -37,7 +37,7 @@
           <a class="tab" data-tab-target="panel-skills" href="/skills">技能管理</a>
           <a class="tab" data-tab-target="panel-chat-console" href="/chat-console">智能对话</a>
           <a class="tab" data-tab-target="panel-model" href="/model">模型配置</a>
-          <a class="tab" data-tab-target="panel-config-generator" href="/config-generator">高级工具</a>
+          <a class="tab" data-tab-target="panel-config-generator" href="/config-generator">配置生成器</a>
           <a class="tab" data-tab-target="panel-channel" href="/channels">平台接入</a>
           <a class="tab is-active" data-tab-target="panel-update" href="/update">版本更新</a>
           <a class="tab" data-tab-target="panel-service" href="/service">服务控制</a>
@@ -60,13 +60,15 @@
             <p class="muted-line">看看有没有新版本，一键升级。</p>
 
             <!-- 状态区：最醒目位置 -->
-            <div class="status-row" style="justify-content:center;margin:1.2rem 0 0.6rem;">
-              <span class="pill" id="update_state" style="font-size:1.05rem;padding:0.45rem 1.4rem;">还没检查</span>
+            <div class="update-status-card">
+              <div class="status-row">
+                <span class="pill" id="update_state" style="font-size:1.05rem;padding:0.45rem 1.4rem;">还没检查</span>
+              </div>
+              <p class="muted-line update-status-hint" id="update_hint">页面打开后会自动检查，你也可以手动再检查一次</p>
             </div>
-            <p class="muted-line" id="update_hint" style="text-align:center;margin-bottom:1.2rem;">页面打开后会自动检查，你也可以手动再检查一次</p>
 
             <!-- 版本信息：紧凑两列 -->
-            <div class="grid" style="grid-template-columns:1fr 1fr;gap:0.75rem 1.2rem;">
+            <div class="grid update-version-card" style="grid-template-columns:1fr 1fr;gap:0.75rem 1.2rem;">
               <label>
                 你的版本
                 <input id="update_current_tag" type="text" readonly />
@@ -86,7 +88,7 @@
             <!-- 高级区：目标版本 + 回滚 -->
             <details style="margin-top:1.2rem;">
               <summary class="muted-line" style="cursor:pointer;user-select:none;">高级选项（指定版本 / 回滚）</summary>
-              <div style="margin-top:0.75rem;">
+              <div class="update-advanced-card">
                 <label>
                   要升级/回滚到的版本
                   <input id="update_target_tag" type="text" placeholder="留空则升级到最新版" />
@@ -110,6 +112,7 @@
     <script type="module" src="/app.js"></script>
   </body>
 </html>
+
 
 
 

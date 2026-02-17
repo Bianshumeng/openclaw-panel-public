@@ -32,10 +32,10 @@
       }
 
       .channel-access-card {
-        border: 1px solid var(--border);
+        border: 1px solid var(--nested-card-border);
         border-radius: 12px;
         padding: 14px;
-        background: var(--surface-soft);
+        background: var(--nested-card-bg);
         text-decoration: none;
         color: inherit;
         transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
@@ -46,6 +46,18 @@
       .channel-access-card:hover {
         border-color: var(--primary);
         transform: translateY(-1px);
+      }
+
+      .channel-access-card.is-disabled {
+        cursor: not-allowed;
+        opacity: 0.74;
+        border-style: dashed;
+      }
+
+      .channel-access-card.is-disabled:hover {
+        border-color: var(--border);
+        transform: none;
+        box-shadow: none;
       }
 
       .channel-access-card.is-ready {
@@ -101,7 +113,7 @@
           <a class="tab" data-tab-target="panel-skills" href="/skills">技能管理</a>
           <a class="tab" data-tab-target="panel-chat-console" href="/chat-console">智能对话</a>
           <a class="tab" data-tab-target="panel-model" href="/model">模型配置</a>
-          <a class="tab" data-tab-target="panel-config-generator" href="/config-generator">高级工具</a>
+          <a class="tab" data-tab-target="panel-config-generator" href="/config-generator">配置生成器</a>
           <a class="tab is-active" data-tab-target="panel-channel" href="/channels">平台接入</a>
           <a class="tab" data-tab-target="panel-update" href="/update">版本更新</a>
           <a class="tab" data-tab-target="panel-service" href="/service">服务控制</a>
@@ -135,41 +147,41 @@
                 <p class="channel-summary" id="channel_status_telegram_summary">点击进入配置页面</p>
               </a>
 
-              <a class="channel-access-card" data-channel-card="feishu" href="/channels/feishu">
+              <div class="channel-access-card is-disabled" data-channel-card="feishu" data-channel-disabled="true" aria-disabled="true">
                 <div class="channel-access-head">
                   <h3>飞书</h3>
-                  <span class="channel-access-arrow">进入 →</span>
+                  <span class="channel-access-arrow">暂未开放</span>
                 </div>
                 <div class="channel-access-tags">
                   <sl-tag id="channel_status_feishu_enabled" size="small" pill>未启用</sl-tag>
                   <sl-tag id="channel_status_feishu_configured" size="small" pill variant="warning">未配置</sl-tag>
                 </div>
-                <p class="channel-summary" id="channel_status_feishu_summary">点击进入配置页面</p>
-              </a>
+                <p class="channel-summary" id="channel_status_feishu_summary">功能开发中，暂不支持进入配置页。</p>
+              </div>
 
-              <a class="channel-access-card" data-channel-card="discord" href="/channels/discord">
+              <div class="channel-access-card is-disabled" data-channel-card="discord" data-channel-disabled="true" aria-disabled="true">
                 <div class="channel-access-head">
                   <h3>Discord</h3>
-                  <span class="channel-access-arrow">进入 →</span>
+                  <span class="channel-access-arrow">暂未开放</span>
                 </div>
                 <div class="channel-access-tags">
                   <sl-tag id="channel_status_discord_enabled" size="small" pill>未启用</sl-tag>
                   <sl-tag id="channel_status_discord_configured" size="small" pill variant="warning">未配置</sl-tag>
                 </div>
-                <p class="channel-summary" id="channel_status_discord_summary">点击进入配置页面</p>
-              </a>
+                <p class="channel-summary" id="channel_status_discord_summary">功能开发中，暂不支持进入配置页。</p>
+              </div>
 
-              <a class="channel-access-card" data-channel-card="slack" href="/channels/slack">
+              <div class="channel-access-card is-disabled" data-channel-card="slack" data-channel-disabled="true" aria-disabled="true">
                 <div class="channel-access-head">
                   <h3>Slack</h3>
-                  <span class="channel-access-arrow">进入 →</span>
+                  <span class="channel-access-arrow">暂未开放</span>
                 </div>
                 <div class="channel-access-tags">
                   <sl-tag id="channel_status_slack_enabled" size="small" pill>未启用</sl-tag>
                   <sl-tag id="channel_status_slack_configured" size="small" pill variant="warning">未配置</sl-tag>
                 </div>
-                <p class="channel-summary" id="channel_status_slack_summary">点击进入配置页面</p>
-              </a>
+                <p class="channel-summary" id="channel_status_slack_summary">功能开发中，暂不支持进入配置页。</p>
+              </div>
             </div>
           </article>
         </section>
@@ -185,3 +197,4 @@
     <script type="module" src="/app.js"></script>
   </body>
 </html>
+

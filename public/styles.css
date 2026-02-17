@@ -11,6 +11,16 @@
   --primary-text: #ffffff;
   --soft-button: #eef1f6;
   --soft-button-hover: #e1e6ef;
+  --sidebar-item-bg: #f1f1f1;
+  --sidebar-item-bg-hover: #ebebeb;
+  --sidebar-item-border: #d9d9d9;
+  --cfg-field-bg: #ebebeb;
+  --cfg-field-bg-readonly: #e5e5e5;
+  --cfg-field-border: #cccccc;
+  --cfg-output-bg: #eeeeee;
+  --cfg-field-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72), 0 1px 2px rgba(17, 24, 39, 0.06);
+  --nested-card-bg: #efefef;
+  --nested-card-border: #d2d2d2;
   --success: #1e7a3a;
   --danger: #b42318;
   --code-bg: #f5f7fb;
@@ -32,6 +42,16 @@ body[data-theme="dark"] {
   --primary-text: #ffffff;
   --soft-button: #282828;
   --soft-button-hover: #333333;
+  --sidebar-item-bg: #262626;
+  --sidebar-item-bg-hover: #2d2d2d;
+  --sidebar-item-border: #3d3d3d;
+  --cfg-field-bg: #232323;
+  --cfg-field-bg-readonly: #2a2a2a;
+  --cfg-field-border: #3c3c3c;
+  --cfg-output-bg: #1e1e1e;
+  --cfg-field-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  --nested-card-bg: #242424;
+  --nested-card-border: #3d3d3d;
   --success: #3fbf7f;
   --danger: #ff6d6d;
   --code-bg: #141414;
@@ -155,10 +175,83 @@ body {
   text-decoration: none;
 }
 
+.sidebar-tabs .tab {
+  border-color: var(--sidebar-item-border);
+  background: var(--sidebar-item-bg);
+  transition: background-color 0.18s ease, border-color 0.18s ease;
+}
+
+.sidebar-tabs .tab:hover {
+  border-color: color-mix(in srgb, var(--sidebar-item-border) 70%, var(--primary));
+  background: var(--sidebar-item-bg-hover);
+}
+
 .tab.is-active {
   background: var(--primary);
   color: var(--primary-text);
   border-color: var(--primary);
+}
+
+.config-generator-card input,
+.config-generator-card select,
+.config-generator-card textarea {
+  background: var(--cfg-field-bg);
+  border-color: var(--cfg-field-border);
+  box-shadow: var(--cfg-field-shadow);
+}
+
+.config-generator-card input[readonly] {
+  background: var(--cfg-field-bg-readonly);
+}
+
+.config-generator-card input:focus,
+.config-generator-card select:focus,
+.config-generator-card textarea:focus {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 18%, transparent);
+}
+
+.config-generator-card #cfg_output {
+  background: var(--cfg-output-bg);
+  border-color: var(--cfg-field-border);
+}
+
+.config-generator-card .actions {
+  margin-top: 12px;
+  margin-bottom: 12px;
+}
+
+.update-status-card,
+.update-version-card,
+.update-advanced-card {
+  background: var(--nested-card-bg);
+  border: 1px solid var(--nested-card-border);
+  border-radius: 10px;
+  box-shadow: var(--cfg-field-shadow);
+}
+
+.update-status-card {
+  padding: 10px 12px;
+  margin-top: 1.2rem;
+  margin-bottom: 1rem;
+}
+
+.update-status-card .status-row {
+  margin: 0;
+  justify-content: center;
+}
+
+.update-status-card .update-status-hint {
+  text-align: center;
+  margin: 0.6rem 0 0;
+}
+
+.update-version-card {
+  padding: 12px;
+}
+
+.update-advanced-card {
+  margin-top: 0.75rem;
+  padding: 12px;
 }
 
 .content {
@@ -629,11 +722,13 @@ button:hover {
 }
 
 .dashboard-stat-error {
-  background: #fef2f2;
+  background: #fee2e2;
+  border: 1px solid #f5b7b1;
 }
 
 body[data-theme="dark"] .dashboard-stat-error {
   background: #2a1515;
+  border-color: #5b2323;
 }
 
 .dashboard-stat-label {
