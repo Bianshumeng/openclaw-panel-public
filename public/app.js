@@ -10,6 +10,7 @@ import { loadSkillsStatus, setupSkillsPage } from "./js/pages/skills-page.js";
 import { loadChatSessions, setupChatConsole } from "./js/pages/chat-page.js";
 import {
   approveTelegramPairingFlow,
+  checkAllUpdates,
   checkUpdate,
   loadErrorSummary,
   loadInitialData,
@@ -102,14 +103,23 @@ bindChannelTestButton("#test_telegram", testTelegram, "tg_test_result", "Telegra
 bindChannelTestButton("#test_feishu", testFeishu, "fs_test_result", "Feishu");
 bindChannelTestButton("#test_discord", testDiscord, "dc_test_result", "Discord");
 bindChannelTestButton("#test_slack", testSlack, "sl_test_result", "Slack");
-document.querySelector("#check_update")?.addEventListener("click", () => {
-  checkUpdate().catch((error) => setMessage(error.message, "error"));
+document.querySelector("#bot_check_update")?.addEventListener("click", () => {
+  checkUpdate({ target: "bot" }).catch((error) => setMessage(error.message, "error"));
 });
-document.querySelector("#upgrade_update")?.addEventListener("click", () => {
-  mutateVersion("upgrade").catch((error) => setMessage(error.message, "error"));
+document.querySelector("#bot_upgrade_update")?.addEventListener("click", () => {
+  mutateVersion("upgrade", { target: "bot" }).catch((error) => setMessage(error.message, "error"));
 });
-document.querySelector("#rollback_update")?.addEventListener("click", () => {
-  mutateVersion("rollback").catch((error) => setMessage(error.message, "error"));
+document.querySelector("#bot_rollback_update")?.addEventListener("click", () => {
+  mutateVersion("rollback", { target: "bot" }).catch((error) => setMessage(error.message, "error"));
+});
+document.querySelector("#panel_check_update")?.addEventListener("click", () => {
+  checkUpdate({ target: "panel" }).catch((error) => setMessage(error.message, "error"));
+});
+document.querySelector("#panel_upgrade_update")?.addEventListener("click", () => {
+  mutateVersion("upgrade", { target: "panel" }).catch((error) => setMessage(error.message, "error"));
+});
+document.querySelector("#panel_rollback_update")?.addEventListener("click", () => {
+  mutateVersion("rollback", { target: "panel" }).catch((error) => setMessage(error.message, "error"));
 });
 
 const isUpdatePage = hasPanel("panel-update");
@@ -139,7 +149,7 @@ loadInitialData()
       loadChatSessions({ silent: true }).catch((error) => setMessage(`智能对话页加载失败：${error.message}`, "error"));
     }
     if (isUpdatePage) {
-      checkUpdate({ silent: true }).catch((error) => setMessage(`版本信息加载失败：${error.message}`, "error"));
+      checkAllUpdates({ silent: true }).catch((error) => setMessage(`版本信息加载失败：${error.message}`, "error"));
     }
   })
   .catch((error) => {

@@ -355,6 +355,43 @@ export async function checkForUpdates({
   };
 }
 
+export async function pullTag({
+  containerName = "openclaw-gateway",
+  targetTag,
+  imageRepo = DEFAULT_IMAGE_REPO,
+  runCmd = runCommand
+}) {
+  const normalizedTag = normalizeTag(targetTag);
+  const targetImage = makeImageRef(normalizedTag, imageRepo);
+  const snapshot = await inspectContainer(containerName, runCmd);
+  const oldImage = ensureString(snapshot?.Config?.Image || "");
+
+  const pullResult = await pullImageWithRetry(targetImage, runCmd, 3);
+  if (!pullResult.ok) {
+    return {
+      ok: false,
+      action: "pull",
+      containerName,
+      targetImage,
+      oldImage,
+      rolledBack: false,
+      requiresRestart: false,
+      message: pullResult.stderr || pullResult.message || "目标镜像拉取失败"
+    };
+  }
+
+  return {
+    ok: true,
+    action: "pull",
+    containerName,
+    targetImage,
+    oldImage,
+    rolledBack: false,
+    requiresRestart: true,
+    message: "镜像拉取成功；重启容器后生效"
+  };
+}
+
 async function mutateVersion({
   action,
   containerName,

@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { rollbackToTag, upgradeToTag } from "../../src/docker-update.js";
+import { pullTag, rollbackToTag, upgradeToTag } from "../../src/docker-update.js";
 
 const snapshot = {
   Name: "/openclaw-gateway",
@@ -142,5 +142,25 @@ test("rollbackToTag fails fast when image pull fails", async () => {
 
   assert.equal(result.ok, false);
   assert.equal(result.rolledBack, false);
+  assert.equal(runCmd.left(), 0);
+});
+
+test("pullTag only pulls target image and marks restart required", async () => {
+  const runCmd = makeRunCmdQueue([
+    { match: /^docker inspect openclaw-panel$/, result: { ok: true, stdout: JSON.stringify([{ ...snapshot, Name: "/openclaw-panel" }]), stderr: "", message: "" } },
+    { match: /^docker pull ghcr\.io\/bianshumeng\/openclaw-panel:0\.1\.0$/, result: { ok: true, stdout: "pulled", stderr: "", message: "" } }
+  ]);
+
+  const result = await pullTag({
+    containerName: "openclaw-panel",
+    targetTag: "v0.1.0",
+    imageRepo: "ghcr.io/bianshumeng/openclaw-panel",
+    runCmd
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(result.action, "pull");
+  assert.equal(result.requiresRestart, true);
+  assert.equal(result.targetImage, "ghcr.io/bianshumeng/openclaw-panel:0.1.0");
   assert.equal(runCmd.left(), 0);
 });

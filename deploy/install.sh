@@ -21,7 +21,12 @@ if [ ! -f "$CONFIG_DIR/panel.config.json" ]; then
   mkdir -p "$CONFIG_DIR"
   cat > "$CONFIG_DIR/panel.config.json" <<EOF
 {
-  "panel": { "listen_host": "127.0.0.1", "listen_port": 18080 },
+  "panel": {
+    "listen_host": "127.0.0.1",
+    "listen_port": 18080,
+    "container_name": "openclaw-panel",
+    "image_repo": "ghcr.io/bianshumeng/openclaw-panel"
+  },
   "reverse_proxy": {
     "enabled": false,
     "public_scheme": "http",
@@ -34,6 +39,8 @@ if [ ! -f "$CONFIG_DIR/panel.config.json" ]; then
   "openclaw": {
     "config_path": "~/.openclaw/openclaw.json",
     "service_name": "openclaw-gateway",
+    "container_name": "openclaw-gateway",
+    "image_repo": "ghcr.io/bianshumeng/openclaw-mymy",
     "gateway_port": 18789,
     "gateway_ws_url": ""
   },

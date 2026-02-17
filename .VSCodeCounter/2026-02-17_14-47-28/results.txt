@@ -1,0 +1,46 @@
+Date : 2026-02-17 14:47:28
+Directory : e:\AAA__ZhuoMian\龙虾傻瓜化\src
+Total : 20 files,  5517 codes, 9 comments, 520 blanks, all 6046 lines
+
+Languages
++------------+------------+------------+------------+------------+------------+
+| language   | files      | code       | comment    | blank      | total      |
++------------+------------+------------+------------+------------+------------+
+| JavaScript |         20 |      5,517 |          9 |        520 |      6,046 |
++------------+------------+------------+------------+------------+------------+
+
+Directories
++-------------------------------------------------------------+------------+------------+------------+------------+------------+
+| path                                                        | files      | code       | comment    | blank      | total      |
++-------------------------------------------------------------+------------+------------+------------+------------+------------+
+| .                                                           |         20 |      5,517 |          9 |        520 |      6,046 |
+| . (Files)                                                   |         14 |      4,259 |          9 |        388 |      4,656 |
+| openclaw-config                                             |          6 |      1,258 |          0 |        132 |      1,390 |
++-------------------------------------------------------------+------------+------------+------------+------------+------------+
+
+Files
++-------------------------------------------------------------+------------+------------+------------+------------+------------+
+| filename                                                    | language   | code       | comment    | blank      | total      |
++-------------------------------------------------------------+------------+------------+------------+------------+------------+
+| e:\AAA__ZhuoMian\龙虾傻瓜化\src\channel-onboarding.js            | JavaScript |        198 |          0 |         22 |        220 |
+| e:\AAA__ZhuoMian\龙虾傻瓜化\src\channel-tests.js                 | JavaScript |        223 |          0 |         14 |        237 |
+| e:\AAA__ZhuoMian\龙虾傻瓜化\src\chat-service.js                  | JavaScript |        487 |          0 |         53 |        540 |
+| e:\AAA__ZhuoMian\龙虾傻瓜化\src\dashboard-service.js             | JavaScript |        209 |          0 |         16 |        225 |
+| e:\AAA__ZhuoMian\龙虾傻瓜化\src\docker-update.js                 | JavaScript |        384 |          2 |         41 |        427 |
+| e:\AAA__ZhuoMian\龙虾傻瓜化\src\gateway-client.js                | JavaScript |        738 |          5 |         70 |        813 |
+| e:\AAA__ZhuoMian\龙虾傻瓜化\src\logs.js                          | JavaScript |        116 |          0 |         17 |        133 |
+| e:\AAA__ZhuoMian\龙虾傻瓜化\src\openclaw-config.js               | JavaScript |         10 |          0 |          1 |         11 |
+| e:\AAA__ZhuoMian\龙虾傻瓜化\src\openclaw-config\apply.js         | JavaScript |        362 |          0 |         39 |        401 |
+| e:\AAA__ZhuoMian\龙虾傻瓜化\src\openclaw-config\extract.js       | JavaScript |        209 |          0 |          7 |        216 |
+| e:\AAA__ZhuoMian\龙虾傻瓜化\src\openclaw-config\helpers.js       | JavaScript |        201 |          0 |         22 |        223 |
+| e:\AAA__ZhuoMian\龙虾傻瓜化\src\openclaw-config\model-catalog.js | JavaScript |        299 |          0 |         48 |        347 |
+| e:\AAA__ZhuoMian\龙虾傻瓜化\src\openclaw-config\schema.js        | JavaScript |        106 |          0 |          4 |        110 |
+| e:\AAA__ZhuoMian\龙虾傻瓜化\src\openclaw-config\storage.js       | JavaScript |         81 |          0 |         12 |         93 |
+| e:\AAA__ZhuoMian\龙虾傻瓜化\src\panel-config.js                  | JavaScript |         95 |          0 |          6 |        101 |
+| e:\AAA__ZhuoMian\龙虾傻瓜化\src\server.js                        | JavaScript |      1,254 |          1 |         84 |      1,339 |
+| e:\AAA__ZhuoMian\龙虾傻瓜化\src\skills-service.js                | JavaScript |        195 |          0 |         25 |        220 |
+| e:\AAA__ZhuoMian\龙虾傻瓜化\src\smoke-check.js                   | JavaScript |         14 |          0 |          3 |         17 |
+| e:\AAA__ZhuoMian\龙虾傻瓜化\src\systemd.js                       | JavaScript |        260 |          0 |         25 |        285 |
+| e:\AAA__ZhuoMian\龙虾傻瓜化\src\utils.js                         | JavaScript |         76 |          1 |         11 |         88 |
+| Total                                                       |            |      5,517 |          9 |        520 |      6,046 |
++-------------------------------------------------------------+------------+------------+------------+------------+------------+

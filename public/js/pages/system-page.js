@@ -16,6 +16,34 @@ import {
 } from "./model-dashboard-page.js";
 
 let stream = null;
+const UPDATE_TARGET_CONFIG = Object.freeze({
+  bot: {
+    label: "龙虾 Bot",
+    stateId: "bot_update_state",
+    hintId: "bot_update_hint",
+    imageRepoId: "bot_update_image_repo",
+    currentTagId: "bot_update_current_tag",
+    latestTagId: "bot_update_latest_tag",
+    targetTagId: "bot_update_target_tag"
+  },
+  panel: {
+    label: "龙虾控制台",
+    stateId: "panel_update_state",
+    hintId: "panel_update_hint",
+    imageRepoId: "panel_update_image_repo",
+    currentTagId: "panel_update_current_tag",
+    latestTagId: "panel_update_latest_tag",
+    targetTagId: "panel_update_target_tag"
+  }
+});
+
+function normalizeUpdateTarget(target = "bot") {
+  return target === "panel" ? "panel" : "bot";
+}
+
+function getUpdateTargetConfig(target = "bot") {
+  return UPDATE_TARGET_CONFIG[normalizeUpdateTarget(target)];
+}
 
 function fillPanelMeta(config, deployment = {}) {
   const runtime = config.runtime?.mode || "systemd";
@@ -45,13 +73,24 @@ function fillPanelMeta(config, deployment = {}) {
   }
 }
 
-function setUpdateState(text, mode = "info") {
-  if (!els.updateState) {
+function setUpdateState(text, mode = "info", target = "bot") {
+  const config = getUpdateTargetConfig(target);
+  const stateElement = document.querySelector(`#${config.stateId}`);
+  if (!stateElement) {
     return;
   }
-  els.updateState.textContent = text;
-  els.updateState.classList.toggle("success", mode === "success");
-  els.updateState.classList.toggle("fail", mode === "fail");
+  stateElement.textContent = text;
+  stateElement.classList.toggle("success", mode === "success");
+  stateElement.classList.toggle("fail", mode === "fail");
+}
+
+function setUpdateHint(text, target = "bot") {
+  const config = getUpdateTargetConfig(target);
+  const hintElement = document.querySelector(`#${config.hintId}`);
+  if (!hintElement) {
+    return;
+  }
+  hintElement.textContent = text;
 }
 
 function hasNonEmptyChannelValue(value) {
@@ -472,71 +511,92 @@ async function loadInitialData() {
   fillSettings(settings.settings);
 }
 
-async function checkUpdate({ silent = false } = {}) {
-  const result = await api("/api/update/check");
-  const data = result.result;
-  setInput("update_current_tag", data.currentTag || "");
-  setInput("update_latest_tag", data.latestTag || "");
-  if (!String(getInputValue("update_target_tag") || "").trim() && data.latestTag) {
-    setInput("update_target_tag", data.latestTag);
+async function checkUpdate({ silent = false, target = "bot" } = {}) {
+  const targetKey = normalizeUpdateTarget(target);
+  const targetConfig = getUpdateTargetConfig(targetKey);
+  const result = await api(`/api/update/check?target=${encodeURIComponent(targetKey)}`);
+  const data = result.result || {};
+
+  setInput(targetConfig.imageRepoId, data.imageRepo || "");
+  setInput(targetConfig.currentTagId, data.currentTag || "");
+  setInput(targetConfig.latestTagId, data.latestTag || "");
+  if (!String(getInputValue(targetConfig.targetTagId) || "").trim() && data.latestTag) {
+    setInput(targetConfig.targetTagId, data.latestTag);
   }
 
   if (data.warning) {
-    setUpdateState("检查异常", "fail");
-    if (els.updateHint) {
-      els.updateHint.textContent = `已读取当前版本，但远程版本检查失败：${data.warning}`;
+    setUpdateState("检查异常", "fail", targetKey);
+    setUpdateHint(`已读取当前版本，但远程版本检查失败：${data.warning}`, targetKey);
+    if (targetKey === "bot") {
+      updateDashboardVersionSummary(data);
     }
-    updateDashboardVersionSummary(data);
     if (!silent) {
-      setMessage(`更新检查告警：${data.warning}`, "error");
+      setMessage(`${targetConfig.label} 更新检查告警：${data.warning}`, "error");
     }
-    return;
+    return data;
   }
 
   if (data.updateAvailable) {
-    setUpdateState("有可用更新", "success");
-    if (els.updateHint) {
-      els.updateHint.textContent = `当前 ${data.currentTag || "-"}，最新 ${data.latestTag || "-"}。`;
-    }
+    setUpdateState("有可用更新", "success", targetKey);
+    setUpdateHint(`当前 ${data.currentTag || "-"}，最新 ${data.latestTag || "-"}`, targetKey);
   } else {
-    setUpdateState("已是最新", "success");
-    if (els.updateHint) {
-      els.updateHint.textContent = `当前 ${data.currentTag || "-"}，无需升级。`;
-    }
+    setUpdateState("已是最新", "success", targetKey);
+    setUpdateHint(`当前 ${data.currentTag || "-"}，无需升级`, targetKey);
   }
-  updateDashboardVersionSummary(data);
+  if (targetKey === "bot") {
+    updateDashboardVersionSummary(data);
+  }
   if (!silent) {
-    setMessage(`版本检查完成：current=${data.currentTag || "-"} latest=${data.latestTag || "-"}`, "ok");
+    setMessage(
+      `${targetConfig.label} 版本检查完成：current=${data.currentTag || "-"} latest=${data.latestTag || "-"}`,
+      "ok"
+    );
+  }
+  return data;
+}
+
+async function checkAllUpdates({ silent = false } = {}) {
+  const results = await Promise.allSettled([
+    checkUpdate({ silent, target: "bot" }),
+    checkUpdate({ silent, target: "panel" })
+  ]);
+  const firstError = results.find((item) => item.status === "rejected");
+  if (firstError && firstError.status === "rejected") {
+    throw firstError.reason;
   }
 }
 
-async function resolveUpgradeTargetTag(rawTag = "") {
+async function resolveUpgradeTargetTag(rawTag = "", target = "bot") {
+  const targetKey = normalizeUpdateTarget(target);
+  const targetConfig = getUpdateTargetConfig(targetKey);
   const directTag = String(rawTag || "").trim();
   if (directTag) {
     return directTag;
   }
 
-  const latestInput = String(getInputValue("update_latest_tag") || "").trim();
+  const latestInput = String(getInputValue(targetConfig.latestTagId) || "").trim();
   if (latestInput) {
-    setInput("update_target_tag", latestInput);
+    setInput(targetConfig.targetTagId, latestInput);
     return latestInput;
   }
 
-  const result = await api("/api/update/check");
+  const result = await api(`/api/update/check?target=${encodeURIComponent(targetKey)}`);
   const latestTag = String(result?.result?.latestTag || "").trim();
   if (!latestTag) {
     throw new Error("无法自动获取最新版本，请先点击“检查新版本”或手工填写目标版本");
   }
-  setInput("update_latest_tag", latestTag);
-  setInput("update_target_tag", latestTag);
+  setInput(targetConfig.latestTagId, latestTag);
+  setInput(targetConfig.targetTagId, latestTag);
   return latestTag;
 }
 
-async function mutateVersion(action) {
-  let tag = String(getInputValue("update_target_tag") || "").trim();
+async function mutateVersion(action, { target = "bot" } = {}) {
+  const targetKey = normalizeUpdateTarget(target);
+  const targetConfig = getUpdateTargetConfig(targetKey);
+  let tag = String(getInputValue(targetConfig.targetTagId) || "").trim();
   if (!tag && action === "upgrade") {
-    tag = await resolveUpgradeTargetTag(tag);
-    setMessage(`未填写目标版本，已自动选择最新版本：${tag}`, "info");
+    tag = await resolveUpgradeTargetTag(tag, targetKey);
+    setMessage(`${targetConfig.label} 未填写目标版本，已自动选择最新版本：${tag}`, "info");
   }
   if (!tag) {
     if (action === "rollback") {
@@ -544,31 +604,50 @@ async function mutateVersion(action) {
     }
     throw new Error("请先输入目标版本");
   }
+
   const result = await api(`/api/update/${action}`, {
     method: "POST",
-    body: JSON.stringify({ tag }),
+    body: JSON.stringify({ tag, target: targetKey }),
     allowBusinessError: true
   });
   const payload = result.result || {};
   if (payload.ok) {
-    setUpdateState(action === "upgrade" ? "升级成功" : "回滚成功", "success");
-    if (els.updateHint) {
-      els.updateHint.textContent = `当前镜像：${payload.targetImage}`;
+    const targetImageTag = String(payload.targetImage || "").trim().split(":").pop() || "";
+    const oldImageTag = String(payload.oldImage || "").trim().split(":").pop() || "";
+    const successText =
+      targetKey === "panel"
+        ? action === "upgrade"
+          ? "镜像已拉取"
+          : "回滚镜像已拉取"
+        : action === "upgrade"
+          ? "升级成功"
+          : "回滚成功";
+    setUpdateState(successText, "success", targetKey);
+    setUpdateHint(payload.message || `当前镜像：${payload.targetImage || "-"}`, targetKey);
+    if (targetKey === "panel") {
+      // pull-only flow: keep current tag as running container tag until restart actually applies new image
+      setInput(targetConfig.currentTagId, oldImageTag || "");
+      if (targetImageTag) {
+        setInput(targetConfig.targetTagId, targetImageTag);
+      }
+      setMessage(`${targetConfig.label}${action === "upgrade" ? "升级" : "回滚"}成功：${payload.targetImage}`, "ok");
+      return;
     }
-    setInput("update_current_tag", payload.targetImage?.split(":").pop() || "");
-    setMessage(`${action} 成功：${payload.targetImage}`, "ok");
-    await runService("status");
-    await loadTail();
+    setInput(targetConfig.currentTagId, targetImageTag || "");
+    setMessage(`${targetConfig.label}${action === "upgrade" ? "升级" : "回滚"}成功：${payload.targetImage}`, "ok");
+    await checkUpdate({ silent: true, target: targetKey });
+    if (targetKey === "bot") {
+      await runService("status");
+      await loadTail();
+    }
     return;
   }
 
-  setUpdateState(action === "upgrade" ? "升级失败" : "回滚失败", "fail");
+  setUpdateState(action === "upgrade" ? "升级失败" : "回滚失败", "fail", targetKey);
   const rollbackNote = payload.rollbackMessage ? `；${payload.rollbackMessage}` : payload.rolledBack ? "；已自动回滚" : "";
   const detail = `${payload.message || "操作失败"}${rollbackNote}`;
-  if (els.updateHint) {
-    els.updateHint.textContent = detail;
-  }
-  setMessage(`${action} 失败：${detail}`, "error");
+  setUpdateHint(detail, targetKey);
+  setMessage(`${targetConfig.label}${action === "upgrade" ? "升级" : "回滚"}失败：${detail}`, "error");
 }
 
 async function saveModelSettings(modelPayload, actionLabel) {
@@ -1001,6 +1080,7 @@ async function testSlack() {
 
 export {
   approveTelegramPairingFlow,
+  checkAllUpdates,
   checkUpdate,
   fillPanelMeta,
   fillSettings,

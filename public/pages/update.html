@@ -34,9 +34,9 @@
 
                 <nav class="tabs sidebar-tabs">
           <a class="tab" data-tab-target="panel-dashboard" href="/dashboard">仪表盘</a>
-          <a class="tab" data-tab-target="panel-skills" href="/skills">技能管理</a>
-          <a class="tab" data-tab-target="panel-chat-console" href="/chat-console">智能对话</a>
           <a class="tab" data-tab-target="panel-model" href="/model">模型配置</a>
+          <a class="tab" data-tab-target="panel-chat-console" href="/chat-console">智能对话</a>
+          <a class="tab" data-tab-target="panel-skills" href="/skills">技能管理</a>
           <a class="tab" data-tab-target="panel-config-generator" href="/config-generator">配置生成器</a>
           <a class="tab" data-tab-target="panel-channel" href="/channels">平台接入</a>
           <a class="tab is-active" data-tab-target="panel-update" href="/update">版本更新</a>
@@ -56,45 +56,90 @@
 
 <section class="panel is-visible" data-panel="panel-update">
           <article class="card">
-            <h2>检查更新</h2>
-            <p class="muted-line">看看有没有新版本，一键升级。</p>
+            <h2>龙虾 Bot Docker 版本更新</h2>
+            <p class="muted-line">用于更新 openclaw-gateway。升级后会自动重建并确保容器保持运行。</p>
+            <label>
+              镜像仓库
+              <input id="bot_update_image_repo" type="text" readonly />
+            </label>
 
-            <!-- 状态区：最醒目位置 -->
             <div class="update-status-card">
               <div class="status-row">
-                <span class="pill" id="update_state" style="font-size:1.05rem;padding:0.45rem 1.4rem;">还没检查</span>
+                <span class="pill" id="bot_update_state" style="font-size:1.05rem;padding:0.45rem 1.4rem;">还没检查</span>
               </div>
-              <p class="muted-line update-status-hint" id="update_hint">页面打开后会自动检查，你也可以手动再检查一次</p>
+              <p class="muted-line update-status-hint" id="bot_update_hint">页面打开后会自动检查，你也可以手动再检查一次</p>
             </div>
 
-            <!-- 版本信息：紧凑两列 -->
             <div class="grid update-version-card" style="grid-template-columns:1fr 1fr;gap:0.75rem 1.2rem;">
               <label>
-                你的版本
-                <input id="update_current_tag" type="text" readonly />
+                当前版本
+                <input id="bot_update_current_tag" type="text" readonly />
               </label>
               <label>
                 最新版本
-                <input id="update_latest_tag" type="text" readonly />
+                <input id="bot_update_latest_tag" type="text" readonly />
               </label>
             </div>
 
-            <!-- 主操作 -->
             <div class="actions" style="margin-top:1rem;">
-              <button id="check_update">检查新版本</button>
-              <button id="upgrade_update">升级</button>
+              <button id="bot_check_update">检查新版本</button>
+              <button id="bot_upgrade_update">升级</button>
             </div>
 
-            <!-- 高级区：目标版本 + 回滚 -->
             <details style="margin-top:1.2rem;">
               <summary class="muted-line" style="cursor:pointer;user-select:none;">高级选项（指定版本 / 回滚）</summary>
               <div class="update-advanced-card">
                 <label>
                   要升级/回滚到的版本
-                  <input id="update_target_tag" type="text" placeholder="留空则升级到最新版" />
+                  <input id="bot_update_target_tag" type="text" placeholder="留空则升级到最新版" />
                 </label>
                 <div class="actions" style="margin-top:0.75rem;">
-                  <button id="rollback_update" class="btn-soft">回滚（遇到问题时用）</button>
+                  <button id="bot_rollback_update" class="btn-soft">回滚（遇到问题时用）</button>
+                </div>
+              </div>
+            </details>
+          </article>
+
+          <article class="card" style="margin-top:1rem;">
+            <h2>龙虾控制台 Docker 版本更新</h2>
+            <p class="muted-line">用于更新 openclaw-panel。当前流程是先拉取目标镜像，重启控制台容器后生效。</p>
+            <label>
+              镜像仓库
+              <input id="panel_update_image_repo" type="text" readonly />
+            </label>
+
+            <div class="update-status-card">
+              <div class="status-row">
+                <span class="pill" id="panel_update_state" style="font-size:1.05rem;padding:0.45rem 1.4rem;">还没检查</span>
+              </div>
+              <p class="muted-line update-status-hint" id="panel_update_hint">页面打开后会自动检查，你也可以手动再检查一次</p>
+            </div>
+
+            <div class="grid update-version-card" style="grid-template-columns:1fr 1fr;gap:0.75rem 1.2rem;">
+              <label>
+                当前版本
+                <input id="panel_update_current_tag" type="text" readonly />
+              </label>
+              <label>
+                最新版本
+                <input id="panel_update_latest_tag" type="text" readonly />
+              </label>
+            </div>
+
+            <div class="actions" style="margin-top:1rem;">
+              <button id="panel_check_update">检查新版本</button>
+              <button id="panel_upgrade_update">拉取更新镜像</button>
+            </div>
+
+            <details style="margin-top:1.2rem;">
+              <summary class="muted-line" style="cursor:pointer;user-select:none;">高级选项（指定版本 / 回滚）</summary>
+              <div class="update-advanced-card">
+                <label>
+                  要拉取的目标版本
+                  <input id="panel_update_target_tag" type="text" placeholder="留空则拉取最新版" />
+                </label>
+                <div class="actions" style="margin-top:0.75rem;">
+                  <button id="panel_rollback_update" class="btn-soft">拉取回滚镜像</button>
                 </div>
               </div>
             </details>

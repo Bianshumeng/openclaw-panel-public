@@ -21,7 +21,7 @@ import { runServiceAction } from "./systemd.js";
 import { createLogStream, getErrorSummary, getTailLogs } from "./logs.js";
 import { testDiscordBot, testFeishuBot, testSlackBot, testTelegramBot } from "./channel-tests.js";
 import { expandHome, toPositiveInt } from "./utils.js";
-import { checkForUpdates, rollbackToTag, upgradeToTag } from "./docker-update.js";
+import { checkForUpdates, pullTag, rollbackToTag, upgradeToTag } from "./docker-update.js";
 import { buildDashboardSummary } from "./dashboard-service.js";
 import { getSkillConfig, listSkillsStatus, prepareSkillConfigUpdate, setSkillEnabled } from "./skills-service.js";
 import { approveTelegramPairing, setupTelegramBasic } from "./channel-onboarding.js";
@@ -55,8 +55,13 @@ await app.register(fastifyStatic, {
 });
 
 const actionSchema = z.enum(["start", "stop", "restart", "status"]);
+const updateTargetSchema = z.enum(["bot", "panel"]);
+const updateCheckQuerySchema = z.object({
+  target: updateTargetSchema.optional().default("bot")
+});
 const tagPayloadSchema = z.object({
-  tag: z.string().min(1, "tag 不能为空")
+  tag: z.string().min(1, "tag 不能为空"),
+  target: updateTargetSchema.optional().default("bot")
 });
 const skillEnabledPayloadSchema = z.object({
   enabled: z.boolean()
@@ -155,6 +160,10 @@ function ensureDockerMode(panelConfig) {
   }
 }
 
+const LEGACY_OPENCLAW_IMAGE_REPO = "ghcr.io/openclaw/openclaw";
+const DEFAULT_OPENCLAW_IMAGE_REPO = "ghcr.io/bianshumeng/openclaw-mymy";
+const DEFAULT_PANEL_IMAGE_REPO = "ghcr.io/bianshumeng/openclaw-panel";
+
 function normalizeBaseUrl(value) {
   const text = String(value || "").trim();
   if (!text) {
@@ -206,6 +215,30 @@ function buildDeploymentMeta(panelConfig) {
 
 function trimText(value) {
   return String(value || "").trim();
+}
+
+function resolveUpdateTarget(panelConfig, target = "bot") {
+  const selectedTarget = updateTargetSchema.parse(target);
+  if (selectedTarget === "panel") {
+    return {
+      target: selectedTarget,
+      containerName: trimText(panelConfig?.panel?.container_name) || "openclaw-panel",
+      imageRepo: trimText(panelConfig?.panel?.image_repo) || DEFAULT_PANEL_IMAGE_REPO,
+      upgradeMode: "pull-only"
+    };
+  }
+
+  const configuredImageRepo = trimText(panelConfig?.openclaw?.image_repo);
+  const imageRepo =
+    !configuredImageRepo || configuredImageRepo === LEGACY_OPENCLAW_IMAGE_REPO
+      ? DEFAULT_OPENCLAW_IMAGE_REPO
+      : configuredImageRepo;
+  return {
+    target: selectedTarget,
+    containerName: trimText(panelConfig?.openclaw?.container_name) || trimText(panelConfig?.openclaw?.service_name) || "openclaw-gateway",
+    imageRepo,
+    upgradeMode: "recreate"
+  };
 }
 
 function normalizeSkillConfigPatch(payload = {}) {
@@ -1203,14 +1236,21 @@ app.post("/api/test/slack", async (request) => {
 
 app.get("/api/update/check", async (request, reply) => {
   try {
+    const query = updateCheckQuerySchema.parse(request.query || {});
     const { config: panelConfig } = await loadPanelConfig();
     ensureDockerMode(panelConfig);
-    const containerName = panelConfig?.openclaw?.container_name || panelConfig?.openclaw?.service_name || "openclaw-gateway";
-    const imageRepo = panelConfig?.openclaw?.image_repo || "ghcr.io/openclaw/openclaw";
-    const result = await checkForUpdates({ containerName, imageRepo });
+    const targetConfig = resolveUpdateTarget(panelConfig, query.target);
+    const result = await checkForUpdates({
+      containerName: targetConfig.containerName,
+      imageRepo: targetConfig.imageRepo
+    });
     return {
       ok: true,
-      result
+      result: {
+        ...result,
+        target: targetConfig.target,
+        upgradeMode: targetConfig.upgradeMode
+      }
     };
   } catch (error) {
     reply.code(400);
@@ -1226,16 +1266,32 @@ app.post("/api/update/upgrade", async (request, reply) => {
     const payload = tagPayloadSchema.parse(request.body || {});
     const { config: panelConfig } = await loadPanelConfig();
     ensureDockerMode(panelConfig);
-    const containerName = panelConfig?.openclaw?.container_name || panelConfig?.openclaw?.service_name || "openclaw-gateway";
-    const imageRepo = panelConfig?.openclaw?.image_repo || "ghcr.io/openclaw/openclaw";
-    const result = await upgradeToTag({
-      containerName,
-      targetTag: payload.tag,
-      imageRepo
-    });
+    const targetConfig = resolveUpdateTarget(panelConfig, payload.target);
+    let result;
+    if (targetConfig.target === "panel") {
+      const pulled = await pullTag({
+        containerName: targetConfig.containerName,
+        targetTag: payload.tag,
+        imageRepo: targetConfig.imageRepo
+      });
+      result = {
+        ...pulled,
+        message: pulled.ok ? "控制台镜像拉取成功；请重启控制台容器使新版本生效" : pulled.message
+      };
+    } else {
+      result = await upgradeToTag({
+        containerName: targetConfig.containerName,
+        targetTag: payload.tag,
+        imageRepo: targetConfig.imageRepo
+      });
+    }
     return {
       ok: result.ok,
-      result
+      result: {
+        ...result,
+        target: targetConfig.target,
+        upgradeMode: targetConfig.upgradeMode
+      }
     };
   } catch (error) {
     reply.code(400);
@@ -1251,16 +1307,33 @@ app.post("/api/update/rollback", async (request, reply) => {
     const payload = tagPayloadSchema.parse(request.body || {});
     const { config: panelConfig } = await loadPanelConfig();
     ensureDockerMode(panelConfig);
-    const containerName = panelConfig?.openclaw?.container_name || panelConfig?.openclaw?.service_name || "openclaw-gateway";
-    const imageRepo = panelConfig?.openclaw?.image_repo || "ghcr.io/openclaw/openclaw";
-    const result = await rollbackToTag({
-      containerName,
-      targetTag: payload.tag,
-      imageRepo
-    });
+    const targetConfig = resolveUpdateTarget(panelConfig, payload.target);
+    let result;
+    if (targetConfig.target === "panel") {
+      const pulled = await pullTag({
+        containerName: targetConfig.containerName,
+        targetTag: payload.tag,
+        imageRepo: targetConfig.imageRepo
+      });
+      result = {
+        ...pulled,
+        action: "rollback-pull",
+        message: pulled.ok ? "控制台回滚镜像拉取成功；请重启控制台容器生效" : pulled.message
+      };
+    } else {
+      result = await rollbackToTag({
+        containerName: targetConfig.containerName,
+        targetTag: payload.tag,
+        imageRepo: targetConfig.imageRepo
+      });
+    }
     return {
       ok: result.ok,
-      result
+      result: {
+        ...result,
+        target: targetConfig.target,
+        upgradeMode: targetConfig.upgradeMode
+      }
     };
   } catch (error) {
     reply.code(400);

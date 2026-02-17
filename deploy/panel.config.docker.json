@@ -1,7 +1,9 @@
 {
   "panel": {
     "listen_host": "0.0.0.0",
-    "listen_port": 18080
+    "listen_port": 18080,
+    "container_name": "openclaw-panel",
+    "image_repo": "ghcr.io/bianshumeng/openclaw-panel"
   },
   "runtime": {
     "mode": "docker"
@@ -19,7 +21,7 @@
     "config_path": "/data/openclaw/openclaw.json",
     "service_name": "openclaw-gateway",
     "container_name": "openclaw-gateway",
-    "image_repo": "ghcr.io/openclaw/openclaw",
+    "image_repo": "ghcr.io/bianshumeng/openclaw-mymy",
     "gateway_port": 18789,
     "gateway_ws_url": "",
     "gateway_media_root": "/home/node/.openclaw"
