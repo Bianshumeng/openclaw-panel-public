@@ -1,6 +1,10 @@
 import { execFile } from "node:child_process";
 
 const DEFAULT_TIMEOUT_MS = 30_000;
+const DEFAULT_DOCKER_CLI_PREFIXES = [
+  ["openclaw"],
+  ["node", "/app/openclaw.mjs"]
+];
 
 function trimText(value) {
   return String(value || "").trim();
@@ -21,21 +25,32 @@ function shellEscape(value) {
   return `'${text.replace(/'/g, "'\\''")}'`;
 }
 
-function buildInvocation(panelConfig, openclawArgs) {
+function normalizeDockerCliPrefix(prefix) {
+  if (!Array.isArray(prefix)) {
+    return [];
+  }
+  return prefix.map((part) => trimText(part)).filter(Boolean);
+}
+
+function buildInvocation(panelConfig, openclawArgs, dockerCliPrefix = []) {
   const runtimeMode = trimText(panelConfig?.runtime?.mode) || "systemd";
   if (runtimeMode === "docker") {
     const containerName = composeContainerName(panelConfig);
+    const cliPrefix = normalizeDockerCliPrefix(dockerCliPrefix);
+    const normalizedCliPrefix = cliPrefix.length > 0 ? cliPrefix : [...DEFAULT_DOCKER_CLI_PREFIXES[0]];
     return {
       runtimeMode,
       containerName,
+      dockerCliPrefix: normalizedCliPrefix,
       command: "docker",
-      args: ["exec", containerName, "openclaw", ...openclawArgs],
-      openclawArgStartIndex: 3
+      args: ["exec", containerName, ...normalizedCliPrefix, ...openclawArgs],
+      openclawArgStartIndex: 2 + normalizedCliPrefix.length
     };
   }
   return {
     runtimeMode,
     containerName: "",
+    dockerCliPrefix: [],
     command: "openclaw",
     args: [...openclawArgs],
     openclawArgStartIndex: 0
@@ -104,9 +119,39 @@ function isAlreadyEnabledOutput(output) {
   return text.includes("already enabled") || text.includes("已经启用") || text.includes("已启用");
 }
 
+function isMissingExecutableResult(rawResult, executableName) {
+  const executable = trimText(executableName).toLowerCase();
+  if (!executable) {
+    return false;
+  }
+  const text = [trimText(rawResult?.stdout), trimText(rawResult?.stderr), trimText(rawResult?.message)]
+    .filter(Boolean)
+    .join("\n")
+    .toLowerCase();
+  if (!text) {
+    return false;
+  }
+  const hasExecName = text.includes(`exec: "${executable}"`) || text.includes(`exec: ${executable}`);
+  if (!hasExecName) {
+    return false;
+  }
+  return (
+    text.includes("executable file not found") ||
+    text.includes("not found in $path") ||
+    text.includes("no such file or directory")
+  );
+}
+
+function prependFallbackHint(output, fromPrefix, toPrefix) {
+  const hint = `检测到容器内未找到 '${fromPrefix.join(" ")}'，已自动改用 '${toPrefix.join(" ")}'。`;
+  const normalizedOutput = trimText(output);
+  return [hint, normalizedOutput].filter(Boolean).join("\n");
+}
+
 export async function runOpenClawCli({
   panelConfig,
   openclawArgs,
+  dockerCliPrefix = [],
   timeoutMs = DEFAULT_TIMEOUT_MS,
   redactOpenclawArgIndices = [],
   secrets = [],
@@ -117,13 +162,61 @@ export async function runOpenClawCli({
     throw new Error("openclawArgs 不能为空");
   }
 
-  const invocation = buildInvocation(panelConfig, normalizedArgs);
   const runFn = deps.runCommand || runCommand;
-  const raw = await runFn(invocation.command, invocation.args, timeoutMs);
-  return normalizeCommandResult(raw, invocation, {
-    secrets,
-    redactOpenclawArgIndices
-  });
+  const runtimeMode = trimText(panelConfig?.runtime?.mode) || "systemd";
+  if (runtimeMode !== "docker") {
+    const invocation = buildInvocation(panelConfig, normalizedArgs, dockerCliPrefix);
+    const raw = await runFn(invocation.command, invocation.args, timeoutMs);
+    const normalized = normalizeCommandResult(raw, invocation, {
+      secrets,
+      redactOpenclawArgIndices
+    });
+    return {
+      ...normalized,
+      dockerCliPrefix: []
+    };
+  }
+
+  const requestedDockerCliPrefix = normalizeDockerCliPrefix(dockerCliPrefix);
+  const dockerCliCandidates = requestedDockerCliPrefix.length > 0 ? [requestedDockerCliPrefix] : DEFAULT_DOCKER_CLI_PREFIXES;
+  let previousMissingPrefix = [];
+
+  for (let index = 0; index < dockerCliCandidates.length; index += 1) {
+    const currentPrefix = dockerCliCandidates[index];
+    const invocation = buildInvocation(panelConfig, normalizedArgs, currentPrefix);
+    const raw = await runFn(invocation.command, invocation.args, timeoutMs);
+    const normalized = normalizeCommandResult(raw, invocation, {
+      secrets,
+      redactOpenclawArgIndices
+    });
+    const canFallback = index < dockerCliCandidates.length - 1;
+    const missingExecutable = !normalized.ok && isMissingExecutableResult(raw, currentPrefix[0]);
+
+    if (missingExecutable && canFallback) {
+      previousMissingPrefix = currentPrefix;
+      continue;
+    }
+
+    if (previousMissingPrefix.length > 0) {
+      normalized.output = prependFallbackHint(normalized.output, previousMissingPrefix, currentPrefix);
+    }
+
+    return {
+      ...normalized,
+      dockerCliPrefix: [...currentPrefix]
+    };
+  }
+
+  const fallbackPrefix = normalizeDockerCliPrefix(dockerCliPrefix);
+  return {
+    ok: false,
+    code: 1,
+    runtimeMode: "docker",
+    containerName: composeContainerName(panelConfig),
+    command: formatCommand(buildInvocation(panelConfig, normalizedArgs, fallbackPrefix.length > 0 ? fallbackPrefix : ["openclaw"])),
+    output: "未找到可用的 OpenClaw CLI 入口。请检查容器内 openclaw 可执行文件或 /app/openclaw.mjs 是否存在。",
+    dockerCliPrefix: fallbackPrefix
+  };
 }
 
 export async function setupTelegramBasic({ panelConfig, botToken, deps = {} }) {
@@ -131,6 +224,8 @@ export async function setupTelegramBasic({ panelConfig, botToken, deps = {} }) {
   if (!token) {
     throw new Error("Bot Token 不能为空");
   }
+
+  let activeDockerCliPrefix = [];
 
   const stepDefs = [
     {
@@ -152,13 +247,17 @@ export async function setupTelegramBasic({ panelConfig, botToken, deps = {} }) {
 
   const steps = [];
   for (const definition of stepDefs) {
-    const result = await runOpenClawCli({
+    const { dockerCliPrefix: resolvedDockerCliPrefix, ...result } = await runOpenClawCli({
       panelConfig,
       openclawArgs: definition.openclawArgs,
+      dockerCliPrefix: activeDockerCliPrefix,
       redactOpenclawArgIndices: definition.redactOpenclawArgIndices || [],
       secrets: definition.secrets || [],
       deps
     });
+    if (Array.isArray(resolvedDockerCliPrefix) && resolvedDockerCliPrefix.length > 0) {
+      activeDockerCliPrefix = [...resolvedDockerCliPrefix];
+    }
     const accepted = result.ok || (definition.allowAlreadyEnabled && isAlreadyEnabledOutput(result.output));
     const step = {
       ...result,
@@ -190,7 +289,7 @@ export async function approveTelegramPairing({ panelConfig, code, deps = {} }) {
     throw new Error("验证码不能为空");
   }
 
-  const result = await runOpenClawCli({
+  const { dockerCliPrefix: _ignoredDockerCliPrefix, ...result } = await runOpenClawCli({
     panelConfig,
     openclawArgs: ["pairing", "approve", "telegram", pairingCode],
     redactOpenclawArgIndices: [3],
@@ -216,4 +315,3 @@ export async function approveTelegramPairing({ panelConfig, code, deps = {} }) {
     }
   };
 }
-

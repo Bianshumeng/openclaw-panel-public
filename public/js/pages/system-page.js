@@ -729,6 +729,10 @@ function setChannelActionResult(elementId, detail, success) {
   }
   const timestamp = new Date().toLocaleTimeString();
   el.textContent = `最近执行（${timestamp}）：${detail}`;
+  if (success === null) {
+    el.classList.remove("success", "fail");
+    return;
+  }
   el.classList.toggle("success", Boolean(success));
   el.classList.toggle("fail", !success);
 }
@@ -759,6 +763,58 @@ function renderTelegramTrace(elementId, steps = []) {
   trace.textContent = lines.join("\n").trim();
 }
 
+const telegramFlowLocks = {
+  setup: false,
+  pairing: false
+};
+
+function setActionButtonBusy(buttonId, busy, busyLabel) {
+  const button = document.querySelector(`#${buttonId}`);
+  if (!(button instanceof HTMLButtonElement)) {
+    return;
+  }
+  if (!button.dataset.originalLabel) {
+    button.dataset.originalLabel = String(button.textContent || "").trim();
+  }
+  button.disabled = Boolean(busy);
+  button.setAttribute("aria-busy", busy ? "true" : "false");
+  button.textContent = busy ? busyLabel : button.dataset.originalLabel;
+}
+
+async function runTelegramFlowWithLock({
+  lockKey,
+  buttonId,
+  busyLabel,
+  pendingResultId,
+  pendingDetail,
+  duplicateClickMessage,
+  pendingMessage,
+  run
+}) {
+  if (telegramFlowLocks[lockKey]) {
+    if (duplicateClickMessage) {
+      setMessage(duplicateClickMessage, "info");
+    }
+    return;
+  }
+
+  telegramFlowLocks[lockKey] = true;
+  setActionButtonBusy(buttonId, true, busyLabel);
+  if (pendingResultId && pendingDetail) {
+    setChannelActionResult(pendingResultId, pendingDetail, null);
+  }
+  if (pendingMessage) {
+    setMessage(pendingMessage, "info");
+  }
+
+  try {
+    await run();
+  } finally {
+    telegramFlowLocks[lockKey] = false;
+    setActionButtonBusy(buttonId, false, busyLabel);
+  }
+}
+
 async function setupTelegramBasicFlow() {
   const botToken = String(getInputValue("tg_bot_token") || "").trim();
   if (!botToken) {
@@ -766,26 +822,37 @@ async function setupTelegramBasicFlow() {
     throw new Error("Telegram 基础配置失败：Bot Token 不能为空");
   }
 
-  const result = await api("/api/channels/telegram/setup", {
-    method: "POST",
-    body: JSON.stringify({ botToken }),
-    allowBusinessError: true
+  await runTelegramFlowWithLock({
+    lockKey: "setup",
+    buttonId: "tg_setup_basic",
+    busyLabel: "保存中...",
+    pendingResultId: "tg_setup_result",
+    pendingDetail: "处理中：正在启用 Telegram 插件并写入 Bot Token",
+    duplicateClickMessage: "Telegram 基础配置正在处理中，请勿重复点击",
+    pendingMessage: "Telegram 基础配置处理中，请稍候…",
+    run: async () => {
+      const result = await api("/api/channels/telegram/setup", {
+        method: "POST",
+        body: JSON.stringify({ botToken }),
+        allowBusinessError: true
+      });
+      const payload = result.result && typeof result.result === "object" ? result.result : {};
+      const steps = Array.isArray(payload.steps) ? payload.steps : [];
+      renderTelegramTrace("tg_setup_trace", steps);
+
+      if (!result.ok || payload.ok === false) {
+        const detail = String(payload.message || result.message || "Telegram 基础配置失败");
+        setChannelActionResult("tg_setup_result", `失败：${detail}`, false);
+        setMessage(`Telegram 基础配置失败：${detail}`, "error");
+        return;
+      }
+
+      const detail = String(payload.message || "Telegram 基础配置完成");
+      setChannelActionResult("tg_setup_result", `成功：${detail}`, true);
+      setMessage(detail, "ok");
+      await loadInitialData();
+    }
   });
-  const payload = result.result && typeof result.result === "object" ? result.result : {};
-  const steps = Array.isArray(payload.steps) ? payload.steps : [];
-  renderTelegramTrace("tg_setup_trace", steps);
-
-  if (!result.ok || payload.ok === false) {
-    const detail = String(payload.message || result.message || "Telegram 基础配置失败");
-    setChannelActionResult("tg_setup_result", `失败：${detail}`, false);
-    setMessage(`Telegram 基础配置失败：${detail}`, "error");
-    return;
-  }
-
-  const detail = String(payload.message || "Telegram 基础配置完成");
-  setChannelActionResult("tg_setup_result", `成功：${detail}`, true);
-  setMessage(detail, "ok");
-  await loadInitialData();
 }
 
 async function approveTelegramPairingFlow() {
@@ -795,27 +862,38 @@ async function approveTelegramPairingFlow() {
     throw new Error("Telegram 配对失败：验证码不能为空");
   }
 
-  const result = await api("/api/channels/telegram/pairing/approve", {
-    method: "POST",
-    body: JSON.stringify({ code }),
-    allowBusinessError: true
+  await runTelegramFlowWithLock({
+    lockKey: "pairing",
+    buttonId: "tg_pairing_approve",
+    busyLabel: "验证中...",
+    pendingResultId: "tg_pairing_result",
+    pendingDetail: "处理中：正在提交验证码并等待验证结果",
+    duplicateClickMessage: "Telegram 验证正在处理中，请勿重复点击",
+    pendingMessage: "Telegram 验证处理中，请稍候…",
+    run: async () => {
+      const result = await api("/api/channels/telegram/pairing/approve", {
+        method: "POST",
+        body: JSON.stringify({ code }),
+        allowBusinessError: true
+      });
+      const payload = result.result && typeof result.result === "object" ? result.result : {};
+      const step = payload.step && typeof payload.step === "object" ? payload.step : null;
+      if (step) {
+        renderTelegramTrace("tg_pairing_trace", [step]);
+      }
+
+      if (!result.ok || payload.ok === false) {
+        const detail = String(payload.message || result.message || "验证码验证失败");
+        setChannelActionResult("tg_pairing_result", `失败：${detail}`, false);
+        setMessage(`Telegram 配对失败：${detail}`, "error");
+        return;
+      }
+
+      const detail = String(payload.message || "验证码验证成功");
+      setChannelActionResult("tg_pairing_result", `成功：${detail}`, true);
+      setMessage(detail, "ok");
+    }
   });
-  const payload = result.result && typeof result.result === "object" ? result.result : {};
-  const step = payload.step && typeof payload.step === "object" ? payload.step : null;
-  if (step) {
-    renderTelegramTrace("tg_pairing_trace", [step]);
-  }
-
-  if (!result.ok || payload.ok === false) {
-    const detail = String(payload.message || result.message || "验证码验证失败");
-    setChannelActionResult("tg_pairing_result", `失败：${detail}`, false);
-    setMessage(`Telegram 配对失败：${detail}`, "error");
-    return;
-  }
-
-  const detail = String(payload.message || "验证码验证成功");
-  setChannelActionResult("tg_pairing_result", `成功：${detail}`, true);
-  setMessage(detail, "ok");
 }
 
 async function saveAndTestTelegram() {

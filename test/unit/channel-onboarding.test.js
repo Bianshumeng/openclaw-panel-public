@@ -44,6 +44,58 @@ test("setupTelegramBasic executes enable + config steps in order", async () => {
   assert.doesNotMatch(result.steps[2].output, /123456:abcdef/);
 });
 
+test("setupTelegramBasic falls back to node openclaw.mjs when openclaw executable is missing", async () => {
+  const calls = [];
+  const runCommand = async (command, args) => {
+    calls.push({ command, args });
+    const line = args.join(" ");
+    if (line.startsWith("exec openclaw-gateway openclaw")) {
+      return {
+        ok: false,
+        code: 127,
+        stdout: 'OCI runtime exec failed: exec failed: unable to start container process: exec: "openclaw": executable file not found in $PATH: unknown',
+        stderr: "",
+        message: `Command failed: docker ${line}`
+      };
+    }
+    return {
+      ok: true,
+      code: 0,
+      stdout: "ok",
+      stderr: "",
+      message: ""
+    };
+  };
+
+  const result = await setupTelegramBasic({
+    panelConfig: {
+      runtime: {
+        mode: "docker"
+      },
+      openclaw: {
+        container_name: "openclaw-gateway"
+      }
+    },
+    botToken: "123456:abcdef",
+    deps: {
+      runCommand
+    }
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(result.steps.length, 3);
+  assert.deepEqual(
+    calls.map((item) => item.args.join(" ")),
+    [
+      "exec openclaw-gateway openclaw plugins enable telegram",
+      "exec openclaw-gateway node /app/openclaw.mjs plugins enable telegram",
+      "exec openclaw-gateway node /app/openclaw.mjs config set channels.telegram.enabled true",
+      "exec openclaw-gateway node /app/openclaw.mjs config set channels.telegram.botToken 123456:abcdef"
+    ]
+  );
+  assert.match(result.steps[0].output, /自动改用/);
+});
+
 test("setupTelegramBasic treats already-enabled plugin output as success", async () => {
   let callIndex = 0;
   const runCommand = async () => {
@@ -83,6 +135,55 @@ test("setupTelegramBasic treats already-enabled plugin output as success", async
   assert.equal(result.steps[0].ok, true);
 });
 
+test("approveTelegramPairing falls back to node openclaw.mjs when openclaw executable is missing", async () => {
+  const calls = [];
+  const runCommand = async (command, args) => {
+    calls.push({ command, args });
+    const line = args.join(" ");
+    if (line.startsWith("exec openclaw-gateway openclaw")) {
+      return {
+        ok: false,
+        code: 127,
+        stdout: 'OCI runtime exec failed: exec failed: unable to start container process: exec: "openclaw": executable file not found in $PATH: unknown',
+        stderr: "",
+        message: `Command failed: docker ${line}`
+      };
+    }
+    return {
+      ok: true,
+      code: 0,
+      stdout: "approved",
+      stderr: "",
+      message: ""
+    };
+  };
+
+  const result = await approveTelegramPairing({
+    panelConfig: {
+      runtime: {
+        mode: "docker"
+      },
+      openclaw: {
+        container_name: "openclaw-gateway"
+      }
+    },
+    code: "ABC-123",
+    deps: {
+      runCommand
+    }
+  });
+
+  assert.equal(result.ok, true);
+  assert.deepEqual(
+    calls.map((item) => item.args.join(" ")),
+    [
+      "exec openclaw-gateway openclaw pairing approve telegram ABC-123",
+      "exec openclaw-gateway node /app/openclaw.mjs pairing approve telegram ABC-123"
+    ]
+  );
+  assert.match(result.step.output, /自动改用/);
+});
+
 test("approveTelegramPairing validates code and executes command", async () => {
   const calls = [];
   const runCommand = async (command, args) => {
@@ -116,4 +217,3 @@ test("approveTelegramPairing validates code and executes command", async () => {
   assert.deepEqual(calls[0].args, ["exec", "openclaw-gateway", "openclaw", "pairing", "approve", "telegram", "ABC-123"]);
   assert.match(result.step.command, /\*\*\*/);
 });
-
