@@ -1,19 +1,19 @@
-name: cd-panel-image
+name: cd-openclaw-bot-image
 
 on:
   workflow_dispatch:
     inputs:
       version:
-        description: "镜像版本（可带 v 前缀，例如 v0.1.0）"
+        description: "镜像版本（可带 v 前缀；留空时取 third_party/openclaw/package.json）"
         required: false
   push:
     branches:
       - main
     tags:
-      - "panel-v*"
+      - "bot-v*"
 
 concurrency:
-  group: cd-panel-image-${{ github.ref }}
+  group: cd-openclaw-bot-image-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -25,21 +25,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Unit + regression tests
-        run: npm run test
-
-      - name: Smoke check
-        run: npm run check
 
       - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -58,15 +43,15 @@ jobs:
           if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
             raw="${{ github.event.inputs.version }}"
             if [[ -z "$raw" ]]; then
-              raw="$(node -p "require('./package.json').version")"
+              raw="$(node -p "require('./third_party/openclaw/package.json').version")"
             fi
-          elif [[ "${GITHUB_REF}" == refs/tags/panel-v* ]]; then
-            raw="${GITHUB_REF_NAME#panel-v}"
+          elif [[ "${GITHUB_REF}" == refs/tags/bot-v* ]]; then
+            raw="${GITHUB_REF_NAME#bot-v}"
           else
-            raw="$(node -p "require('./package.json').version")"
+            raw="$(node -p "require('./third_party/openclaw/package.json').version")"
           fi
           version="${raw#v}"
-          image="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/openclaw-panel"
+          image="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/openclaw-mymy"
           short_sha="${GITHUB_SHA::12}"
           {
             echo "version=${version}"
@@ -75,11 +60,11 @@ jobs:
           } >> "$GITHUB_OUTPUT"
           echo "publish ${image}:${version}, ${image}:latest, ${image}:sha-${short_sha}"
 
-      - name: Build and push panel image
+      - name: Build and push openclaw bot image
         uses: docker/build-push-action@v6
         with:
-          context: .
-          file: Dockerfile
+          context: third_party/openclaw
+          file: third_party/openclaw/Dockerfile
           push: true
           tags: |
             ${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.version }}
