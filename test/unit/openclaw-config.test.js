@@ -236,6 +236,34 @@ test("extractSettings returns model catalog for UI selection", () => {
   assert.equal(settings.model.catalog.providers[0].models[0].thinkingStrength, "high");
 });
 
+test("extractSettings does not synthesize fake model when config has no providers", () => {
+  const settings = extractSettings({
+    models: {
+      providers: {},
+      mode: "merge"
+    },
+    agents: {
+      defaults: {
+        model: {
+          primary: ""
+        }
+      }
+    },
+    channels: {}
+  });
+
+  assert.equal(settings.model.primary, "");
+  assert.equal(settings.model.providerId, "");
+  assert.equal(settings.model.providerApi, "");
+  assert.equal(settings.model.providerBaseUrl, "");
+  assert.equal(settings.model.modelId, "");
+  assert.equal(settings.model.modelName, "");
+  assert.equal(settings.model.contextWindow, undefined);
+  assert.equal(settings.model.maxTokens, undefined);
+  assert.equal(settings.model.catalog.providers.length, 0);
+  assert.equal(settings.model.catalog.modelRefs.length, 0);
+});
+
 test("applySettings supports model-only payload without mutating channels", () => {
   const current = {
     models: {

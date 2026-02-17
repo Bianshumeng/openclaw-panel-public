@@ -196,14 +196,435 @@ function fillDashboardQuickSwitch(modelSettings) {
   renderDashboardQuickSwitchHint(selectedEntry);
 }
 
+function resolveModelFamilyKey(modelEntry = {}) {
+  const modelId = String(modelEntry?.modelId || "").trim().toLowerCase();
+  const modelName = String(modelEntry?.modelName || "").trim().toLowerCase();
+  const source = `${modelId} ${modelName}`.trim();
+  if (source.startsWith("claude") || source.includes(" claude")) {
+    return "claude";
+  }
+  if (source.startsWith("gemini") || source.includes(" gemini")) {
+    return "gemini";
+  }
+  if (source.startsWith("gpt") || source.includes(" gpt")) {
+    return "gpt";
+  }
+  return "other";
+}
+
+function setModelAddWorkspaceVisible(visible) {
+  const workspace = document.querySelector("#model_add_workspace");
+  const toggle = document.querySelector("#model_add_toggle");
+  if (!workspace || !toggle) {
+    return;
+  }
+
+  const nextVisible = Boolean(visible);
+  workspace.classList.toggle("is-hidden", !nextVisible);
+  workspace.setAttribute("aria-hidden", nextVisible ? "false" : "true");
+  toggle.setAttribute("aria-expanded", nextVisible ? "true" : "false");
+  toggle.classList.toggle("is-active", nextVisible);
+  toggle.title = nextVisible ? "关闭添加模型面板" : "添加模型";
+  const symbol = toggle.querySelector("span");
+  if (symbol) {
+    symbol.textContent = nextVisible ? "×" : "+";
+  }
+}
+
+const modelMutationState = {
+  pending: false,
+  providerEditId: "",
+  modelEditProviderId: "",
+  modelEditId: "",
+  dialogBound: false
+};
+
+const modelRawConfigState = {
+  bound: false,
+  pending: false,
+  lastSyncMtimeMs: null
+};
+
+function getShoelaceDialog(id) {
+  const dialog = document.querySelector(`#${id}`);
+  if (!dialog || typeof dialog.show !== "function" || typeof dialog.hide !== "function") {
+    return null;
+  }
+  return dialog;
+}
+
+function openShoelaceDialog(id) {
+  const dialog = getShoelaceDialog(id);
+  if (!dialog) {
+    return;
+  }
+  dialog.show();
+}
+
+function closeShoelaceDialog(id) {
+  const dialog = getShoelaceDialog(id);
+  if (!dialog) {
+    return;
+  }
+  dialog.hide();
+}
+
+function parseOptionalPositiveIntInput(rawValue, label) {
+  const text = String(rawValue || "").trim();
+  if (!text) {
+    return undefined;
+  }
+  const parsed = Number(text);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    throw new Error(`${label} 必须是正整数`);
+  }
+  return Math.floor(parsed);
+}
+
+async function runModelMutation(task) {
+  if (modelMutationState.pending) {
+    setMessage("模型配置正在写入，请稍等片刻再操作", "info");
+    return;
+  }
+  modelMutationState.pending = true;
+  try {
+    await task();
+  } finally {
+    modelMutationState.pending = false;
+  }
+}
+
+function setModelRawConfigStatus(message, type = "info") {
+  const statusEl = document.querySelector("#model_raw_config_status");
+  if (!statusEl) {
+    return;
+  }
+  statusEl.textContent = String(message || "").trim();
+  statusEl.classList.toggle("is-fail", type === "error");
+  statusEl.classList.toggle("is-done", type === "ok");
+}
+
+function setModelRawConfigBusy(busy) {
+  const isBusy = Boolean(busy);
+  document.querySelector("#model_raw_config_reload")?.toggleAttribute("disabled", isBusy);
+  document.querySelector("#model_raw_config_save")?.toggleAttribute("disabled", isBusy);
+}
+
+function applyModelRawConfigPayload(payload = {}) {
+  const editor = document.querySelector("#model_raw_config_editor");
+  if (!(editor instanceof HTMLTextAreaElement)) {
+    return;
+  }
+  editor.value = String(payload.rawText || "");
+  modelRawConfigState.lastSyncMtimeMs = Number.isFinite(Number(payload.mtimeMs)) ? Number(payload.mtimeMs) : null;
+  setText("model_raw_config_path", String(payload.path || "-"));
+  setText("model_raw_config_mtime", payload.mtimeMs ? formatLocalTime(payload.mtimeMs) : "-");
+  setText("model_raw_config_size", Number.isFinite(payload.size) ? `${payload.size} bytes` : "-");
+}
+
+async function loadModelRawConfig({ silent = false } = {}) {
+  const editor = document.querySelector("#model_raw_config_editor");
+  if (!(editor instanceof HTMLTextAreaElement)) {
+    return;
+  }
+  if (modelRawConfigState.pending) {
+    return;
+  }
+
+  modelRawConfigState.pending = true;
+  setModelRawConfigBusy(true);
+  setModelRawConfigStatus("正在读取真实配置文件...", "info");
+  try {
+    const result = await api("/api/openclaw-config/raw");
+    applyModelRawConfigPayload(result);
+    if (result.exists === false) {
+      setModelRawConfigStatus("配置文件当前不存在，你可以粘贴 JSON 后直接保存创建。", "info");
+    } else {
+      setModelRawConfigStatus("已与真实配置文件同步。", "ok");
+    }
+    if (!silent && result.path) {
+      setMessage(`已读取真实配置文件：${result.path}`, "ok");
+    }
+  } catch (error) {
+    setModelRawConfigStatus(`读取失败：${error.message || String(error)}`, "error");
+    if (!silent) {
+      setMessage(error.message || String(error), "error");
+    }
+  } finally {
+    modelRawConfigState.pending = false;
+    setModelRawConfigBusy(false);
+  }
+}
+
+async function saveModelRawConfig() {
+  const editor = document.querySelector("#model_raw_config_editor");
+  if (!(editor instanceof HTMLTextAreaElement)) {
+    return;
+  }
+  if (modelRawConfigState.pending) {
+    setMessage("配置文件正在处理，请稍后重试", "info");
+    return;
+  }
+
+  const rawText = String(editor.value || "").trim();
+  if (!rawText) {
+    throw new Error("配置 JSON 不能为空");
+  }
+
+  modelRawConfigState.pending = true;
+  setModelRawConfigBusy(true);
+  setModelRawConfigStatus("正在写入真实配置文件...", "info");
+  try {
+    const payload = {
+      rawText
+    };
+    if (Number.isFinite(modelRawConfigState.lastSyncMtimeMs) && modelRawConfigState.lastSyncMtimeMs > 0) {
+      payload.expectedMtimeMs = modelRawConfigState.lastSyncMtimeMs;
+    }
+    const result = await api("/api/openclaw-config/raw", {
+      method: "PUT",
+      body: JSON.stringify(payload)
+    });
+    applyModelRawConfigPayload(result);
+    setModelRawConfigStatus("保存成功，已同步真实配置文件。", "ok");
+    setMessage(`配置文件写入成功：${result.path}`, "ok");
+    const modelSettings = result?.settings?.model;
+    if (modelSettings && typeof modelSettings === "object") {
+      renderDashboardModelCards(modelSettings);
+      fillModelEditor(modelSettings);
+    }
+  } finally {
+    modelRawConfigState.pending = false;
+    setModelRawConfigBusy(false);
+  }
+}
+
+function bindModelRawConfigEditor() {
+  if (modelRawConfigState.bound) {
+    return;
+  }
+
+  const editor = document.querySelector("#model_raw_config_editor");
+  if (!(editor instanceof HTMLTextAreaElement)) {
+    return;
+  }
+
+  modelRawConfigState.bound = true;
+  document.querySelector("#model_raw_config_reload")?.addEventListener("click", () => {
+    loadModelRawConfig({ silent: false }).catch((error) => {
+      setMessage(error.message || String(error), "error");
+    });
+  });
+  document.querySelector("#model_raw_config_save")?.addEventListener("click", () => {
+    saveModelRawConfig().catch((error) => {
+      setModelRawConfigStatus(`保存失败：${error.message || String(error)}`, "error");
+      setMessage(error.message || String(error), "error");
+    });
+  });
+}
+
+async function refreshModelSettingsFromServer(successMessage = "") {
+  const result = await api("/api/settings");
+  const modelSettings = result?.settings?.model;
+  if (!modelSettings || typeof modelSettings !== "object") {
+    throw new Error("模型配置刷新失败，请手动刷新页面");
+  }
+  renderDashboardModelCards(modelSettings);
+  fillModelEditor(modelSettings);
+  if (successMessage) {
+    setMessage(successMessage, "ok");
+  }
+}
+
+function openProviderEditDialog(providerEntry = {}) {
+  const providerId = String(providerEntry?.id || "").trim();
+  if (!providerId) {
+    setMessage("供应商数据无效，无法编辑", "error");
+    return;
+  }
+  modelMutationState.providerEditId = providerId;
+  setInput("model_provider_edit_id", providerId);
+  setInput("model_provider_edit_api", String(providerEntry?.api || "").trim());
+  setInput("model_provider_edit_baseurl", String(providerEntry?.baseUrl || "").trim());
+  setInput("model_provider_edit_apikey", "");
+  openShoelaceDialog("model_provider_edit_dialog");
+}
+
+async function submitProviderEditDialog() {
+  const providerId = String(modelMutationState.providerEditId || "").trim();
+  if (!providerId) {
+    throw new Error("未找到待编辑的供应商");
+  }
+
+  const nextProviderId = String(getInputValue("model_provider_edit_id") || "").trim();
+  const nextApi = String(getInputValue("model_provider_edit_api") || "").trim();
+  const nextBaseUrl = String(getInputValue("model_provider_edit_baseurl") || "").trim();
+  const nextApiKey = String(getInputValue("model_provider_edit_apikey") || "").trim();
+  if (!nextProviderId || !nextApi || !nextBaseUrl) {
+    throw new Error("请完整填写供应商名称、API 模式和 API 地址");
+  }
+
+  const payload = {
+    nextProviderId,
+    api: nextApi,
+    baseUrl: nextBaseUrl
+  };
+  if (nextApiKey) {
+    payload.apiKey = nextApiKey;
+  }
+
+  await api(`/api/models/providers/${encodeURIComponent(providerId)}`, {
+    method: "PUT",
+    body: JSON.stringify(payload)
+  });
+
+  closeShoelaceDialog("model_provider_edit_dialog");
+  modelMutationState.providerEditId = "";
+  setInput("model_provider_edit_apikey", "");
+  const actionText =
+    nextProviderId === providerId
+      ? `供应商 ${nextProviderId} 已更新`
+      : `供应商已从 ${providerId} 更新为 ${nextProviderId}`;
+  await refreshModelSettingsFromServer(actionText);
+}
+
+function openModelEditDialog(providerEntry = {}, modelEntry = {}) {
+  const providerId = String(providerEntry?.id || modelEntry?.providerId || "").trim();
+  const modelId = String(modelEntry?.modelId || modelEntry?.id || "").trim();
+  if (!providerId || !modelId) {
+    setMessage("模型数据无效，无法编辑", "error");
+    return;
+  }
+
+  modelMutationState.modelEditProviderId = providerId;
+  modelMutationState.modelEditId = modelId;
+  setInput("model_item_edit_provider", providerId);
+  setInput("model_item_edit_id", modelId);
+  setInput("model_item_edit_name", String(modelEntry?.modelName || modelEntry?.name || modelId).trim() || modelId);
+  setInput("model_item_edit_context_window", modelEntry?.contextWindow || "");
+  setInput("model_item_edit_max_tokens", modelEntry?.maxTokens || "");
+  openShoelaceDialog("model_item_edit_dialog");
+}
+
+async function submitModelEditDialog() {
+  const providerId = String(modelMutationState.modelEditProviderId || "").trim();
+  const sourceModelId = String(modelMutationState.modelEditId || "").trim();
+  if (!providerId || !sourceModelId) {
+    throw new Error("未找到待编辑的模型");
+  }
+
+  const nextModelId = String(getInputValue("model_item_edit_id") || "").trim();
+  const nextModelName = String(getInputValue("model_item_edit_name") || "").trim();
+  if (!nextModelId) {
+    throw new Error("模型 ID 不能为空");
+  }
+
+  const contextWindow = parseOptionalPositiveIntInput(
+    getInputValue("model_item_edit_context_window"),
+    "模型最大上下文"
+  );
+  const maxTokens = parseOptionalPositiveIntInput(getInputValue("model_item_edit_max_tokens"), "模型最大输出");
+
+  const payload = {
+    nextModelId,
+    name: nextModelName || nextModelId
+  };
+  if (contextWindow !== undefined) {
+    payload.contextWindow = contextWindow;
+  }
+  if (maxTokens !== undefined) {
+    payload.maxTokens = maxTokens;
+  }
+
+  await api(`/api/models/providers/${encodeURIComponent(providerId)}/models/${encodeURIComponent(sourceModelId)}`, {
+    method: "PUT",
+    body: JSON.stringify(payload)
+  });
+
+  closeShoelaceDialog("model_item_edit_dialog");
+  modelMutationState.modelEditProviderId = "";
+  modelMutationState.modelEditId = "";
+  const actionText =
+    nextModelId === sourceModelId
+      ? `模型 ${providerId}/${nextModelId} 已更新`
+      : `模型已从 ${providerId}/${sourceModelId} 更新为 ${providerId}/${nextModelId}`;
+  await refreshModelSettingsFromServer(actionText);
+}
+
+async function deleteProviderWithConfirm(providerEntry = {}) {
+  const providerId = String(providerEntry?.id || "").trim();
+  if (!providerId) {
+    throw new Error("供应商标识无效");
+  }
+  const models = Array.isArray(providerEntry?.models) ? providerEntry.models : [];
+  const confirmed = window.confirm(`确认删除供应商 ${providerId} 吗？\n将连带删除其下 ${models.length} 个模型。`);
+  if (!confirmed) {
+    return;
+  }
+
+  await api(`/api/models/providers/${encodeURIComponent(providerId)}`, {
+    method: "DELETE"
+  });
+  await refreshModelSettingsFromServer(`供应商 ${providerId} 已删除`);
+}
+
+async function deleteModelWithConfirm(providerEntry = {}, modelEntry = {}) {
+  const providerId = String(providerEntry?.id || modelEntry?.providerId || "").trim();
+  const modelId = String(modelEntry?.modelId || modelEntry?.id || "").trim();
+  if (!providerId || !modelId) {
+    throw new Error("模型标识无效");
+  }
+  const confirmed = window.confirm(`确认删除模型 ${providerId}/${modelId} 吗？\n删除后将无法自动恢复。`);
+  if (!confirmed) {
+    return;
+  }
+
+  await api(`/api/models/providers/${encodeURIComponent(providerId)}/models/${encodeURIComponent(modelId)}`, {
+    method: "DELETE"
+  });
+  await refreshModelSettingsFromServer(`模型 ${providerId}/${modelId} 已删除`);
+}
+
+function getProviderEntries(modelSettings) {
+  const providers = Array.isArray(modelSettings?.catalog?.providers) ? modelSettings.catalog.providers : [];
+  if (providers.length > 0) {
+    return providers;
+  }
+
+  const fallbackModelId = String(modelSettings?.modelId || "").trim();
+  if (!fallbackModelId) {
+    return [];
+  }
+
+  return [
+    {
+      id: String(modelSettings?.providerId || "").trim(),
+      api: String(modelSettings?.providerApi || "").trim(),
+      baseUrl: String(modelSettings?.providerBaseUrl || "").trim(),
+      models: [
+        {
+          id: fallbackModelId,
+          name: String(modelSettings?.modelName || fallbackModelId).trim() || fallbackModelId,
+          contextWindow: Number(modelSettings?.contextWindow || 0) || undefined,
+          maxTokens: Number(modelSettings?.maxTokens || 0) || undefined,
+          thinkingStrength: String(modelSettings?.thinkingStrength || "").trim() || "无"
+        }
+      ]
+    }
+  ];
+}
+
 function setModelProviderMode(mode) {
-  const normalizedMode = String(mode || "").trim() === "custom" ? "custom" : "template";
+  const rawMode = String(mode || "").trim();
+  const normalizedMode = rawMode === "custom" || rawMode === "existing" ? rawMode : "template";
   modelEditorState.providerMode = normalizedMode;
 
-  const hintText =
-    normalizedMode === "custom"
-      ? "当前为自定义模式：请手工维护 models JSON，适合高级配置场景。"
-      : "当前为基础配置模式：你通常只需要填写提供商名称、API 地址和 API Key。";
+  const hintByMode = {
+    template: "直接添加模型：基于预置模板快速新增。",
+    custom: "新增供应商并添加模型：适合第一次接入新服务。",
+    existing: "基于已有供应商添加：不会新建供应商。"
+  };
+  const hintText = hintByMode[normalizedMode] || hintByMode.template;
   setText("model_provider_mode_hint", hintText);
 
   document.querySelectorAll("[data-model-provider-mode]").forEach((button) => {
@@ -237,92 +658,225 @@ function renderDashboardModelCards(modelSettings) {
     return;
   }
 
-  const providers = Array.isArray(modelSettings?.catalog?.providers) ? modelSettings.catalog.providers : [];
+  const providers = getProviderEntries(modelSettings);
   const primaryRef = String(modelSettings?.primary || "").trim();
   const currentRefParts = parseModelRef(primaryRef);
   container.innerHTML = "";
 
   if (providers.length === 0) {
-    const empty = document.createElement("p");
-    empty.className = "muted-line";
-    empty.textContent = "当前配置没有可用提供商和模型。";
-    container.appendChild(empty);
+    const emptyCard = document.createElement("article");
+    emptyCard.className = "model-provider-group model-provider-group-empty";
+
+    const emptyBody = document.createElement("div");
+    emptyBody.className = "model-provider-empty-body";
+
+    const emptyTitle = document.createElement("p");
+    emptyTitle.className = "model-provider-empty-title";
+    emptyTitle.textContent = "当前配置没有可用提供商和模型";
+
+    const emptyHint = document.createElement("p");
+    emptyHint.className = "model-provider-empty-hint";
+    emptyHint.textContent = "你可以先添加一个供应商和模型，然后回到这里管理。";
+
+    const emptyAction = document.createElement("a");
+    emptyAction.className = "model-provider-empty-action";
+    emptyAction.href = "/model/add";
+    emptyAction.textContent = "点击添加";
+    emptyAction.setAttribute("aria-label", "点击添加模型");
+
+    emptyBody.appendChild(emptyTitle);
+    emptyBody.appendChild(emptyHint);
+    emptyBody.appendChild(emptyAction);
+    emptyCard.appendChild(emptyBody);
+    container.appendChild(emptyCard);
+    setInput("dashboard_current_model", "-");
+    setInput("dashboard_current_provider", "-");
+    setInput("dashboard_current_context_window", "-");
+    setInput("dashboard_current_thinking_strength", "无");
     return;
   }
 
   providers.forEach((providerEntry) => {
-    const card = document.createElement("article");
-    card.className = "provider-card";
-
-    const header = document.createElement("div");
-    header.className = "provider-header";
-    const title = document.createElement("h3");
-    title.className = "provider-title";
-    title.textContent = providerEntry.id || "(未命名提供商)";
-    const meta = document.createElement("p");
-    meta.className = "provider-meta";
-    meta.textContent = `API: ${providerEntry.api || "-"} | Base URL: ${providerEntry.baseUrl || "-"}`;
-    header.appendChild(title);
-    header.appendChild(meta);
-    card.appendChild(header);
-
-    const modelList = document.createElement("div");
-    modelList.className = "model-list";
-    const models = Array.isArray(providerEntry.models) ? providerEntry.models : [];
-    models.forEach((providerModel) => {
-      const modelEntry = buildModelEntryFromProvider(providerEntry, providerModel);
-      const isCurrent = modelEntry.ref === primaryRef;
-
-      const row = document.createElement("div");
-      row.className = `model-row${isCurrent ? " is-current" : ""}`;
-
-      const top = document.createElement("div");
-      top.className = "model-row-top";
-      const modelId = document.createElement("div");
-      modelId.className = "model-id";
-      modelId.textContent = modelEntry.modelId;
-      top.appendChild(modelId);
-      if (isCurrent) {
-        const currentTag = document.createElement("span");
-        currentTag.className = "tag-current";
-        currentTag.textContent = "当前使用";
-        top.appendChild(currentTag);
-      }
-      row.appendChild(top);
-
-      const modelMeta = document.createElement("div");
-      modelMeta.className = "model-meta";
-      const contextText =
-        modelEntry.contextWindow && modelEntry.contextWindow > 0
-          ? `Context: ${modelEntry.contextWindow.toLocaleString()}`
-          : "Context: -";
-      const maxText = modelEntry.maxTokens && modelEntry.maxTokens > 0 ? `Max Output: ${modelEntry.maxTokens.toLocaleString()}` : "Max Output: -";
-      const thinkingText = `思考强度: ${modelEntry.thinkingStrength || "无"}`;
-      modelMeta.textContent = `${contextText} | ${maxText} | ${thinkingText}`;
-      row.appendChild(modelMeta);
-
-      const switchBtn = document.createElement("button");
-      switchBtn.type = "button";
-      switchBtn.className = "model-switch-btn";
-      switchBtn.textContent = isCurrent ? "已在使用" : "切换到这个模型";
-      switchBtn.disabled = isCurrent;
-      switchBtn.addEventListener("click", () => {
-        switchDefaultModelByEntry(modelSettings, modelEntry).catch((error) => setMessage(error.message || String(error), "error"));
-      });
-      row.appendChild(switchBtn);
-
-      modelList.appendChild(row);
-    });
-
+    const models = Array.isArray(providerEntry?.models) ? providerEntry.models : [];
     if (models.length === 0) {
-      const emptyModel = document.createElement("p");
-      emptyModel.className = "muted-line";
-      emptyModel.textContent = "该提供商未配置模型。";
-      modelList.appendChild(emptyModel);
+      return;
     }
 
-    card.appendChild(modelList);
-    container.appendChild(card);
+    const group = document.createElement("article");
+    group.className = "model-provider-group";
+    const providerId = String(providerEntry?.id || "").trim();
+
+    if (providerId) {
+      const header = document.createElement("div");
+      header.className = "model-provider-group-head";
+      const headRow = document.createElement("div");
+      headRow.className = "model-provider-group-head-row";
+      const title = document.createElement("h3");
+      title.className = "model-provider-group-title";
+      title.textContent = providerId;
+      headRow.appendChild(title);
+
+      const providerActions = document.createElement("div");
+      providerActions.className = "model-provider-group-actions";
+
+      const providerEditButton = document.createElement("button");
+      providerEditButton.type = "button";
+      providerEditButton.className = "model-provider-action-btn";
+      providerEditButton.textContent = "编辑供应商";
+      providerEditButton.addEventListener("click", () => {
+        openProviderEditDialog(providerEntry);
+      });
+      providerActions.appendChild(providerEditButton);
+
+      const providerDeleteButton = document.createElement("button");
+      providerDeleteButton.type = "button";
+      providerDeleteButton.className = "model-provider-action-btn model-provider-action-btn-danger";
+      providerDeleteButton.textContent = "删除供应商";
+      providerDeleteButton.addEventListener("click", () => {
+        runModelMutation(async () => {
+          await deleteProviderWithConfirm(providerEntry);
+        }).catch((error) => {
+          setMessage(error.message || String(error), "error");
+        });
+      });
+      providerActions.appendChild(providerDeleteButton);
+
+      headRow.appendChild(providerActions);
+      const meta = document.createElement("p");
+      meta.className = "model-provider-group-meta";
+      meta.textContent = `API: ${providerEntry.api || "-"} | Base URL: ${providerEntry.baseUrl || "-"}`;
+      header.appendChild(headRow);
+      header.appendChild(meta);
+      group.appendChild(header);
+    }
+
+    const modelList = document.createElement("div");
+    modelList.className = "model-chip-grid";
+    models.forEach((providerModel) => {
+      const modelEntry = buildModelEntryFromProvider(providerEntry, providerModel);
+      const fallbackRef = `${String(providerEntry?.id || "").trim()}/${String(providerModel?.id || "").trim()}`.replace(/^\/+/, "");
+      const normalizedRef = String(modelEntry.ref || fallbackRef).trim();
+      modelEntry.ref = normalizedRef;
+      const hasValidRef = Boolean(modelEntry.ref && String(modelEntry.providerId || "").trim() && String(modelEntry.modelId || "").trim());
+      const isCurrent =
+        normalizedRef === primaryRef ||
+        (String(modelEntry.modelId || "").trim() === String(modelSettings?.modelId || "").trim() &&
+          String(modelEntry.providerId || "").trim() === String(modelSettings?.providerId || "").trim());
+
+      const family = resolveModelFamilyKey(modelEntry);
+      const card = document.createElement("article");
+      card.className = `model-chip family-${family}${isCurrent ? " is-current" : ""}`;
+      card.classList.toggle("is-disabled", !hasValidRef);
+      card.title = hasValidRef ? "点击卡片编辑模型" : "模型信息不完整，暂不可编辑";
+      if (hasValidRef) {
+        card.tabIndex = 0;
+        card.setAttribute("role", "button");
+      }
+
+      const label = document.createElement("span");
+      label.className = "model-chip-name";
+      label.textContent = String(modelEntry.modelName || modelEntry.modelId || "-").trim() || "-";
+      card.appendChild(label);
+
+      const detail = document.createElement("span");
+      detail.className = "model-chip-meta";
+      const contextText =
+        modelEntry.contextWindow && modelEntry.contextWindow > 0
+          ? `Context ${Number(modelEntry.contextWindow).toLocaleString()}`
+          : "Context -";
+      const maxText =
+        modelEntry.maxTokens && modelEntry.maxTokens > 0 ? `Max ${Number(modelEntry.maxTokens).toLocaleString()}` : "Max -";
+      detail.textContent = `${modelEntry.modelId || "-"} | ${contextText} | ${maxText}`;
+      card.appendChild(detail);
+
+      if (isCurrent) {
+        const currentTag = document.createElement("span");
+        currentTag.className = "model-chip-current";
+        currentTag.textContent = "当前使用";
+        card.appendChild(currentTag);
+      }
+
+      const actionRow = document.createElement("div");
+      actionRow.className = "model-chip-actions";
+
+      const editButton = document.createElement("button");
+      editButton.type = "button";
+      editButton.className = "model-chip-action";
+      editButton.textContent = "编辑";
+      editButton.disabled = !hasValidRef;
+      editButton.addEventListener("click", (event) => {
+        event.stopPropagation();
+        if (!hasValidRef) {
+          return;
+        }
+        openModelEditDialog(providerEntry, modelEntry);
+      });
+      actionRow.appendChild(editButton);
+
+      if (!isCurrent) {
+        const switchButton = document.createElement("button");
+        switchButton.type = "button";
+        switchButton.className = "model-chip-action";
+        switchButton.textContent = "设为默认";
+        switchButton.disabled = !hasValidRef;
+        switchButton.addEventListener("click", (event) => {
+          event.stopPropagation();
+          if (!hasValidRef) {
+            return;
+          }
+          runModelMutation(async () => {
+            await switchDefaultModelByEntry(modelSettings, modelEntry);
+          }).catch((error) => {
+            setMessage(error.message || String(error), "error");
+          });
+        });
+        actionRow.appendChild(switchButton);
+      }
+
+      const deleteButton = document.createElement("button");
+      deleteButton.type = "button";
+      deleteButton.className = "model-chip-action model-chip-action-danger";
+      deleteButton.textContent = "删除";
+      deleteButton.disabled = !hasValidRef;
+      deleteButton.addEventListener("click", (event) => {
+        event.stopPropagation();
+        if (!hasValidRef) {
+          return;
+        }
+        runModelMutation(async () => {
+          await deleteModelWithConfirm(providerEntry, modelEntry);
+        }).catch((error) => {
+          setMessage(error.message || String(error), "error");
+        });
+      });
+      actionRow.appendChild(deleteButton);
+
+      card.appendChild(actionRow);
+
+      if (hasValidRef) {
+        card.addEventListener("click", (event) => {
+          if (event.target instanceof HTMLElement && event.target.closest(".model-chip-action")) {
+            return;
+          }
+          openModelEditDialog(providerEntry, modelEntry);
+        });
+        card.addEventListener("keydown", (event) => {
+          if (event.key !== "Enter" && event.key !== " ") {
+            return;
+          }
+          if (event.target instanceof HTMLElement && event.target.closest(".model-chip-action")) {
+            return;
+          }
+          event.preventDefault();
+          openModelEditDialog(providerEntry, modelEntry);
+        });
+      }
+
+      modelList.appendChild(card);
+    });
+
+    group.appendChild(modelList);
+    container.appendChild(group);
   });
 
   const currentModelLabel = modelSettings.modelId || currentRefParts.modelId || "-";
@@ -790,6 +1344,61 @@ function renderTemplatePreset(templateKey, options = {}) {
   setSelectValueWithCustom("custom_default_model_id", "custom_default_model_id_custom", nextDefaultModelId);
 }
 
+function getCatalogProviders(modelSettings = modelEditorState.currentModelSettings) {
+  return Array.isArray(modelSettings?.catalog?.providers) ? modelSettings.catalog.providers : [];
+}
+
+function findCatalogProviderById(providerId, modelSettings = modelEditorState.currentModelSettings) {
+  const target = String(providerId || "").trim();
+  if (!target) {
+    return null;
+  }
+  return getCatalogProviders(modelSettings).find((provider) => String(provider?.id || "").trim() === target) || null;
+}
+
+function syncExistingProviderMeta(modelSettings = modelEditorState.currentModelSettings) {
+  const selectedProviderId = String(getInputValue("existing_provider_id") || "").trim();
+  const selectedProvider = findCatalogProviderById(selectedProviderId, modelSettings);
+  setInput("existing_provider_api", selectedProvider?.api || "");
+  setInput("existing_provider_baseurl", selectedProvider?.baseUrl || "");
+}
+
+function fillExistingProviderOptions(modelSettings) {
+  const select = document.querySelector("#existing_provider_id");
+  if (!(select instanceof HTMLSelectElement)) {
+    return;
+  }
+
+  const providers = getCatalogProviders(modelSettings).filter((provider) => String(provider?.id || "").trim());
+  select.innerHTML = "";
+  if (providers.length === 0) {
+    const emptyOption = document.createElement("option");
+    emptyOption.value = "";
+    emptyOption.textContent = "暂无可用供应商";
+    select.appendChild(emptyOption);
+    select.disabled = true;
+    setInput("existing_provider_api", "");
+    setInput("existing_provider_baseurl", "");
+    return;
+  }
+
+  select.disabled = false;
+  providers.forEach((provider) => {
+    const option = document.createElement("option");
+    option.value = String(provider.id || "").trim();
+    option.textContent = String(provider.id || "").trim();
+    select.appendChild(option);
+  });
+
+  const preferredProviderId = String(modelSettings?.providerId || "").trim();
+  if (preferredProviderId && providers.some((provider) => String(provider.id || "").trim() === preferredProviderId)) {
+    select.value = preferredProviderId;
+  } else if (select.options.length > 0) {
+    select.selectedIndex = 0;
+  }
+  syncExistingProviderMeta(modelSettings);
+}
+
 function fillModelEditor(modelSettings) {
   const catalog = modelSettings?.catalog || { providers: [], modelRefs: [] };
   const catalogRefs = Array.isArray(catalog.modelRefs) ? catalog.modelRefs : [];
@@ -891,32 +1500,80 @@ function fillModelEditor(modelSettings) {
     providerModels: []
   });
   setInput("template_set_as_primary", false);
+  setInput("existing_set_as_primary", false);
   setInput("custom_set_as_primary", false);
+  fillExistingProviderOptions(modelSettings);
   setModelProviderMode("template");
+  setModelAddWorkspaceVisible(false);
 
   fillDashboardQuickSwitch(modelSettings);
+
+  if (document.querySelector("#model_raw_config_editor")) {
+    loadModelRawConfig({ silent: true }).catch((error) => {
+      setModelRawConfigStatus(`读取失败：${error.message || String(error)}`, "error");
+    });
+  }
+}
+
+function bindModelCrudDialogEvents() {
+  if (modelMutationState.dialogBound) {
+    return;
+  }
+  modelMutationState.dialogBound = true;
+
+  document.querySelector("#model_provider_edit_cancel")?.addEventListener("click", () => {
+    closeShoelaceDialog("model_provider_edit_dialog");
+  });
+  document.querySelector("#model_provider_edit_submit")?.addEventListener("click", () => {
+    runModelMutation(async () => {
+      await submitProviderEditDialog();
+    }).catch((error) => {
+      setMessage(error.message || String(error), "error");
+    });
+  });
+
+  document.querySelector("#model_item_edit_cancel")?.addEventListener("click", () => {
+    closeShoelaceDialog("model_item_edit_dialog");
+  });
+  document.querySelector("#model_item_edit_submit")?.addEventListener("click", () => {
+    runModelMutation(async () => {
+      await submitModelEditDialog();
+    }).catch((error) => {
+      setMessage(error.message || String(error), "error");
+    });
+  });
+
+  const providerDialog = getShoelaceDialog("model_provider_edit_dialog");
+  providerDialog?.addEventListener("sl-after-hide", () => {
+    modelMutationState.providerEditId = "";
+    setInput("model_provider_edit_apikey", "");
+  });
+
+  const modelDialog = getShoelaceDialog("model_item_edit_dialog");
+  modelDialog?.addEventListener("sl-after-hide", () => {
+    modelMutationState.modelEditProviderId = "";
+    modelMutationState.modelEditId = "";
+  });
 }
 
 function setupModelEditor() {
-  const defaultSelect = document.querySelector("#model_default_ref");
-  if (!defaultSelect || defaultSelect.dataset.bound === "1") {
+  const panel = document.querySelector('[data-panel="panel-model"], [data-panel="panel-model-add"]');
+  if (!panel || panel.dataset.boundModelEditor === "1") {
     return;
   }
-  defaultSelect.dataset.bound = "1";
+  panel.dataset.boundModelEditor = "1";
+  bindModelCrudDialogEvents();
+  bindModelRawConfigEditor();
+  const defaultSelect = document.querySelector("#model_default_ref");
 
-  document.querySelectorAll("[data-model-flow-jump]").forEach((button) => {
-    button.addEventListener("click", () => {
-      const targetId = String(button.getAttribute("data-model-flow-jump") || "").trim();
-      if (!targetId) {
-        return;
-      }
-      const target = document.getElementById(targetId);
-      if (!target) {
-        return;
-      }
-      target.scrollIntoView({ behavior: "smooth", block: "start" });
-      setMessage(`已定位到：${target.querySelector("h2")?.textContent || targetId}`, "info");
-    });
+  document.querySelector("#model_add_toggle")?.addEventListener("click", () => {
+    const workspace = document.querySelector("#model_add_workspace");
+    const willOpen = workspace ? workspace.classList.contains("is-hidden") : false;
+    setModelAddWorkspaceVisible(willOpen);
+    if (willOpen) {
+      setModelProviderMode(modelEditorState.providerMode || "template");
+      workspace?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
   });
 
   document.querySelectorAll("[data-model-provider-mode]").forEach((button) => {
@@ -926,6 +1583,9 @@ function setupModelEditor() {
     });
   });
   setModelProviderMode(modelEditorState.providerMode || "template");
+  document.querySelector("#existing_provider_id")?.addEventListener("change", () => {
+    syncExistingProviderMeta(modelEditorState.currentModelSettings);
+  });
 
   const templateSelect = document.querySelector("#model_template_key");
   templateSelect?.addEventListener("change", () => {
@@ -1082,11 +1742,13 @@ function setupModelEditor() {
   refreshCustomApiCustomInput();
   refreshCustomDefaultModelCustomInput();
 
-  defaultSelect.addEventListener("change", () => {
-    const selectedRef = String(defaultSelect.value || "");
-    const entry = modelEditorState.defaultModelRefs.find((item) => item.ref === selectedRef);
-    renderModelSummary(entry || {}, selectedRef);
-  });
+  if (defaultSelect instanceof HTMLSelectElement) {
+    defaultSelect.addEventListener("change", () => {
+      const selectedRef = String(defaultSelect.value || "");
+      const entry = modelEditorState.defaultModelRefs.find((item) => item.ref === selectedRef);
+      renderModelSummary(entry || {}, selectedRef);
+    });
+  }
 
   document.querySelector("#save_default_model")?.addEventListener("click", () => {
     const selectedRef = String(getInputValue("model_default_ref") || "").trim();
@@ -1158,6 +1820,92 @@ function setupModelEditor() {
     saveModelSettings(payload, actionLabel).catch((error) => setMessage(error.message, "error"));
   });
 
+  document.querySelector("#save_provider_existing")?.addEventListener("click", () => {
+    const providerId = String(getInputValue("existing_provider_id") || "").trim();
+    const providerEntry = findCatalogProviderById(providerId, modelEditorState.currentModelSettings);
+    if (!providerEntry) {
+      setMessage("请先选择一个已有供应商", "error");
+      return;
+    }
+
+    const modelId = String(getInputValue("existing_model_id") || "").trim();
+    const modelNameInput = String(getInputValue("existing_model_name") || "").trim();
+    const contextWindowInput = Number(getInputValue("existing_model_context_window") || 0);
+    const maxTokensInput = Number(getInputValue("existing_model_max_tokens") || 0);
+    if (!modelId) {
+      setMessage("请填写模型 ID", "error");
+      return;
+    }
+
+    const providerApi = String(providerEntry.api || "").trim();
+    const providerBaseUrl = String(providerEntry.baseUrl || "").trim();
+    if (!providerApi || !providerBaseUrl) {
+      setMessage("该供应商缺少 API 或 Base URL，请先补齐供应商配置后再添加模型", "error");
+      return;
+    }
+
+    const currentModels = Array.isArray(providerEntry.models) ? providerEntry.models : [];
+    const fallbackModel =
+      currentModels.find((item) => String(item?.id || "").trim() === modelId) ||
+      buildDefaultModelEntry(modelId, modelNameInput || modelId) ||
+      {};
+    const nextModel = normalizeModelDraft(
+      {
+        id: modelId,
+        name: modelNameInput || modelId,
+        contextWindow: Number.isFinite(contextWindowInput) && contextWindowInput > 0 ? Math.floor(contextWindowInput) : undefined,
+        maxTokens: Number.isFinite(maxTokensInput) && maxTokensInput > 0 ? Math.floor(maxTokensInput) : undefined
+      },
+      fallbackModel
+    );
+    if (!nextModel) {
+      setMessage("模型信息无效，请检查模型 ID", "error");
+      return;
+    }
+
+    const mergedModels = [nextModel];
+    currentModels.forEach((item) => {
+      const existingId = String(item?.id || "").trim();
+      if (!existingId || existingId === nextModel.id) {
+        return;
+      }
+      mergedModels.push(item);
+    });
+
+    const targetPrimaryRef = `${providerId}/${nextModel.id}`;
+    const primaryRef = resolveProviderSavePrimaryRef(targetPrimaryRef, "existing_set_as_primary");
+    if (!primaryRef) {
+      setMessage("无法确定默认模型指向，请先设置默认模型或勾选“保存后设为当前默认模型”", "error");
+      return;
+    }
+
+    const payload = buildModelPayload({
+      primary: primaryRef,
+      providerId,
+      providerApi,
+      providerBaseUrl,
+      providerApiKey: "",
+      modelId: nextModel.id,
+      modelName: nextModel.name || nextModel.id,
+      contextWindow: nextModel.contextWindow,
+      maxTokens: nextModel.maxTokens,
+      providerModels: mergedModels
+    });
+    const shouldSwitchPrimary = Boolean(getInputValue("existing_set_as_primary"));
+    const actionLabel = shouldSwitchPrimary
+      ? `已在供应商 ${providerId} 下新增模型并切换默认`
+      : `已在供应商 ${providerId} 下新增模型（默认模型未变）`;
+    saveModelSettings(payload, actionLabel)
+      .then(() => {
+        setInput("existing_model_id", "");
+        setInput("existing_model_name", "");
+        setInput("existing_model_context_window", "");
+        setInput("existing_model_max_tokens", "");
+        setInput("existing_set_as_primary", false);
+      })
+      .catch((error) => setMessage(error.message, "error"));
+  });
+
   document.querySelector("#save_provider_custom")?.addEventListener("click", () => {
     const providerId = String(getInputValue("custom_provider_id") || "").trim();
     const providerApi = getSelectValueWithCustom("custom_api", "custom_api_custom");
@@ -1215,6 +1963,7 @@ function setupModelEditor() {
   });
 
   renderTemplatePreset(String(getInputValue("model_template_key") || "aicodecat-gpt"));
+  setModelAddWorkspaceVisible(false);
 }
 
 

@@ -3,6 +3,7 @@ export const PANEL_ROUTES = {
   "panel-skills": "/skills",
   "panel-chat-console": "/chat-console",
   "panel-model": "/model",
+  "panel-model-add": "/model/add",
   "panel-config-generator": "/config-generator",
   "panel-channel": "/channels",
   "panel-update": "/update",

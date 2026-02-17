@@ -314,24 +314,33 @@ function toPositiveInt(value, fallback) {
   return Math.floor(parsed);
 }
 
-function normalizeModelDraft(rawModel) {
-  const id = String(rawModel?.id || "").trim();
-  const name = String(rawModel?.name || id).trim() || id;
+function normalizeModelDraft(rawModel, fallbackModel = {}) {
+  const id = String(rawModel?.id || fallbackModel?.id || "").trim();
+  const name = String(rawModel?.name || fallbackModel?.name || id).trim() || id;
   if (!id) {
     return null;
   }
+  const fallbackContextWindow = toPositiveInt(fallbackModel?.contextWindow, 200000);
+  const fallbackMaxTokens = toPositiveInt(fallbackModel?.maxTokens, 8192);
   const normalized = {
     ...rawModel,
     id,
     name,
-    contextWindow: toPositiveInt(rawModel?.contextWindow, 200000),
-    maxTokens: toPositiveInt(rawModel?.maxTokens, 8192)
+    contextWindow: toPositiveInt(rawModel?.contextWindow, fallbackContextWindow),
+    maxTokens: toPositiveInt(rawModel?.maxTokens, fallbackMaxTokens)
   };
-  if (Array.isArray(rawModel?.input)) {
-    normalized.input = [...new Set(rawModel.input.map((item) => String(item).trim()).filter(Boolean))];
+  const sourceInput = Array.isArray(rawModel?.input)
+    ? rawModel.input
+    : Array.isArray(fallbackModel?.input)
+      ? fallbackModel.input
+      : [];
+  if (Array.isArray(sourceInput) && sourceInput.length > 0) {
+    normalized.input = [...new Set(sourceInput.map((item) => String(item).trim()).filter(Boolean))];
   }
   if (rawModel?.reasoning !== undefined) {
     normalized.reasoning = Boolean(rawModel.reasoning);
+  } else if (fallbackModel?.reasoning !== undefined) {
+    normalized.reasoning = Boolean(fallbackModel.reasoning);
   }
   return normalized;
 }

@@ -15,11 +15,13 @@ function extractSettings(openclawConfig) {
   const agentDefaults = openclawConfig?.agents?.defaults || {};
   const agentModelOverrides = agentDefaults?.models && typeof agentDefaults.models === "object" ? agentDefaults.models : {};
   const globalThinkingDefault = String(agentDefaults?.thinkingDefault || "").trim();
-  const primaryRef = openclawConfig?.agents?.defaults?.model?.primary || "";
+  const primaryRef = String(openclawConfig?.agents?.defaults?.model?.primary || "").trim();
   const [primaryProviderId, primaryModelId] = primaryRef.includes("/") ? primaryRef.split("/", 2) : ["", ""];
 
-  const providerId = primaryProviderId || Object.keys(providers)[0] || "anthropic";
-  const provider = providers[providerId] || {};
+  const providerIds = Object.keys(providers);
+  const hasPrimaryProvider = Boolean(primaryProviderId && Object.prototype.hasOwnProperty.call(providers, primaryProviderId));
+  const providerId = hasPrimaryProvider ? primaryProviderId : providerIds[0] || "";
+  const provider = providerId ? providers[providerId] || {} : {};
   const providerModels = Array.isArray(provider.models) ? provider.models : [];
   const model =
     providerModels.find((item) => String(item?.id || "") === String(primaryModelId || "")) || providerModels[0] || {};
@@ -109,21 +111,21 @@ function extractSettings(openclawConfig) {
       thinkingStrength: providerModel.thinkingStrength || "无"
     }))
   );
-  const currentModelRef = primaryRef || `${providerId}/${model.id || "default-model"}`;
+  const currentModelRef = primaryRef || (providerId && model.id ? `${providerId}/${model.id}` : "");
   const currentModelRefEntry = modelRefs.find((entry) => entry.ref === currentModelRef);
 
   return {
     model: {
       primary: currentModelRef,
       providerId,
-      providerApi: provider.api || "anthropic-messages",
-      providerBaseUrl: provider.baseUrl || "https://api.anthropic.com",
+      providerApi: String(provider.api || ""),
+      providerBaseUrl: String(provider.baseUrl || ""),
       providerApiKey: maskSecret(provider.apiKey || ""),
-      modelId: model.id || "claude-sonnet-4-5-20250929",
-      modelName: model.name || model.id || "Claude Sonnet",
-      contextWindow: Number(model.contextWindow || 200000),
-      maxTokens: Number(model.maxTokens || 8192),
-      thinkingStrength: currentModelRefEntry?.thinkingStrength || "无",
+      modelId: String(model.id || ""),
+      modelName: String(model.name || model.id || ""),
+      contextWindow: Number(model.contextWindow || 0) || undefined,
+      maxTokens: Number(model.maxTokens || 0) || undefined,
+      thinkingStrength: currentModelRefEntry?.thinkingStrength || globalThinkingDefault || "无",
       catalog: {
         providers: providerEntries,
         modelRefs

@@ -56,11 +56,24 @@ test("convertConfig defaults to clean output and removes auth", () => {
   assert.equal(result.gateway.mode, "local");
   assert.equal(result.models.mode, "merge");
   assert.equal(result.models.providers["aicodecat-gpt"].baseUrl, "https://aicode.cat/v1");
+  assert.deepEqual(result.models.providers["aicodecat-gpt"].models, [
+    {
+      id: "gpt-5.2",
+      name: "gpt-5.2",
+      reasoning: true,
+      contextWindow: 400000,
+      maxTokens: 128000
+    }
+  ]);
   assert.equal(result.agents.defaults.model.primary, "aicodecat-gpt/gpt-5.2");
+  assert.deepEqual(result.agents.defaults.models, {
+    "aicodecat-gpt/gpt-5.2": {}
+  });
   assert.equal(result.messages, undefined);
   assert.equal(result.agents.defaults.workspace, undefined);
   assert.equal(result.agents.defaults.thinkingDefault, undefined);
   assert.equal(result.agents.defaults.model.mode, undefined);
+  assert.equal(result.agents.defaults.models["aicodecat-gpt/gpt-5.2"] !== undefined, true);
   assert.equal(result.agents.extraAgentConfig, undefined);
 });
 
@@ -75,6 +88,9 @@ test("convertConfig inherits existing config when inherit_existing is true", () 
           thinkingDefault: "high",
           model: {
             mode: "keep"
+          },
+          models: {
+            "legacy-provider/legacy-model": {}
           }
         },
         extraAgentConfig: {
@@ -87,6 +103,9 @@ test("convertConfig inherits existing config when inherit_existing is true", () 
     apimode: "openai-responses",
     provider: "aicodecat",
     model_id: "gpt-5.2",
+    context_window: 400000,
+    max_tokens: 128000,
+    reasoning: true,
     inherit_existing: true
   });
 
@@ -94,10 +113,23 @@ test("convertConfig inherits existing config when inherit_existing is true", () 
   assert.equal(result.gateway.mode, "local");
   assert.equal(result.models.mode, "merge");
   assert.equal(result.models.providers["aicodecat-gpt"].baseUrl, "https://aicode.cat/v1");
+  assert.deepEqual(result.models.providers["aicodecat-gpt"].models, [
+    {
+      id: "gpt-5.2",
+      name: "gpt-5.2",
+      reasoning: true,
+      contextWindow: 400000,
+      maxTokens: 128000
+    }
+  ]);
   assert.equal(result.agents.defaults.model.primary, "aicodecat-gpt/gpt-5.2");
   assert.equal(result.agents.defaults.workspace, "/tmp/workspace");
   assert.equal(result.agents.defaults.thinkingDefault, "high");
   assert.equal(result.agents.defaults.model.mode, "keep");
+  assert.deepEqual(result.agents.defaults.models, {
+    "legacy-provider/legacy-model": {},
+    "aicodecat-gpt/gpt-5.2": {}
+  });
   assert.equal(result.agents.extraAgentConfig.enabled, true);
   assert.deepEqual(result.messages, { a: 1 });
 });

@@ -112,7 +112,24 @@
             <div class="grid">
               <label>
                 API 密钥
-                <input id="cfg_apikey" type="password" autocomplete="off" placeholder="输入 API 密钥" />
+                <div class="cfg-secret-field">
+                  <input id="cfg_apikey" type="password" autocomplete="off" placeholder="输入 API 密钥" />
+                  <button id="cfg_apikey_toggle" class="btn-soft cfg-secret-toggle" type="button" aria-label="显示 API 密钥" title="显示 API 密钥">
+                    👁
+                  </button>
+                </div>
+              </label>
+              <label>
+                模型最大上下文
+                <input id="cfg_context_window" type="number" min="1" step="1" placeholder="例如 400000" />
+              </label>
+              <label>
+                最大输出内容
+                <input id="cfg_max_tokens" type="number" min="1" step="1" placeholder="例如 128000" />
+              </label>
+              <label class="inline-check">
+                开启推理
+                <input id="cfg_reasoning" type="checkbox" />
               </label>
               <label>
                 合并到现有配置

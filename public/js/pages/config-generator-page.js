@@ -1,6 +1,7 @@
 import {
   AICODECAT_PROVIDER,
   DEFAULT_MODEL_OPTIONS,
+  MODEL_PROFILE_BY_FAMILY,
   fillDefaultModelOptions,
   modelFamilyById,
   setMessage
@@ -17,6 +18,10 @@ function setupConfigGenerator() {
   const modelIdEl = document.querySelector("#cfg_model_id");
   const modelIdCustomEl = document.querySelector("#cfg_model_id_custom");
   const apiKeyEl = document.querySelector("#cfg_apikey");
+  const apiKeyToggleEl = document.querySelector("#cfg_apikey_toggle");
+  const contextWindowEl = document.querySelector("#cfg_context_window");
+  const maxTokensEl = document.querySelector("#cfg_max_tokens");
+  const reasoningEl = document.querySelector("#cfg_reasoning");
   const inheritExistingEl = document.querySelector("#cfg_inherit_existing");
   const configInputEl = document.querySelector("#cfg_input");
   const outputEl = document.querySelector("#cfg_output");
@@ -30,6 +35,9 @@ function setupConfigGenerator() {
     !baseUrlEl ||
     !modelIdEl ||
     !apiKeyEl ||
+    !contextWindowEl ||
+    !maxTokensEl ||
+    !reasoningEl ||
     !inheritExistingEl ||
     !configInputEl ||
     !outputEl ||
@@ -55,6 +63,11 @@ function setupConfigGenerator() {
     gemini:
       DEFAULT_MODEL_OPTIONS.find((item) => modelFamilyById(item.id) === "gemini")?.id || "gemini-3-pro-preview"
   };
+  const reasoningByFamily = {
+    gpt: true,
+    claude: true,
+    gemini: false
+  };
 
   const updateCustomFieldVisibility = (selectEl, inputEl) => {
     if (!selectEl || !inputEl) {
@@ -74,8 +87,61 @@ function setupConfigGenerator() {
     return String(selectEl.value || "").trim();
   };
 
+  const toPositiveInt = (value) => {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed) || parsed <= 0) {
+      return null;
+    }
+    return Math.floor(parsed);
+  };
+
+  const resolveFamilyForDefaults = () => {
+    const modelId = getFieldValue(modelIdEl, modelIdCustomEl);
+    if (modelId) {
+      return modelFamilyById(modelId);
+    }
+    return apiModeFamily(getFieldValue(apiModeEl, apiModeCustomEl));
+  };
+
+  const applyModelAdvancedDefaults = (force = false) => {
+    const family = resolveFamilyForDefaults();
+    const profile = MODEL_PROFILE_BY_FAMILY[family] || MODEL_PROFILE_BY_FAMILY.gpt;
+    if (force || !String(contextWindowEl.value || "").trim()) {
+      contextWindowEl.value = String(profile?.contextWindow || 200000);
+    }
+    if (force || !String(maxTokensEl.value || "").trim()) {
+      maxTokensEl.value = String(profile?.maxTokens || 8192);
+    }
+    if (force) {
+      reasoningEl.checked = Boolean(reasoningByFamily[family]);
+    }
+  };
+
   const setStatus = (text) => {
     statusEl.value = text;
+    const isFail = text === "失败";
+    const isDone = text === "完成";
+    const isWorking = text === "处理中";
+    statusEl.classList.toggle("is-fail", isFail);
+    statusEl.classList.toggle("is-done", isDone);
+    statusEl.classList.toggle("is-working", isWorking);
+  };
+
+  const setOutputText = (text, type = "info") => {
+    outputEl.textContent = text;
+    outputEl.classList.toggle("is-error", type === "error");
+  };
+
+  const syncApiKeyVisibility = () => {
+    if (!apiKeyToggleEl) {
+      return;
+    }
+    const isVisible = apiKeyEl.type === "text";
+    apiKeyToggleEl.textContent = "👁";
+    apiKeyToggleEl.classList.toggle("is-visible", isVisible);
+    apiKeyToggleEl.setAttribute("aria-pressed", isVisible ? "true" : "false");
+    apiKeyToggleEl.setAttribute("aria-label", isVisible ? "隐藏 API 密钥" : "显示 API 密钥");
+    apiKeyToggleEl.setAttribute("title", isVisible ? "隐藏 API 密钥" : "显示 API 密钥");
   };
 
   const syncBaseUrlAndModelForAicodecat = () => {
@@ -95,6 +161,7 @@ function setupConfigGenerator() {
       modelIdEl.value = modelByFamily[family] || modelByFamily.gpt;
       updateCustomFieldVisibility(modelIdEl, modelIdCustomEl);
     }
+    applyModelAdvancedDefaults(true);
   };
 
   [providerEl, apiModeEl, baseUrlEl, modelIdEl].forEach((selectEl) => {
@@ -103,10 +170,20 @@ function setupConfigGenerator() {
       updateCustomFieldVisibility(selectEl, customEl);
       if (selectEl === providerEl || selectEl === apiModeEl) {
         syncBaseUrlAndModelForAicodecat();
+      } else if (selectEl === modelIdEl) {
+        applyModelAdvancedDefaults(true);
       }
     });
     updateCustomFieldVisibility(selectEl, customEl);
   });
+
+  apiKeyToggleEl?.addEventListener("click", () => {
+    const shouldShow = apiKeyEl.type === "password";
+    apiKeyEl.type = shouldShow ? "text" : "password";
+    syncApiKeyVisibility();
+    apiKeyEl.focus({ preventScroll: true });
+  });
+  syncApiKeyVisibility();
 
   copyBtn?.addEventListener("click", async () => {
     try {
@@ -124,6 +201,8 @@ function setupConfigGenerator() {
   });
 
   generateBtn?.addEventListener("click", () => {
+    const contextWindow = toPositiveInt(contextWindowEl.value);
+    const maxTokens = toPositiveInt(maxTokensEl.value);
     const payload = {
       config: String(configInputEl.value || "").trim(),
       baseurl: getFieldValue(baseUrlEl, baseUrlCustomEl),
@@ -131,26 +210,39 @@ function setupConfigGenerator() {
       apimode: getFieldValue(apiModeEl, apiModeCustomEl),
       provider: getFieldValue(providerEl, providerCustomEl),
       model_id: getFieldValue(modelIdEl, modelIdCustomEl),
+      context_window: contextWindow,
+      max_tokens: maxTokens,
+      reasoning: Boolean(reasoningEl.checked),
       inherit_existing: String(inheritExistingEl.value || "").trim() === "true"
     };
 
     if (!payload.config) {
-      outputEl.textContent = "错误: 请输入原始 Config JSON";
+      setOutputText("错误: 请输入原始 Config JSON", "error");
       setStatus("失败");
       return;
     }
     if (!payload.baseurl) {
-      outputEl.textContent = "错误: 请选择或输入 Base URL";
+      setOutputText("错误: 请选择或输入 Base URL", "error");
       setStatus("失败");
       return;
     }
     if (!payload.apikey) {
-      outputEl.textContent = "错误: 请输入 API Key";
+      setOutputText("错误: 请输入 API Key", "error");
       setStatus("失败");
       return;
     }
     if (!payload.provider || !payload.apimode || !payload.model_id) {
-      outputEl.textContent = "错误: provider / apimode / model_id 不能为空";
+      setOutputText("错误: provider / apimode / model_id 不能为空", "error");
+      setStatus("失败");
+      return;
+    }
+    if (payload.context_window === null) {
+      setOutputText("错误: 请填写有效的模型最大上下文（正整数）", "error");
+      setStatus("失败");
+      return;
+    }
+    if (payload.max_tokens === null) {
+      setOutputText("错误: 请填写有效的最大输出内容（正整数）", "error");
       setStatus("失败");
       return;
     }
@@ -158,17 +250,18 @@ function setupConfigGenerator() {
     setStatus("处理中");
     try {
       const result = convertConfig(payload);
-      outputEl.textContent = JSON.stringify(result, null, 2);
+      setOutputText(JSON.stringify(result, null, 2), "ok");
       setStatus("完成");
       setMessage("配置生成完成（仅前端本地转换）", "ok");
     } catch (error) {
-      outputEl.textContent = `错误: ${error.message || String(error)}`;
+      setOutputText(`错误: ${error.message || String(error)}`, "error");
       setStatus("失败");
       setMessage(`配置生成失败：${error.message || String(error)}`, "error");
     }
   });
 
   syncBaseUrlAndModelForAicodecat();
+  applyModelAdvancedDefaults(false);
 }
 
 export { setupConfigGenerator };

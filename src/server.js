@@ -7,15 +7,20 @@ import { z } from "zod";
 import { loadPanelConfig, savePanelConfig, defaults } from "./panel-config.js";
 import {
   applySettings,
+  ensureOpenClawConfigPermissions,
   extractSettings,
   loadOpenClawConfig,
   openClawSettingsSchema,
-  saveOpenClawConfig
+  removeModelFromCatalog,
+  removeProviderFromCatalog,
+  saveOpenClawConfig,
+  updateModelInCatalog,
+  updateProviderInCatalog
 } from "./openclaw-config.js";
 import { runServiceAction } from "./systemd.js";
 import { createLogStream, getErrorSummary, getTailLogs } from "./logs.js";
 import { testDiscordBot, testFeishuBot, testSlackBot, testTelegramBot } from "./channel-tests.js";
-import { toPositiveInt } from "./utils.js";
+import { expandHome, toPositiveInt } from "./utils.js";
 import { checkForUpdates, rollbackToTag, upgradeToTag } from "./docker-update.js";
 import { buildDashboardSummary } from "./dashboard-service.js";
 import { getSkillConfig, listSkillsStatus, prepareSkillConfigUpdate, setSkillEnabled } from "./skills-service.js";
@@ -119,6 +124,29 @@ const telegramSetupPayloadSchema = z.object({
 });
 const telegramPairingPayloadSchema = z.object({
   code: z.string().min(1, "验证码不能为空")
+});
+const providerPathParamSchema = z.object({
+  providerId: z.string().min(1, "providerId 不能为空")
+});
+const modelPathParamSchema = z.object({
+  providerId: z.string().min(1, "providerId 不能为空"),
+  modelId: z.string().min(1, "modelId 不能为空")
+});
+const updateProviderPayloadSchema = z.object({
+  nextProviderId: z.string().min(1, "供应商名称不能为空"),
+  api: z.string().min(1, "API 模式不能为空"),
+  baseUrl: z.string().min(1, "API 地址不能为空"),
+  apiKey: z.string().optional()
+});
+const updateModelPayloadSchema = z.object({
+  nextModelId: z.string().min(1, "模型 ID 不能为空"),
+  name: z.string().optional(),
+  contextWindow: z.number().int().positive().optional(),
+  maxTokens: z.number().int().positive().optional()
+});
+const rawOpenClawConfigPayloadSchema = z.object({
+  rawText: z.string().min(1, "配置 JSON 不能为空"),
+  expectedMtimeMs: z.number().nonnegative().optional()
 });
 
 function ensureDockerMode(panelConfig) {
@@ -345,6 +373,223 @@ app.put("/api/settings", async (request, reply) => {
     return {
       ok: true,
       message: "配置写入成功",
+      path: saved.path,
+      backupPath: saved.backupPath
+    };
+  } catch (error) {
+    reply.code(400);
+    return {
+      ok: false,
+      message: error.message
+    };
+  }
+});
+
+app.get("/api/openclaw-config/raw", async (request, reply) => {
+  try {
+    const { config: panelConfig } = await loadPanelConfig();
+    const configuredPath = panelConfig?.openclaw?.config_path;
+    const realPath = expandHome(configuredPath);
+
+    let rawText = "";
+    let mtimeMs = 0;
+    let size = 0;
+    let exists = true;
+    try {
+      rawText = await fs.readFile(realPath, "utf8");
+      const stats = await fs.stat(realPath);
+      mtimeMs = Number(stats.mtimeMs || 0);
+      size = Number(stats.size || Buffer.byteLength(rawText, "utf8"));
+    } catch (error) {
+      if (error.code === "ENOENT") {
+        exists = false;
+      } else {
+        throw error;
+      }
+    }
+
+    return {
+      ok: true,
+      exists,
+      path: realPath,
+      rawText,
+      mtimeMs,
+      size
+    };
+  } catch (error) {
+    reply.code(400);
+    return {
+      ok: false,
+      message: error.message
+    };
+  }
+});
+
+app.put("/api/openclaw-config/raw", async (request, reply) => {
+  try {
+    const payload = rawOpenClawConfigPayloadSchema.parse(request.body || {});
+    const rawText = String(payload.rawText || "");
+    const expectedMtimeMs = Number(payload.expectedMtimeMs);
+    let parsed;
+    try {
+      parsed = JSON.parse(rawText);
+    } catch (error) {
+      throw new Error(`配置 JSON 解析失败：${error.message}`);
+    }
+
+    const { config: panelConfig } = await loadPanelConfig();
+    if (Number.isFinite(expectedMtimeMs) && expectedMtimeMs > 0) {
+      const realPath = expandHome(panelConfig.openclaw.config_path);
+      let currentMtimeMs = 0;
+      try {
+        const stats = await fs.stat(realPath);
+        currentMtimeMs = Number(stats.mtimeMs || 0);
+      } catch (error) {
+        if (error.code !== "ENOENT") {
+          throw error;
+        }
+      }
+      if (!Number.isFinite(currentMtimeMs) || Math.abs(currentMtimeMs - expectedMtimeMs) > 1) {
+        const conflict = new Error("配置文件已被其他进程更新，请先点“刷新真实配置”再保存。");
+        conflict.statusCode = 409;
+        throw conflict;
+      }
+    }
+
+    const saved = await saveOpenClawConfig(panelConfig.openclaw.config_path, parsed);
+    const latestRaw = await fs.readFile(saved.path, "utf8");
+    const stats = await fs.stat(saved.path);
+    const refreshed = await loadOpenClawConfig(panelConfig.openclaw.config_path);
+
+    return {
+      ok: true,
+      message: "配置文件写入成功",
+      path: saved.path,
+      backupPath: saved.backupPath,
+      rawText: latestRaw,
+      mtimeMs: Number(stats.mtimeMs || 0),
+      size: Number(stats.size || Buffer.byteLength(latestRaw, "utf8")),
+      settings: extractSettings(refreshed)
+    };
+  } catch (error) {
+    reply.code(Number.isInteger(error?.statusCode) ? error.statusCode : 400);
+    return {
+      ok: false,
+      message: error.message
+    };
+  }
+});
+
+app.put("/api/models/providers/:providerId", async (request, reply) => {
+  try {
+    const params = providerPathParamSchema.parse(request.params || {});
+    const payload = updateProviderPayloadSchema.parse(request.body || {});
+    const { config: panelConfig } = await loadPanelConfig();
+    const current = await loadOpenClawConfig(panelConfig.openclaw.config_path);
+    const result = updateProviderInCatalog(current, {
+      providerId: params.providerId,
+      nextProviderId: payload.nextProviderId,
+      api: payload.api,
+      baseUrl: payload.baseUrl,
+      ...(Object.prototype.hasOwnProperty.call(payload, "apiKey") ? { apiKey: payload.apiKey } : {})
+    });
+    const saved = await saveOpenClawConfig(panelConfig.openclaw.config_path, result.nextConfig);
+    return {
+      ok: true,
+      message: "供应商更新成功",
+      providerId: result.providerId,
+      primary: result.primary,
+      path: saved.path,
+      backupPath: saved.backupPath
+    };
+  } catch (error) {
+    reply.code(400);
+    return {
+      ok: false,
+      message: error.message
+    };
+  }
+});
+
+app.put("/api/models/providers/:providerId/models/:modelId", async (request, reply) => {
+  try {
+    const params = modelPathParamSchema.parse(request.params || {});
+    const payload = updateModelPayloadSchema.parse(request.body || {});
+    const { config: panelConfig } = await loadPanelConfig();
+    const current = await loadOpenClawConfig(panelConfig.openclaw.config_path);
+    const result = updateModelInCatalog(current, {
+      providerId: params.providerId,
+      modelId: params.modelId,
+      nextModelId: payload.nextModelId,
+      ...(Object.prototype.hasOwnProperty.call(payload, "name") ? { name: payload.name } : {}),
+      ...(Object.prototype.hasOwnProperty.call(payload, "contextWindow")
+        ? { contextWindow: payload.contextWindow }
+        : {}),
+      ...(Object.prototype.hasOwnProperty.call(payload, "maxTokens") ? { maxTokens: payload.maxTokens } : {})
+    });
+    const saved = await saveOpenClawConfig(panelConfig.openclaw.config_path, result.nextConfig);
+    return {
+      ok: true,
+      message: "模型更新成功",
+      providerId: result.providerId,
+      modelId: result.modelId,
+      modelName: result.modelName,
+      primary: result.primary,
+      path: saved.path,
+      backupPath: saved.backupPath
+    };
+  } catch (error) {
+    reply.code(400);
+    return {
+      ok: false,
+      message: error.message
+    };
+  }
+});
+
+app.delete("/api/models/providers/:providerId/models/:modelId", async (request, reply) => {
+  try {
+    const params = modelPathParamSchema.parse(request.params || {});
+    const { config: panelConfig } = await loadPanelConfig();
+    const current = await loadOpenClawConfig(panelConfig.openclaw.config_path);
+    const result = removeModelFromCatalog(current, {
+      providerId: params.providerId,
+      modelId: params.modelId
+    });
+    const saved = await saveOpenClawConfig(panelConfig.openclaw.config_path, result.nextConfig);
+    return {
+      ok: true,
+      message: "模型删除成功",
+      providerId: result.providerId,
+      modelId: result.modelId,
+      providerRemoved: result.providerRemoved,
+      primary: result.primary,
+      path: saved.path,
+      backupPath: saved.backupPath
+    };
+  } catch (error) {
+    reply.code(400);
+    return {
+      ok: false,
+      message: error.message
+    };
+  }
+});
+
+app.delete("/api/models/providers/:providerId", async (request, reply) => {
+  try {
+    const params = providerPathParamSchema.parse(request.params || {});
+    const { config: panelConfig } = await loadPanelConfig();
+    const current = await loadOpenClawConfig(panelConfig.openclaw.config_path);
+    const result = removeProviderFromCatalog(current, {
+      providerId: params.providerId
+    });
+    const saved = await saveOpenClawConfig(panelConfig.openclaw.config_path, result.nextConfig);
+    return {
+      ok: true,
+      message: "供应商删除成功",
+      providerId: result.providerId,
+      primary: result.primary,
       path: saved.path,
       backupPath: saved.backupPath
     };
@@ -1033,6 +1278,7 @@ const PAGE_FILE_BY_PATH = {
   "/skills": "pages/skills.html",
   "/chat-console": "pages/chat-console.html",
   "/model": "pages/model.html",
+  "/model/add": "pages/model-add.html",
   "/config-generator": "pages/config-generator.html",
   "/channels": "pages/channels.html",
   "/channels/telegram": "pages/channels-telegram.html",
@@ -1067,6 +1313,18 @@ app.setNotFoundHandler(async (request, reply) => {
 
 async function main() {
   const { config } = await loadPanelConfig();
+  try {
+    const permissionSync = await ensureOpenClawConfigPermissions(config.openclaw.config_path);
+    if (permissionSync.changed) {
+      console.log(
+        `[openclaw-config] permission normalized: ownerFixed=${permissionSync.ownerFixed} modeFixed=${permissionSync.modeFixed} path=${permissionSync.path}`
+      );
+    }
+  } catch (error) {
+    console.warn(
+      `[openclaw-config] failed to normalize config file permission: ${error?.message || String(error)}`
+    );
+  }
   const host = config.panel.listen_host;
   const port = config.panel.listen_port;
 

@@ -44,7 +44,7 @@ if (hasPanel("panel-skills")) {
 if (hasPanel("panel-chat-console")) {
   setupChatConsole();
 }
-if (hasPanel("panel-model")) {
+if (hasPanel("panel-model") || hasPanel("panel-model-add")) {
   setupModelEditor();
 }
 if (hasPanel("panel-config-generator")) {
