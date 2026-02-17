@@ -10,6 +10,13 @@ import {
   toPrettyJson
 } from "./helpers.js";
 
+function readOptionalProbability(value) {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return null;
+  }
+  return value >= 0 && value <= 1 ? value : null;
+}
+
 function extractSettings(openclawConfig) {
   const providers = openclawConfig?.models?.providers || {};
   const agentDefaults = openclawConfig?.agents?.defaults || {};
@@ -48,6 +55,7 @@ function extractSettings(openclawConfig) {
   const telegramWildcardGroup = telegram?.groups?.["*"] || {};
   const telegramActions = telegram?.actions && typeof telegram.actions === "object" ? telegram.actions : {};
   const telegramRetry = telegram?.retry && typeof telegram.retry === "object" ? telegram.retry : {};
+  const telegramRetryJitterValue = readOptionalProbability(telegramRetry.jitter);
   const telegramNetwork = telegram?.network && typeof telegram.network === "object" ? telegram.network : {};
   const telegramInlineButtons = normalizeInlineButtons(telegram?.capabilities);
   const telegramCommands = telegram?.commands && typeof telegram.commands === "object" ? telegram.commands : {};
@@ -168,7 +176,7 @@ function extractSettings(openclawConfig) {
         retryAttempts: toOptionalPositiveInt(telegramRetry.attempts),
         retryMinDelayMs: toOptionalPositiveInt(telegramRetry.minDelayMs),
         retryMaxDelayMs: toOptionalPositiveInt(telegramRetry.maxDelayMs),
-        retryJitter: typeof telegramRetry.jitter === "boolean" ? telegramRetry.jitter : true,
+        retryJitter: telegramRetryJitterValue,
         commandsNative: telegramCommandsNative,
         groupsJson: toPrettyJson(telegram.groups),
         accountsJson: toPrettyJson(telegram.accounts),

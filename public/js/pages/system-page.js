@@ -189,6 +189,26 @@ function readChannelOptionalNonNegativeInt(id, fallback = null) {
   return normalizeOptionalNonNegativeInt(raw);
 }
 
+function normalizeOptionalProbability(value) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed < 0 || parsed > 1) {
+    return null;
+  }
+  return Number(parsed.toFixed(4));
+}
+
+function readChannelOptionalProbability(id, fallback = null) {
+  const element = document.querySelector(`#${id}`);
+  if (!element) {
+    return normalizeOptionalProbability(fallback);
+  }
+  const raw = String(getInputValue(id) || "").trim();
+  if (!raw) {
+    return null;
+  }
+  return normalizeOptionalProbability(raw);
+}
+
 function readChannelTriStateBoolean(id, fallback = null) {
   const element = document.querySelector(`#${id}`);
   if (!element) {
@@ -318,7 +338,7 @@ function collectChannelSettings() {
       retryAttempts: readChannelOptionalPositiveInt("tg_retry_attempts", telegramSnapshot.retryAttempts),
       retryMinDelayMs: readChannelOptionalPositiveInt("tg_retry_min_delay_ms", telegramSnapshot.retryMinDelayMs),
       retryMaxDelayMs: readChannelOptionalPositiveInt("tg_retry_max_delay_ms", telegramSnapshot.retryMaxDelayMs),
-      retryJitter: readChannelBoolean("tg_retry_jitter", telegramSnapshot.retryJitter),
+      retryJitter: readChannelOptionalProbability("tg_retry_jitter", telegramSnapshot.retryJitter),
       commandsNative: readChannelString("tg_commands_native", telegramSnapshot.commandsNative || "default") || "default",
       groupsJson: readChannelString("tg_groups_json", telegramSnapshot.groupsJson),
       accountsJson: readChannelString("tg_accounts_json", telegramSnapshot.accountsJson),
@@ -407,7 +427,7 @@ function fillSettings(settings) {
   setInput("tg_retry_attempts", settings.channels.telegram.retryAttempts ?? "");
   setInput("tg_retry_min_delay_ms", settings.channels.telegram.retryMinDelayMs ?? "");
   setInput("tg_retry_max_delay_ms", settings.channels.telegram.retryMaxDelayMs ?? "");
-  setInput("tg_retry_jitter", settings.channels.telegram.retryJitter);
+  setInput("tg_retry_jitter", settings.channels.telegram.retryJitter ?? "");
   setInput("tg_commands_native", settings.channels.telegram.commandsNative || "default");
   setInput("tg_groups_json", settings.channels.telegram.groupsJson || "");
   setInput("tg_accounts_json", settings.channels.telegram.accountsJson || "");

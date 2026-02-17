@@ -61,7 +61,7 @@ const settingsSchema = z.object({
         retryAttempts: z.number().int().positive().nullable().optional().default(null),
         retryMinDelayMs: z.number().int().positive().nullable().optional().default(null),
         retryMaxDelayMs: z.number().int().positive().nullable().optional().default(null),
-        retryJitter: z.boolean().default(true),
+        retryJitter: z.number().min(0).max(1).nullable().optional().default(null),
         commandsNative: z.enum(["default", "auto", "true", "false"]).default("default"),
         groupsJson: z.string().optional().default(""),
         accountsJson: z.string().optional().default(""),

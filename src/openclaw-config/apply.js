@@ -210,7 +210,16 @@ function applySettings(currentConfig, payload) {
     setOptionalNumber(telegram.retry, "attempts", parsed.channels.telegram.retryAttempts);
     setOptionalNumber(telegram.retry, "minDelayMs", parsed.channels.telegram.retryMinDelayMs);
     setOptionalNumber(telegram.retry, "maxDelayMs", parsed.channels.telegram.retryMaxDelayMs);
-    telegram.retry.jitter = parsed.channels.telegram.retryJitter;
+    if (
+      typeof parsed.channels.telegram.retryJitter === "number" &&
+      Number.isFinite(parsed.channels.telegram.retryJitter) &&
+      parsed.channels.telegram.retryJitter >= 0 &&
+      parsed.channels.telegram.retryJitter <= 1
+    ) {
+      telegram.retry.jitter = parsed.channels.telegram.retryJitter;
+    } else {
+      delete telegram.retry.jitter;
+    }
 
     const existingWebhookSecret = telegram.webhookSecret || "";
     const webhookSecret = resolveSecret(parsed.channels.telegram.webhookSecret, existingWebhookSecret);

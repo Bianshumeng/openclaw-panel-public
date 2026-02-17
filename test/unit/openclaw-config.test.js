@@ -387,7 +387,7 @@ test("extractSettings reads telegram advanced fields from official config shape"
           attempts: 6,
           minDelayMs: 300,
           maxDelayMs: 2500,
-          jitter: false
+          jitter: 0.2
         },
         commands: {
           native: "auto"
@@ -426,10 +426,79 @@ test("extractSettings reads telegram advanced fields from official config shape"
   assert.equal(tg.actionSticker, true);
   assert.equal(tg.networkAutoSelectFamily, false);
   assert.equal(tg.retryAttempts, 6);
-  assert.equal(tg.retryJitter, false);
+  assert.equal(tg.retryJitter, 0.2);
   assert.equal(tg.commandsNative, "auto");
   assert.match(tg.groupsJson, /\*"/);
   assert.match(tg.customCommandsJson, /backup/);
+});
+
+test("extractSettings keeps retryJitter null for legacy non-numeric values", () => {
+  const legacyJitterValues = [true, false, null, "0.6"];
+  for (const jitter of legacyJitterValues) {
+    const settings = extractSettings({
+      models: {
+        providers: {
+          "aicodecat-gpt": {
+            api: "openai-responses",
+            baseUrl: "https://aicode.cat/v1",
+            models: [{ id: "gpt-5.2", name: "GPT-5.2" }]
+          }
+        }
+      },
+      agents: {
+        defaults: {
+          model: {
+            primary: "aicodecat-gpt/gpt-5.2"
+          }
+        }
+      },
+      channels: {
+        telegram: {
+          retry: {
+            jitter
+          }
+        }
+      }
+    });
+
+    assert.equal(settings.channels.telegram.retryJitter, null);
+  }
+});
+
+test("load-save cycle does not coerce legacy boolean jitter into numeric extremes", () => {
+  const current = {
+    models: {
+      providers: {
+        "aicodecat-gpt": {
+          baseUrl: "https://aicode.cat/v1",
+          api: "openai-responses",
+          models: [{ id: "gpt-5.2", name: "GPT-5.2" }]
+        }
+      }
+    },
+    agents: {
+      defaults: {
+        model: {
+          primary: "aicodecat-gpt/gpt-5.2"
+        }
+      }
+    },
+    channels: {
+      telegram: {
+        retry: {
+          attempts: 6,
+          jitter: true
+        }
+      }
+    }
+  };
+
+  const extracted = extractSettings(current);
+  assert.equal(extracted.channels.telegram.retryJitter, null);
+
+  const next = applySettings(current, extracted);
+  assert.equal(next.channels.telegram.retry.attempts, 6);
+  assert.equal("jitter" in next.channels.telegram.retry, false);
 });
 
 test("applySettings writes telegram advanced fields and json overrides", () => {
@@ -496,7 +565,7 @@ test("applySettings writes telegram advanced fields and json overrides", () => {
           retryAttempts: 7,
           retryMinDelayMs: 500,
           retryMaxDelayMs: 3500,
-          retryJitter: false,
+          retryJitter: 0.25,
           commandsNative: "false",
           groupsJson: "{\"*\":{\"requireMention\":false}}",
           accountsJson: "{\"main\":{\"botToken\":\"abc\"}}",
@@ -554,7 +623,7 @@ test("applySettings writes telegram advanced fields and json overrides", () => {
   assert.equal(tg.actions.sticker, true);
   assert.equal(tg.network.autoSelectFamily, true);
   assert.equal(tg.retry.attempts, 7);
-  assert.equal(tg.retry.jitter, false);
+  assert.equal(tg.retry.jitter, 0.25);
   assert.equal(tg.commands.native, false);
   assert.equal(tg.botToken, "token-new");
   assert.equal(tg.token, "token-new");

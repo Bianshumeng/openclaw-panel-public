@@ -607,12 +607,10 @@
                       <input id="tg_retry_max_delay_ms" type="number" min="1" step="1" placeholder="留空使用默认" />
                       <small class="tg-help">建议大于最小间隔。</small>
                     </label>
-                    <label class="tg-check-field">
-                      <span class="tg-check-row">
-                        开启抖动（jitter）
-                        <input id="tg_retry_jitter" type="checkbox" />
-                      </span>
-                      <small class="tg-help">分散重试峰值，减少瞬时拥塞。</small>
+                    <label>
+                      抖动系数（jitter，0~1）
+                      <input id="tg_retry_jitter" type="number" min="0" max="1" step="0.01" placeholder="留空使用默认" />
+                      <small class="tg-help">分散重试峰值，建议 0.1~0.3。</small>
                     </label>
                   </div>
                 </section>
