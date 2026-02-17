@@ -127,6 +127,18 @@ function buildGithubApiHeaders(githubToken = "") {
   return headers;
 }
 
+function buildGhcrHeaders(token = "") {
+  const headers = {
+    accept: "application/json",
+    "user-agent": "openclaw-panel"
+  };
+  const normalizedToken = ensureString(token).trim();
+  if (normalizedToken) {
+    headers.authorization = `Bearer ${normalizedToken}`;
+  }
+  return headers;
+}
+
 async function fetchGhcrPackageVersions({ owner, packageName, fetchImpl = fetch, githubToken = "" }) {
   const encodedOwner = encodeURIComponent(owner);
   const encodedPackage = encodeURIComponent(packageName);
@@ -148,16 +160,81 @@ async function fetchGhcrPackageVersions({ owner, packageName, fetchImpl = fetch,
       continue;
     }
     if (response.status === 401 || response.status === 403) {
-      throw new Error(`GitHub API 请求失败: ${response.status}（请确认 token 具备 read:packages 权限）`);
+      const authError = new Error(`GitHub API 请求失败: ${response.status}（请确认 token 具备 read:packages 权限）`);
+      authError.status = response.status;
+      throw authError;
     }
-    throw new Error(`GitHub API 请求失败: ${response.status}`);
+    const responseError = new Error(`GitHub API 请求失败: ${response.status}`);
+    responseError.status = response.status;
+    throw responseError;
   }
 
   if (lastStatus === 404) {
-    throw new Error("GitHub API 请求失败: 404（请确认镜像地址正确，且私有包已提供 read:packages token）");
+    const notFoundError = new Error("GitHub API 请求失败: 404（请确认镜像地址正确，且私有包已提供 read:packages token）");
+    notFoundError.status = 404;
+    throw notFoundError;
   }
 
-  throw new Error(`GitHub API 请求失败: ${lastStatus || "unknown"}`);
+  const unknownError = new Error(`GitHub API 请求失败: ${lastStatus || "unknown"}`);
+  unknownError.status = lastStatus || 0;
+  throw unknownError;
+}
+
+function buildGhcrTokenUrl(owner, packageName) {
+  const scope = encodeURIComponent(`repository:${owner}/${packageName}:pull`);
+  return `https://ghcr.io/token?scope=${scope}&service=ghcr.io`;
+}
+
+async function fetchGhcrRegistryTags({ owner, packageName, fetchImpl = fetch }) {
+  const tokenUrl = buildGhcrTokenUrl(owner, packageName);
+  const tokenResponse = await fetchImpl(tokenUrl, { headers: buildGhcrHeaders() });
+  if (!tokenResponse.ok) {
+    throw new Error(`GHCR token 请求失败: ${tokenResponse.status}`);
+  }
+
+  const tokenPayload = await tokenResponse.json();
+  const pullToken = ensureString(tokenPayload?.token).trim();
+  if (!pullToken) {
+    throw new Error("GHCR token 请求成功但未返回 token");
+  }
+
+  const tagsUrl = `https://ghcr.io/v2/${owner}/${packageName}/tags/list`;
+  const tagsResponse = await fetchImpl(tagsUrl, { headers: buildGhcrHeaders(pullToken) });
+  if (!tagsResponse.ok) {
+    throw new Error(`GHCR tags 请求失败: ${tagsResponse.status}`);
+  }
+
+  const tagsPayload = await tagsResponse.json();
+  return Array.isArray(tagsPayload?.tags) ? tagsPayload.tags : [];
+}
+
+function extractLatestTagFromRegistryTags(tags = []) {
+  const candidates = [];
+  for (const rawTag of tags) {
+    const text = ensureString(rawTag).trim();
+    if (!text) {
+      continue;
+    }
+    const lower = text.toLowerCase();
+    if (lower === "latest" || lower.startsWith("sha-")) {
+      continue;
+    }
+    try {
+      candidates.push({
+        tag: normalizeTag(text),
+        publishedAt: null
+      });
+    } catch {
+      // Ignore non-semver-like tags.
+    }
+  }
+
+  if (candidates.length === 0) {
+    return null;
+  }
+
+  candidates.sort((a, b) => compareVersionTags(b.tag, a.tag));
+  return candidates[0];
 }
 
 function extractLatestTagFromPackageVersions(versions = []) {
@@ -229,13 +306,41 @@ export async function fetchLatestRelease({ imageRepo = DEFAULT_IMAGE_REPO, fetch
   const token = resolveGithubToken(githubToken);
   const ghcrPackage = resolveGhcrPackageFromImageRepo(imageRepo);
   if (ghcrPackage) {
-    const versions = await fetchGhcrPackageVersions({
-      owner: ghcrPackage.owner,
-      packageName: ghcrPackage.packageName,
-      fetchImpl,
-      githubToken: token
-    });
-    const latest = extractLatestTagFromPackageVersions(versions);
+    let latest = null;
+    let githubApiError = null;
+
+    try {
+      const versions = await fetchGhcrPackageVersions({
+        owner: ghcrPackage.owner,
+        packageName: ghcrPackage.packageName,
+        fetchImpl,
+        githubToken: token
+      });
+      latest = extractLatestTagFromPackageVersions(versions);
+    } catch (error) {
+      githubApiError = error;
+      if (!token && (error?.status === 401 || error?.status === 403)) {
+        // Public GHCR packages can be read without PAT via anonymous pull token.
+        const tags = await fetchGhcrRegistryTags({
+          owner: ghcrPackage.owner,
+          packageName: ghcrPackage.packageName,
+          fetchImpl
+        });
+        latest = extractLatestTagFromRegistryTags(tags);
+      } else {
+        throw error;
+      }
+    }
+
+    if (!latest && githubApiError && !token && (githubApiError?.status === 401 || githubApiError?.status === 403)) {
+      const tags = await fetchGhcrRegistryTags({
+        owner: ghcrPackage.owner,
+        packageName: ghcrPackage.packageName,
+        fetchImpl
+      });
+      latest = extractLatestTagFromRegistryTags(tags);
+    }
+
     if (!latest) {
       throw new Error("未找到可用版本标签（请确保镜像已发布非 latest 的版本 tag）");
     }

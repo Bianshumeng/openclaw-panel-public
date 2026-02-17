@@ -173,3 +173,66 @@ test("checkForUpdates keeps running when current tag is non-semver", async () =>
   assert.equal(result.updateAvailable, true);
   assert.equal(result.warning, "");
 });
+
+test("checkForUpdates falls back to GHCR anonymous token for public packages", async () => {
+  const runCmd = async (command, args) => {
+    const cmdline = `${command} ${args.join(" ")}`;
+    if (cmdline === "docker inspect openclaw-panel") {
+      return {
+        ok: true,
+        stdout: JSON.stringify([
+          {
+            ...snapshot,
+            Name: "/openclaw-panel",
+            Config: {
+              ...snapshot.Config,
+              Image: "openclaw-panel:local"
+            }
+          }
+        ]),
+        stderr: "",
+        message: ""
+      };
+    }
+    return { ok: false, stdout: "", stderr: `unexpected command: ${cmdline}`, message: "unexpected" };
+  };
+
+  const calls = [];
+  const fetchImpl = async (url, options = {}) => {
+    const text = String(url);
+    calls.push(text);
+
+    if (text === "https://api.github.com/users/bianshumeng/packages/container/openclaw-panel/versions?per_page=100") {
+      return { ok: false, status: 401, json: async () => ({}) };
+    }
+    if (text === "https://ghcr.io/token?scope=repository%3Abianshumeng%2Fopenclaw-panel%3Apull&service=ghcr.io") {
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({ token: "public-pull-token" })
+      };
+    }
+    if (text === "https://ghcr.io/v2/bianshumeng/openclaw-panel/tags/list") {
+      assert.equal(options?.headers?.authorization, "Bearer public-pull-token");
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({ tags: ["latest", "sha-abcd1234", "0.1.0"] })
+      };
+    }
+
+    return { ok: false, status: 404, json: async () => ({}) };
+  };
+
+  const result = await checkForUpdates({
+    containerName: "openclaw-panel",
+    imageRepo: "ghcr.io/bianshumeng/openclaw-panel",
+    runCmd,
+    fetchImpl
+  });
+
+  assert.equal(result.latestTag, "0.1.0");
+  assert.equal(result.updateAvailable, true);
+  assert.equal(result.warning, "");
+  assert.ok(calls.some((item) => item.startsWith("https://ghcr.io/token?scope=repository%3Abianshumeng%2Fopenclaw-panel%3Apull")));
+});

@@ -63,6 +63,9 @@ async function bundleServer() {
     legalComments: "none",
     platform: "node",
     format: "esm",
+    banner: {
+      js: "import { createRequire as __createRequire } from 'node:module';const require=__createRequire(import.meta.url);"
+    },
     target: "node22",
     sourcemap: false,
     logLevel: "info"
