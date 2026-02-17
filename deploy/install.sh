@@ -44,6 +44,9 @@ if [ ! -f "$CONFIG_DIR/panel.config.json" ]; then
     "gateway_port": 18789,
     "gateway_ws_url": ""
   },
+  "update": {
+    "github_token": ""
+  },
   "log": {
     "source": "journal",
     "file_path": "~/.openclaw/logs/gateway.log"

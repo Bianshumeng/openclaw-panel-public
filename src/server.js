@@ -1240,9 +1240,11 @@ app.get("/api/update/check", async (request, reply) => {
     const { config: panelConfig } = await loadPanelConfig();
     ensureDockerMode(panelConfig);
     const targetConfig = resolveUpdateTarget(panelConfig, query.target);
+    const githubToken = trimText(panelConfig?.update?.github_token);
     const result = await checkForUpdates({
       containerName: targetConfig.containerName,
-      imageRepo: targetConfig.imageRepo
+      imageRepo: targetConfig.imageRepo,
+      githubToken
     });
     return {
       ok: true,

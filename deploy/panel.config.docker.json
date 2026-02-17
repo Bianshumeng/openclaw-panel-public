@@ -29,6 +29,9 @@
   "docker": {
     "enabled": true
   },
+  "update": {
+    "github_token": ""
+  },
   "log": {
     "source": "docker",
     "file_path": "/data/openclaw/logs/gateway.log"

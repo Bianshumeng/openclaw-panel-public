@@ -44,6 +44,11 @@ const panelConfigSchema = z.object({
       enabled: z.boolean().default(false)
     })
     .default({}),
+  update: z
+    .object({
+      github_token: z.string().default("")
+    })
+    .default({}),
   log: z
     .object({
       source: z.enum(["journal", "file", "docker"]).default("journal"),
@@ -72,6 +77,7 @@ export async function loadPanelConfig() {
     reverse_proxy: { ...defaults.reverse_proxy, ...(raw.reverse_proxy || {}) },
     openclaw: { ...defaults.openclaw, ...(raw.openclaw || {}) },
     docker: { ...defaults.docker, ...(raw.docker || {}) },
+    update: { ...defaults.update, ...(raw.update || {}) },
     log: { ...defaults.log, ...(raw.log || {}) }
   };
   const parsed = panelConfigSchema.parse(merged);

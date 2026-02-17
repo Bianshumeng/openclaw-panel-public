@@ -94,34 +94,170 @@ function resolveGithubRepoFromImageRepo(imageRepo) {
     return { owner: parts[0], repo: parts[1] };
   }
 
-  // ghcr.io/owner/repo
+  return null;
+}
+
+function resolveGhcrPackageFromImageRepo(imageRepo) {
+  const raw = ensureString(imageRepo).trim().replace(/^https?:\/\//, "");
+  if (!raw) {
+    return null;
+  }
+
+  const parts = raw
+    .split("/")
+    .map((item) => item.trim())
+    .filter(Boolean);
+
   if (parts.length >= 3 && parts[0].toLowerCase() === "ghcr.io") {
-    return { owner: parts[1], repo: parts[2] };
+    return { owner: parts[1], packageName: parts[2] };
   }
 
   return null;
 }
 
-export async function fetchLatestRelease({ imageRepo = DEFAULT_IMAGE_REPO, fetchImpl = fetch } = {}) {
-  const githubRepo = resolveGithubRepoFromImageRepo(imageRepo);
-  if (!githubRepo) {
-    throw new Error(`无法从镜像仓库推导 GitHub 仓库: ${imageRepo}`);
+function buildGithubApiHeaders(githubToken = "") {
+  const headers = {
+    accept: "application/vnd.github+json",
+    "user-agent": "openclaw-panel"
+  };
+  const token = ensureString(githubToken).trim();
+  if (token) {
+    headers.authorization = `Bearer ${token}`;
   }
-  const response = await fetchImpl(`https://api.github.com/repos/${githubRepo.owner}/${githubRepo.repo}/releases/latest`, {
-    headers: {
-      accept: "application/vnd.github+json",
-      "user-agent": "openclaw-panel"
+  return headers;
+}
+
+async function fetchGhcrPackageVersions({ owner, packageName, fetchImpl = fetch, githubToken = "" }) {
+  const encodedOwner = encodeURIComponent(owner);
+  const encodedPackage = encodeURIComponent(packageName);
+  const headers = buildGithubApiHeaders(githubToken);
+  const endpoints = [
+    `https://api.github.com/users/${encodedOwner}/packages/container/${encodedPackage}/versions?per_page=100`,
+    `https://api.github.com/orgs/${encodedOwner}/packages/container/${encodedPackage}/versions?per_page=100`
+  ];
+
+  let lastStatus = 0;
+  for (const url of endpoints) {
+    const response = await fetchImpl(url, { headers });
+    if (response.ok) {
+      const payload = await response.json();
+      return Array.isArray(payload) ? payload : [];
     }
-  });
+    lastStatus = response.status;
+    if (response.status === 404) {
+      continue;
+    }
+    if (response.status === 401 || response.status === 403) {
+      throw new Error(`GitHub API 请求失败: ${response.status}（请确认 token 具备 read:packages 权限）`);
+    }
+    throw new Error(`GitHub API 请求失败: ${response.status}`);
+  }
+
+  if (lastStatus === 404) {
+    throw new Error("GitHub API 请求失败: 404（请确认镜像地址正确，且私有包已提供 read:packages token）");
+  }
+
+  throw new Error(`GitHub API 请求失败: ${lastStatus || "unknown"}`);
+}
+
+function extractLatestTagFromPackageVersions(versions = []) {
+  const candidates = [];
+  for (const item of versions) {
+    const tags = Array.isArray(item?.metadata?.container?.tags) ? item.metadata.container.tags : [];
+    const publishedAt = ensureString(item?.updated_at || item?.created_at || "");
+    for (const rawTag of tags) {
+      const text = ensureString(rawTag).trim();
+      if (!text) {
+        continue;
+      }
+      const lower = text.toLowerCase();
+      if (lower === "latest" || lower.startsWith("sha-")) {
+        continue;
+      }
+      try {
+        const normalizedTag = normalizeTag(text);
+        candidates.push({
+          tag: normalizedTag,
+          publishedAt: publishedAt || null
+        });
+      } catch {
+        // Ignore non-semver-like tags.
+      }
+    }
+  }
+
+  if (candidates.length === 0) {
+    return null;
+  }
+
+  candidates.sort((a, b) => compareVersionTags(b.tag, a.tag));
+  return candidates[0];
+}
+
+async function fetchLatestGithubReleaseTag({ owner, repo, fetchImpl = fetch, githubToken = "" }) {
+  const headers = buildGithubApiHeaders(githubToken);
+  const response = await fetchImpl(`https://api.github.com/repos/${owner}/${repo}/releases/latest`, { headers });
   if (!response.ok) {
     throw new Error(`GitHub API 请求失败: ${response.status}`);
   }
   const payload = await response.json();
   const tag = normalizeTag(payload.tag_name || "");
   return {
-    releaseRepo: `${githubRepo.owner}/${githubRepo.repo}`,
+    releaseRepo: `${owner}/${repo}`,
     tag,
     publishedAt: payload.published_at || null
+  };
+}
+
+function resolveGithubToken(githubToken = "") {
+  const direct = ensureString(githubToken).trim();
+  if (direct) {
+    return direct;
+  }
+
+  const envValue = ensureString(
+    process.env.OPENCLAW_UPDATE_GITHUB_TOKEN ||
+      process.env.GITHUB_PACKAGES_TOKEN ||
+      process.env.GHCR_READ_TOKEN ||
+      process.env.GHCR_TOKEN ||
+      process.env.GITHUB_TOKEN
+  ).trim();
+  return envValue;
+}
+
+export async function fetchLatestRelease({ imageRepo = DEFAULT_IMAGE_REPO, fetchImpl = fetch, githubToken = "" } = {}) {
+  const token = resolveGithubToken(githubToken);
+  const ghcrPackage = resolveGhcrPackageFromImageRepo(imageRepo);
+  if (ghcrPackage) {
+    const versions = await fetchGhcrPackageVersions({
+      owner: ghcrPackage.owner,
+      packageName: ghcrPackage.packageName,
+      fetchImpl,
+      githubToken: token
+    });
+    const latest = extractLatestTagFromPackageVersions(versions);
+    if (!latest) {
+      throw new Error("未找到可用版本标签（请确保镜像已发布非 latest 的版本 tag）");
+    }
+    return {
+      releaseRepo: `${ghcrPackage.owner}/${ghcrPackage.packageName}`,
+      tag: latest.tag,
+      publishedAt: latest.publishedAt
+    };
+  }
+
+  const githubRepo = resolveGithubRepoFromImageRepo(imageRepo);
+  if (!githubRepo) {
+    throw new Error(`无法从镜像仓库推导 GitHub 仓库或 GHCR 包: ${imageRepo}`);
+  }
+
+  return {
+    ...(await fetchLatestGithubReleaseTag({
+      owner: githubRepo.owner,
+      repo: githubRepo.repo,
+      fetchImpl,
+      githubToken: token
+    }))
   };
 }
 
@@ -317,6 +453,7 @@ async function recreateContainer(inspect, image, runCmd = runCommand) {
 export async function checkForUpdates({
   containerName = "openclaw-gateway",
   imageRepo = DEFAULT_IMAGE_REPO,
+  githubToken = "",
   fetchImpl = fetch,
   runCmd = runCommand
 } = {}) {
@@ -330,12 +467,17 @@ export async function checkForUpdates({
   let releaseRepo = "";
 
   try {
-    const latest = await fetchLatestRelease({ imageRepo, fetchImpl });
+    const latest = await fetchLatestRelease({ imageRepo, fetchImpl, githubToken });
     releaseRepo = latest.releaseRepo || "";
     latestTag = latest.tag;
     latestPublishedAt = latest.publishedAt;
     if (currentTag) {
-      updateAvailable = compareVersionTags(latestTag, currentTag) > 0;
+      try {
+        updateAvailable = compareVersionTags(latestTag, currentTag) > 0;
+      } catch {
+        // Non-semver-like current tags (e.g. "local") should not break update checks.
+        updateAvailable = stripLeadingV(currentTag) !== latestTag;
+      }
     }
   } catch (error) {
     warning = error.message;

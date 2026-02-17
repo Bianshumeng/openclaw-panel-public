@@ -25,7 +25,16 @@ test("checkForUpdates reports update available", async () => {
   let calledUrl = "";
   const fetchImpl = async () => ({
     ok: true,
-    json: async () => ({ tag_name: "v2026.2.15", published_at: "2026-02-15T00:00:00Z" })
+    json: async () => [
+      {
+        updated_at: "2026-02-15T00:00:00Z",
+        metadata: {
+          container: {
+            tags: ["latest", "2026.2.15", "sha-abcdef01"]
+          }
+        }
+      }
+    ]
   });
   const wrappedFetch = async (url, options) => {
     calledUrl = url;
@@ -37,7 +46,7 @@ test("checkForUpdates reports update available", async () => {
     fetchImpl: wrappedFetch
   });
   assert.equal(result.ok, true);
-  assert.equal(calledUrl, "https://api.github.com/repos/openclaw/openclaw/releases/latest");
+  assert.equal(calledUrl, "https://api.github.com/users/openclaw/packages/container/openclaw/versions?per_page=100");
   assert.equal(result.currentTag, "2026.2.14");
   assert.equal(result.latestTag, "2026.2.15");
   assert.equal(result.updateAvailable, true);
@@ -45,7 +54,12 @@ test("checkForUpdates reports update available", async () => {
 });
 
 test("checkForUpdates tolerates release API failure", async () => {
-  const fetchImpl = async () => ({ ok: false, status: 500, json: async () => ({}) });
+  const fetchImpl = async (url) => {
+    if (String(url).includes("/users/")) {
+      return { ok: false, status: 404, json: async () => ({}) };
+    }
+    return { ok: false, status: 404, json: async () => ({}) };
+  };
   const result = await checkForUpdates({
     containerName: "openclaw-gateway",
     runCmd: makeRunCmdForInspect(),
@@ -55,7 +69,7 @@ test("checkForUpdates tolerates release API failure", async () => {
   assert.equal(result.currentTag, "2026.2.14");
   assert.equal(result.latestTag, "");
   assert.equal(result.updateAvailable, false);
-  assert.match(result.warning, /GitHub API 请求失败/);
+  assert.match(result.warning, /404/);
 });
 
 test("checkForUpdates uses configured image repo for release query", async () => {
@@ -64,7 +78,16 @@ test("checkForUpdates uses configured image repo for release query", async () =>
     calledUrl = url;
     return {
       ok: true,
-      json: async () => ({ tag_name: "v2026.2.16", published_at: "2026-02-16T00:00:00Z" })
+      json: async () => [
+        {
+          updated_at: "2026-02-16T00:00:00Z",
+          metadata: {
+            container: {
+              tags: ["latest", "2026.2.16"]
+            }
+          }
+        }
+      ]
     };
   };
 
@@ -75,13 +98,13 @@ test("checkForUpdates uses configured image repo for release query", async () =>
     fetchImpl
   });
 
-  assert.equal(calledUrl, "https://api.github.com/repos/custom-owner/custom-openclaw/releases/latest");
+  assert.equal(calledUrl, "https://api.github.com/users/custom-owner/packages/container/custom-openclaw/versions?per_page=100");
   assert.equal(result.releaseRepo, "custom-owner/custom-openclaw");
   assert.equal(result.latestTag, "2026.2.16");
   assert.equal(result.updateAvailable, true);
 });
 
-test("checkForUpdates returns warning when image repo cannot map to github repo", async () => {
+test("checkForUpdates returns warning when image repo cannot map to supported source", async () => {
   let called = false;
   const fetchImpl = async () => {
     called = true;
@@ -98,5 +121,55 @@ test("checkForUpdates returns warning when image repo cannot map to github repo"
   assert.equal(called, false);
   assert.equal(result.latestTag, "");
   assert.equal(result.updateAvailable, false);
-  assert.match(result.warning, /无法从镜像仓库推导 GitHub 仓库/);
+  assert.match(result.warning, /无法从镜像仓库推导 GitHub 仓库或 GHCR 包/);
+});
+
+test("checkForUpdates keeps running when current tag is non-semver", async () => {
+  const runCmd = async (command, args) => {
+    const cmdline = `${command} ${args.join(" ")}`;
+    if (cmdline === "docker inspect openclaw-panel") {
+      return {
+        ok: true,
+        stdout: JSON.stringify([
+          {
+            ...snapshot,
+            Name: "/openclaw-panel",
+            Config: {
+              ...snapshot.Config,
+              Image: "openclaw-panel:local"
+            }
+          }
+        ]),
+        stderr: "",
+        message: ""
+      };
+    }
+    return { ok: false, stdout: "", stderr: `unexpected command: ${cmdline}`, message: "unexpected" };
+  };
+
+  const fetchImpl = async () => ({
+    ok: true,
+    json: async () => [
+      {
+        updated_at: "2026-02-17T10:10:59Z",
+        metadata: {
+          container: {
+            tags: ["latest", "0.1.0", "sha-4a9d5674c09d"]
+          }
+        }
+      }
+    ]
+  });
+
+  const result = await checkForUpdates({
+    containerName: "openclaw-panel",
+    imageRepo: "ghcr.io/bianshumeng/openclaw-panel",
+    runCmd,
+    fetchImpl
+  });
+
+  assert.equal(result.currentTag, "local");
+  assert.equal(result.latestTag, "0.1.0");
+  assert.equal(result.updateAvailable, true);
+  assert.equal(result.warning, "");
 });
