@@ -532,3 +532,85 @@ test("applySettings writes telegram advanced fields and json overrides", () => {
   assert.equal(tg.token, "token-new");
   assert.equal(Array.isArray(tg.customCommands), true);
 });
+
+test("applySettings preserves telegram capabilities object while updating inlineButtons", () => {
+  const current = {
+    models: {
+      providers: {
+        "aicodecat-gpt": {
+          baseUrl: "https://aicode.cat/v1",
+          api: "openai-responses",
+          models: [{ id: "gpt-5.2", name: "GPT-5.2" }]
+        }
+      }
+    },
+    agents: {
+      defaults: {
+        model: {
+          primary: "aicodecat-gpt/gpt-5.2"
+        }
+      }
+    },
+    channels: {
+      telegram: {
+        capabilities: {
+          inlineButtons: "group",
+          richMedia: true
+        }
+      }
+    }
+  };
+
+  const next = applySettings(
+    current,
+    makeBasePayload({
+      channels: {
+        ...makeBasePayload().channels,
+        telegram: {
+          ...makeBasePayload().channels.telegram,
+          inlineButtons: "allowlist"
+        }
+      }
+    })
+  );
+
+  assert.equal(next.channels.telegram.capabilities.inlineButtons, "allowlist");
+  assert.equal(next.channels.telegram.capabilities.richMedia, true);
+});
+
+test("applySettings returns readable error for invalid telegram advanced json", () => {
+  assert.throws(
+    () =>
+      applySettings(
+        {
+          models: {
+            providers: {
+              "aicodecat-gpt": {
+                baseUrl: "https://aicode.cat/v1",
+                api: "openai-responses",
+                models: [{ id: "gpt-5.2", name: "GPT-5.2" }]
+              }
+            }
+          },
+          agents: {
+            defaults: {
+              model: {
+                primary: "aicodecat-gpt/gpt-5.2"
+              }
+            }
+          },
+          channels: {}
+        },
+        makeBasePayload({
+          channels: {
+            ...makeBasePayload().channels,
+            telegram: {
+              ...makeBasePayload().channels.telegram,
+              customCommandsJson: "{"
+            }
+          }
+        })
+      ),
+    /Telegram 自定义命令（customCommandsJson） 不是有效 JSON/
+  );
+});

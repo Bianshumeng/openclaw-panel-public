@@ -61,6 +61,13 @@ function toPrettyJson(value) {
 }
 
 function parseOptionalJson(value, fieldName, expectedType) {
+  const displayNameMap = {
+    groupsJson: "Telegram 群组覆盖（groupsJson）",
+    accountsJson: "Telegram 账号映射（accountsJson）",
+    customCommandsJson: "Telegram 自定义命令（customCommandsJson）",
+    draftChunkJson: "Telegram 草稿分块（draftChunkJson）"
+  };
+  const displayName = displayNameMap[fieldName] || fieldName;
   const text = String(value || "").trim();
   if (!text) {
     return null;
@@ -69,16 +76,16 @@ function parseOptionalJson(value, fieldName, expectedType) {
   try {
     parsed = JSON.parse(text);
   } catch {
-    throw new Error(`${fieldName} 不是有效 JSON`);
+    throw new Error(`${displayName} 不是有效 JSON`);
   }
   if (expectedType === "array") {
     if (!Array.isArray(parsed)) {
-      throw new Error(`${fieldName} 必须是数组 JSON`);
+      throw new Error(`${displayName} 必须是数组 JSON`);
     }
     return parsed;
   }
   if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-    throw new Error(`${fieldName} 必须是对象 JSON`);
+    throw new Error(`${displayName} 必须是对象 JSON`);
   }
   return parsed;
 }

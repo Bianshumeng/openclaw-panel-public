@@ -20,6 +20,7 @@ import {
   saveAndTestTelegram,
   saveModelSettings,
   saveSettings,
+  setChannelTestResult,
   setupTelegramBasicFlow,
   startStream,
   stopStream,
@@ -71,9 +72,6 @@ document.querySelector("#load_errors")?.addEventListener("click", () => {
 document.querySelector("#start_stream")?.addEventListener("click", startStream);
 document.querySelector("#stop_stream")?.addEventListener("click", stopStream);
 
-document.querySelector("#test_telegram")?.addEventListener("click", () => {
-  testTelegram().catch((error) => setMessage(error.message, "error"));
-});
 document.querySelector("#tg_setup_basic")?.addEventListener("click", () => {
   setupTelegramBasicFlow().catch((error) => setMessage(error.message, "error"));
 });
@@ -86,18 +84,24 @@ document.querySelector("#tg_save_advanced")?.addEventListener("click", () => {
 document.querySelector("#save_and_test_telegram")?.addEventListener("click", () => {
   saveAndTestTelegram().catch((error) => setMessage(error.message, "error"));
 });
-document.querySelector("#test_feishu")?.addEventListener("click", () => {
-  testFeishu().catch((error) => setMessage(error.message, "error"));
-});
 document.querySelector("#save_and_test_feishu")?.addEventListener("click", () => {
   saveAndTestFeishu().catch((error) => setMessage(error.message, "error"));
 });
-document.querySelector("#test_discord")?.addEventListener("click", () => {
-  testDiscord().catch((error) => setMessage(error.message, "error"));
-});
-document.querySelector("#test_slack")?.addEventListener("click", () => {
-  testSlack().catch((error) => setMessage(error.message, "error"));
-});
+
+function bindChannelTestButton(buttonSelector, runTest, resultElementId, channelName) {
+  document.querySelector(buttonSelector)?.addEventListener("click", () => {
+    runTest().catch((error) => {
+      const detail = String(error?.message || "请求失败");
+      setChannelTestResult(resultElementId, detail, false);
+      setMessage(`${channelName} 测试失败：${detail}`, "error");
+    });
+  });
+}
+
+bindChannelTestButton("#test_telegram", testTelegram, "tg_test_result", "Telegram");
+bindChannelTestButton("#test_feishu", testFeishu, "fs_test_result", "Feishu");
+bindChannelTestButton("#test_discord", testDiscord, "dc_test_result", "Discord");
+bindChannelTestButton("#test_slack", testSlack, "sl_test_result", "Slack");
 document.querySelector("#check_update")?.addEventListener("click", () => {
   checkUpdate().catch((error) => setMessage(error.message, "error"));
 });

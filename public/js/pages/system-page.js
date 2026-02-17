@@ -104,6 +104,7 @@ function renderChannelAccessOverview(channels = {}) {
     const configured = isChannelConfigured(channelKey, channelSettings);
     const summary = document.querySelector(`#channel_status_${channelKey}_summary`);
     const card = document.querySelector(`[data-channel-card="${channelKey}"]`);
+    const isDisabledCard = Boolean(card?.dataset?.channelDisabled === "true");
 
     setChannelAccessStatusTag(`channel_status_${channelKey}_enabled`, enabled ? "已启用" : "未启用", enabled ? "success" : "neutral");
     setChannelAccessStatusTag(
@@ -113,7 +114,9 @@ function renderChannelAccessOverview(channels = {}) {
     );
 
     if (summary) {
-      if (configured && enabled) {
+      if (isDisabledCard) {
+        summary.textContent = "功能开发中，暂不支持进入配置页。";
+      } else if (configured && enabled) {
         summary.textContent = "配置完整，可直接使用。";
       } else if (configured) {
         summary.textContent = "配置已填，但当前处于未启用状态。";
@@ -211,6 +214,61 @@ function getChannelSnapshot() {
     return {};
   }
   return channels;
+}
+
+const TELEGRAM_JSON_FIELD_RULES = Object.freeze([
+  {
+    elementId: "tg_groups_json",
+    label: "群组覆盖（groupsJson）",
+    expectedType: "object"
+  },
+  {
+    elementId: "tg_accounts_json",
+    label: "账号映射（accountsJson）",
+    expectedType: "object"
+  },
+  {
+    elementId: "tg_custom_commands_json",
+    label: "自定义命令（customCommandsJson）",
+    expectedType: "array"
+  },
+  {
+    elementId: "tg_draft_chunk_json",
+    label: "草稿分块（draftChunkJson）",
+    expectedType: "object"
+  }
+]);
+
+function validateOptionalJsonField(elementId, label, expectedType) {
+  const element = document.querySelector(`#${elementId}`);
+  if (!element) {
+    return;
+  }
+  const text = String(getInputValue(elementId) || "").trim();
+  if (!text) {
+    return;
+  }
+
+  let parsed;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    throw new Error(`${label} JSON 格式不正确，请检查括号与引号。`);
+  }
+
+  const isArray = Array.isArray(parsed);
+  if (expectedType === "array" && !isArray) {
+    throw new Error(`${label} 必须是 JSON 数组。`);
+  }
+  if (expectedType === "object" && (!parsed || typeof parsed !== "object" || isArray)) {
+    throw new Error(`${label} 必须是 JSON 对象。`);
+  }
+}
+
+function validateTelegramJsonOverrides() {
+  TELEGRAM_JSON_FIELD_RULES.forEach((rule) => {
+    validateOptionalJsonField(rule.elementId, `Telegram ${rule.label}`, rule.expectedType);
+  });
 }
 
 function collectChannelSettings() {
@@ -510,6 +568,7 @@ async function saveSettings() {
   if (!modelEditorState.currentModelPayload) {
     throw new Error("模型配置尚未初始化，请刷新页面后重试");
   }
+  validateTelegramJsonOverrides();
   const payload = {
     model: modelEditorState.currentModelPayload,
     channels: collectChannelSettings()

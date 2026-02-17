@@ -69,6 +69,33 @@ test("upgradeToTag succeeds when new container starts", async () => {
   assert.equal(runCmd.left(), 0);
 });
 
+test("upgradeToTag tolerates missing restart count when container is running", async () => {
+  const runCmd = makeRunCmdQueue([
+    { match: /^docker inspect openclaw-gateway$/, result: { ok: true, stdout: JSON.stringify([snapshot]), stderr: "", message: "" } },
+    { match: /^docker pull ghcr\.io\/openclaw\/openclaw:2026\.2\.15$/, result: { ok: true, stdout: "pulled", stderr: "", message: "" } },
+    { match: /^docker rm -f openclaw-gateway$/, result: { ok: true, stdout: "", stderr: "", message: "" } },
+    { match: /^docker run -d --name openclaw-gateway .*ghcr\.io\/openclaw\/openclaw:2026\.2\.15/, result: { ok: true, stdout: "new-id", stderr: "", message: "" } },
+    {
+      match: /^docker inspect --format \{\{\.State\.Status\}\}\|\{\{\.RestartCount\}\} openclaw-gateway$/,
+      result: { ok: true, stdout: "running|<no value>", stderr: "", message: "" }
+    },
+    {
+      match: /^docker inspect --format \{\{\.State\.Status\}\}\|\{\{\.RestartCount\}\} openclaw-gateway$/,
+      result: { ok: true, stdout: "running|<no value>", stderr: "", message: "" }
+    }
+  ]);
+
+  const result = await upgradeToTag({
+    containerName: "openclaw-gateway",
+    targetTag: "v2026.2.15",
+    runCmd
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(result.rolledBack, false);
+  assert.equal(runCmd.left(), 0);
+});
+
 test("upgradeToTag auto rollbacks when start fails", async () => {
   const runCmd = makeRunCmdQueue([
     { match: /^docker inspect openclaw-gateway$/, result: { ok: true, stdout: JSON.stringify([snapshot]), stderr: "", message: "" } },

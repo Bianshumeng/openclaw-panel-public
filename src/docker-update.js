@@ -254,19 +254,22 @@ async function waitContainerRunning(containerName, runCmd = runCommand) {
     const result = await runCmd("docker", ["inspect", "--format", "{{.State.Status}}|{{.RestartCount}}", containerName]);
     if (result.ok) {
       const snapshot = parseStateStatusLine(result.stdout);
+      const hasRestartCount = Number.isInteger(snapshot.restartCount);
       if (snapshot.status === "running") {
-        if (lastRestartCount !== null && snapshot.restartCount === lastRestartCount) {
+        if (!hasRestartCount) {
+          stableRunningCount += 1;
+        } else if (lastRestartCount !== null && snapshot.restartCount === lastRestartCount) {
           stableRunningCount += 1;
         } else {
           stableRunningCount = 1;
         }
-        lastRestartCount = snapshot.restartCount;
+        lastRestartCount = hasRestartCount ? snapshot.restartCount : null;
         if (stableRunningCount >= 2) {
           return true;
         }
       } else {
         stableRunningCount = 0;
-        lastRestartCount = snapshot.restartCount;
+        lastRestartCount = hasRestartCount ? snapshot.restartCount : null;
       }
     } else {
       stableRunningCount = 0;
