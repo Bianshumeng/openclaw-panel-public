@@ -9,7 +9,6 @@ import {
   buildModelPayload,
   createDashboardStatusTag,
   dashboardSummaryState,
-  fillDefaultModelOptions,
   formatLocalTime,
   getDashboardContextTokens,
   getInputValue,
@@ -302,6 +301,17 @@ function setModelRawConfigStatus(message, type = "info") {
   statusEl.textContent = String(message || "").trim();
   statusEl.classList.toggle("is-fail", type === "error");
   statusEl.classList.toggle("is-done", type === "ok");
+}
+
+function setModelAddSaveStatus(statusId, message, type = "info") {
+  const statusEl = document.querySelector(`#${statusId}`);
+  if (!statusEl) {
+    return;
+  }
+  statusEl.textContent = String(message || "").trim();
+  statusEl.classList.toggle("is-working", type === "working");
+  statusEl.classList.toggle("is-done", type === "ok");
+  statusEl.classList.toggle("is-fail", type === "error");
 }
 
 function setModelRawConfigBusy(busy) {
@@ -619,9 +629,9 @@ function setModelProviderMode(mode) {
   modelEditorState.providerMode = normalizedMode;
 
   const hintByMode = {
-    template: "直接添加模型：基于预置模板快速新增。",
-    custom: "新增供应商并添加模型：适合第一次接入新服务。",
-    existing: "基于已有供应商添加：不会新建供应商。"
+    template: "直接添加模型：选择或自定义模型 ID，每次只写入一个模型。",
+    custom: "新增供应商并添加模型：创建供应商并只写入一个模型。",
+    existing: "基于已有供应商添加：不会新建供应商，每次只写入一个模型。"
   };
   const hintText = hintByMode[normalizedMode] || hintByMode.template;
   setText("model_provider_mode_hint", hintText);
@@ -888,6 +898,58 @@ function renderDashboardModelCards(modelSettings) {
   setInput("dashboard_current_thinking_strength", modelSettings.thinkingStrength || "无");
 }
 
+let dashboardGatewayTokenSyncPending = false;
+
+function setDashboardGatewayTokenStatus(message, type = "info") {
+  const statusEl = document.querySelector("#dashboard_gateway_token_status");
+  if (!statusEl) {
+    return;
+  }
+  statusEl.textContent = String(message || "").trim();
+  statusEl.classList.toggle("is-done", type === "ok");
+  statusEl.classList.toggle("is-fail", type === "error");
+}
+
+async function syncDashboardGatewayToken() {
+  if (dashboardGatewayTokenSyncPending) {
+    setMessage("Gateway Token 自动配置正在进行，请稍候", "info");
+    return;
+  }
+
+  const triggerButton = document.querySelector("#dashboard_gateway_token_sync");
+  dashboardGatewayTokenSyncPending = true;
+  if (triggerButton instanceof HTMLButtonElement) {
+    triggerButton.disabled = true;
+    triggerButton.setAttribute("aria-busy", "true");
+  }
+  setDashboardGatewayTokenStatus("正在自动读取并写入 Gateway Token...", "info");
+
+  try {
+    const result = await api("/api/gateway/token/sync", {
+      method: "POST",
+      allowBusinessError: true
+    });
+    const payload = result?.result || {};
+    if (!result.ok) {
+      throw new Error(payload.message || result.message || "自动配置失败");
+    }
+    const tokenMasked = String(payload.tokenMasked || "").trim() || "已写入";
+    const sourceLabel = String(payload.source || "runtime").trim();
+    setDashboardGatewayTokenStatus(`配置完成：${tokenMasked}（来源：${sourceLabel}）`, "ok");
+    setMessage(`Gateway Token 自动配置完成：${payload.path || "-"}`, "ok");
+  } catch (error) {
+    const detail = error.message || String(error);
+    setDashboardGatewayTokenStatus(`自动配置失败：${detail}`, "error");
+    setMessage(`Gateway Token 自动配置失败：${detail}`, "error");
+  } finally {
+    dashboardGatewayTokenSyncPending = false;
+    if (triggerButton instanceof HTMLButtonElement) {
+      triggerButton.disabled = false;
+      triggerButton.setAttribute("aria-busy", "false");
+    }
+  }
+}
+
 function setupDashboard() {
   if (modelEditorState.dashboardBound) {
     return;
@@ -971,6 +1033,14 @@ function setupDashboard() {
     switchDefaultModelByEntry(settings, entry, "已从仪表盘切换默认模型到").catch((error) =>
       setMessage(error.message || String(error), "error")
     );
+  });
+
+  document.querySelector("#dashboard_gateway_token_sync")?.addEventListener("click", () => {
+    syncDashboardGatewayToken().catch((error) => {
+      const detail = error.message || String(error);
+      setDashboardGatewayTokenStatus(`自动配置失败：${detail}`, "error");
+      setMessage(`Gateway Token 自动配置失败：${detail}`, "error");
+    });
   });
 }
 
@@ -1294,53 +1364,138 @@ function getSelectValueWithCustom(selectId, customInputId) {
   return String(customEl?.value || "").trim();
 }
 
+function fillModelIdPicker(selectId, customInputId, { modelIds = [], selectedValue = "" } = {}) {
+  const selectEl = document.querySelector(`#${selectId}`);
+  if (!(selectEl instanceof HTMLSelectElement)) {
+    return "";
+  }
+
+  const seen = new Set();
+  const orderedIds = [];
+  modelIds.forEach((item) => {
+    const id = String(item || "").trim();
+    if (!id || seen.has(id)) {
+      return;
+    }
+    seen.add(id);
+    orderedIds.push(id);
+  });
+  DEFAULT_MODEL_OPTIONS.forEach((item) => {
+    const id = String(item?.id || "").trim();
+    if (!id || seen.has(id)) {
+      return;
+    }
+    seen.add(id);
+    orderedIds.push(id);
+  });
+
+  selectEl.innerHTML = "";
+  orderedIds.forEach((id) => {
+    const option = document.createElement("option");
+    option.value = id;
+    option.textContent = id;
+    selectEl.appendChild(option);
+  });
+  const customOption = document.createElement("option");
+  customOption.value = "custom";
+  customOption.textContent = "自定义";
+  selectEl.appendChild(customOption);
+
+  const preferredValue = String(selectedValue || "").trim() || orderedIds[0] || "custom";
+  setSelectValueWithCustom(selectId, customInputId, preferredValue);
+  return getSelectValueWithCustom(selectId, customInputId);
+}
+
+function toModelFallbackFromDefaultEntry(entry = {}) {
+  const modelId = String(entry?.modelId || "").trim();
+  if (!modelId) {
+    return {};
+  }
+  return {
+    id: modelId,
+    name: String(entry?.modelName || modelId).trim() || modelId,
+    contextWindow: Number(entry?.contextWindow || 0) || undefined,
+    maxTokens: Number(entry?.maxTokens || 0) || undefined
+  };
+}
+
 function renderTemplatePreset(templateKey, options = {}) {
   const template = MODEL_TEMPLATE_MAP[templateKey] || MODEL_TEMPLATE_MAP["aicodecat-gpt"];
   const apiMode = String(options.apiOverride || template.api || "").trim();
+  const forceModelName = Boolean(options.forceModelName);
   const isAicodecatTemplate = String(template.providerId || "").startsWith("aicodecat-");
-  const preferredModelId = String(options.defaultModelId || getInputValue("template_default_model_id") || "").trim();
+  const preferredModelId = String(
+    options.modelId || getSelectValueWithCustom("template_model_id", "template_model_id_custom") || ""
+  ).trim();
 
   setInput("template_provider_id", template.providerId);
   setSelectValueWithCustom("template_api", "template_api_custom", apiMode);
   setInput("template_base_url", isAicodecatTemplate ? resolveAicodecatBaseUrl(apiMode) : template.baseUrl);
 
-  const defaultModelSelect = document.querySelector("#template_default_model_id");
-  if (defaultModelSelect) {
-    fillDefaultModelOptions(defaultModelSelect, {
-      selectedValue: preferredModelId
-    });
-    const fallbackModelId = template.models[0]?.id || DEFAULT_MODEL_OPTIONS[0]?.id || "";
-    const targetModelId = String(defaultModelSelect.value || "").trim() || fallbackModelId;
-    defaultModelSelect.value = targetModelId;
+  const templateModelId = fillModelIdPicker("template_model_id", "template_model_id_custom", {
+    modelIds: (template.models || []).map((item) => item?.id),
+    selectedValue: preferredModelId
+  });
+  const selectedTemplateModel =
+    template.models.find((item) => String(item?.id || "").trim() === templateModelId) || template.models[0] || {};
+  const currentTemplateName = String(getInputValue("template_model_name") || "").trim();
+  if (forceModelName || !currentTemplateName) {
+    setInput("template_model_name", selectedTemplateModel?.name || templateModelId || "");
   }
+  const modelName = String(getInputValue("template_model_name") || "").trim();
+  const family = modelFamilyById(templateModelId);
+  const profile = MODEL_PROFILE_BY_FAMILY[family] || MODEL_PROFILE_BY_FAMILY.gpt;
+  const previewModel = normalizeModelDraft(
+    {
+      id: templateModelId,
+      name: modelName || selectedTemplateModel?.name || templateModelId
+    },
+    {
+      id: templateModelId,
+      name: selectedTemplateModel?.name || templateModelId,
+      reasoning:
+        selectedTemplateModel?.reasoning !== undefined
+          ? Boolean(selectedTemplateModel.reasoning)
+          : Boolean(template.models?.[0]?.reasoning),
+      input:
+        Array.isArray(selectedTemplateModel?.input) && selectedTemplateModel.input.length > 0
+          ? selectedTemplateModel.input
+          : Array.isArray(template.models?.[0]?.input) && template.models[0].input.length > 0
+            ? template.models[0].input
+            : ["text"],
+      contextWindow: selectedTemplateModel?.contextWindow || profile.contextWindow,
+      maxTokens: selectedTemplateModel?.maxTokens || profile.maxTokens
+    }
+  );
 
   const preview = document.querySelector("#template_model_preview");
   if (preview) {
-    preview.textContent = template.models
-      .map(
-        (item) =>
-          `- ${item.name} (${item.id}) | 输入: ${(item.input || []).join("+")} | 思考: ${
-            item.reasoning ? "开启" : "关闭"
-          } | 上下文: ${item.contextWindow} | 最大输出: ${item.maxTokens}`
-      )
-      .join("\n");
+    preview.textContent = previewModel
+      ? `- ${previewModel.name || previewModel.id} (${previewModel.id}) | 输入: ${(previewModel.input || []).join("+")} | 思考: ${
+          previewModel.reasoning ? "开启" : "关闭"
+        } | 上下文: ${previewModel.contextWindow} | 最大输出: ${previewModel.maxTokens}`
+      : "请先选择或输入模型 ID";
   }
 
-  setInput("custom_models_json", JSON.stringify(template.models, null, 2));
   setSelectValueWithCustom("custom_api", "custom_api_custom", apiMode || template.api);
   setInput("custom_base_url", isAicodecatTemplate ? resolveAicodecatBaseUrl(apiMode) : template.baseUrl);
   setInput("custom_provider_id", template.providerId);
-  const customDefaultModelSelect = document.querySelector("#custom_default_model_id");
-  const nextDefaultModelId = String(
-    getInputValue("template_default_model_id") || template.models[0]?.id || DEFAULT_MODEL_OPTIONS[0]?.id || ""
-  );
-  if (customDefaultModelSelect) {
-    fillDefaultModelOptions(customDefaultModelSelect, {
-      includeCustom: true,
-      selectedValue: nextDefaultModelId
-    });
+  const customModelId = fillModelIdPicker("custom_model_id", "custom_model_id_custom", {
+    modelIds: (template.models || []).map((item) => item?.id),
+    selectedValue: templateModelId || template.models[0]?.id || DEFAULT_MODEL_OPTIONS[0]?.id || ""
+  });
+  if (!String(getInputValue("custom_model_name") || "").trim()) {
+    const picked = template.models.find((item) => String(item?.id || "").trim() === customModelId);
+    setInput("custom_model_name", String(picked?.name || customModelId || "").trim());
   }
-  setSelectValueWithCustom("custom_default_model_id", "custom_default_model_id_custom", nextDefaultModelId);
+
+  const defaultModel = buildDefaultModelEntry(customModelId, String(getInputValue("custom_model_name") || "").trim());
+  if (!String(getInputValue("custom_model_context_window") || "").trim()) {
+    setInput("custom_model_context_window", defaultModel?.contextWindow || "");
+  }
+  if (!String(getInputValue("custom_model_max_tokens") || "").trim()) {
+    setInput("custom_model_max_tokens", defaultModel?.maxTokens || "");
+  }
 }
 
 function getCatalogProviders(modelSettings = modelEditorState.currentModelSettings) {
@@ -1360,6 +1515,31 @@ function syncExistingProviderMeta(modelSettings = modelEditorState.currentModelS
   const selectedProvider = findCatalogProviderById(selectedProviderId, modelSettings);
   setInput("existing_provider_api", selectedProvider?.api || "");
   setInput("existing_provider_baseurl", selectedProvider?.baseUrl || "");
+
+  const providerModelIds = Array.isArray(selectedProvider?.models)
+    ? selectedProvider.models.map((item) => String(item?.id || "").trim()).filter(Boolean)
+    : [];
+  const previousModelId = getSelectValueWithCustom("existing_model_id", "existing_model_id_custom");
+  const currentModelId = fillModelIdPicker("existing_model_id", "existing_model_id_custom", {
+    modelIds: providerModelIds,
+    selectedValue: previousModelId
+  });
+
+  const modelSelect = document.querySelector("#existing_model_id");
+  if (modelSelect instanceof HTMLSelectElement) {
+    modelSelect.disabled = !selectedProvider;
+  }
+
+  const selectedModel = Array.isArray(selectedProvider?.models)
+    ? selectedProvider.models.find((item) => String(item?.id || "").trim() === currentModelId)
+    : null;
+  const selectedFallback = toModelFallbackFromDefaultEntry(buildDefaultModelEntry(currentModelId, currentModelId));
+  const resolvedName = String(selectedModel?.name || selectedModel?.id || selectedFallback.name || currentModelId || "").trim();
+  const resolvedContext = Number(selectedModel?.contextWindow || selectedFallback.contextWindow || 0) || "";
+  const resolvedMaxTokens = Number(selectedModel?.maxTokens || selectedFallback.maxTokens || 0) || "";
+  setInput("existing_model_name", resolvedName);
+  setInput("existing_model_context_window", resolvedContext);
+  setInput("existing_model_max_tokens", resolvedMaxTokens);
 }
 
 function fillExistingProviderOptions(modelSettings) {
@@ -1378,6 +1558,14 @@ function fillExistingProviderOptions(modelSettings) {
     select.disabled = true;
     setInput("existing_provider_api", "");
     setInput("existing_provider_baseurl", "");
+    fillModelIdPicker("existing_model_id", "existing_model_id_custom", {
+      modelIds: [],
+      selectedValue: ""
+    });
+    const modelSelect = document.querySelector("#existing_model_id");
+    if (modelSelect instanceof HTMLSelectElement) {
+      modelSelect.disabled = true;
+    }
     return;
   }
 
@@ -1582,22 +1770,39 @@ function setupModelEditor() {
     });
   });
   setModelProviderMode(modelEditorState.providerMode || "template");
+  const existingModelSelect = document.querySelector("#existing_model_id");
+  const existingModelCustomInput = document.querySelector("#existing_model_id_custom");
+  const refreshExistingModelCustomInput = () => {
+    if (!existingModelSelect || !existingModelCustomInput) {
+      return;
+    }
+    const useCustom = String(existingModelSelect.value || "") === "custom";
+    existingModelCustomInput.classList.toggle("is-visible", useCustom);
+  };
   document.querySelector("#existing_provider_id")?.addEventListener("change", () => {
     syncExistingProviderMeta(modelEditorState.currentModelSettings);
+    refreshExistingModelCustomInput();
   });
+  existingModelSelect?.addEventListener("change", () => {
+    syncExistingProviderMeta(modelEditorState.currentModelSettings);
+    refreshExistingModelCustomInput();
+  });
+  refreshExistingModelCustomInput();
 
   const templateSelect = document.querySelector("#model_template_key");
   templateSelect?.addEventListener("change", () => {
-    renderTemplatePreset(String(templateSelect.value || "aicodecat-gpt"));
+    renderTemplatePreset(String(templateSelect.value || "aicodecat-gpt"), { forceModelName: true });
   });
 
   const templateApiSelect = document.querySelector("#template_api");
   const templateApiCustomInput = document.querySelector("#template_api_custom");
-  const templateDefaultModelSelect = document.querySelector("#template_default_model_id");
+  const templateModelSelect = document.querySelector("#template_model_id");
+  const templateModelCustomInput = document.querySelector("#template_model_id_custom");
+  const templateModelNameInput = document.querySelector("#template_model_name");
   const syncTemplateByApiMode = () => {
     const providerId = String(getInputValue("template_provider_id") || "").trim();
     const apiMode = getSelectValueWithCustom("template_api", "template_api_custom");
-    const selectedModelId = String(getInputValue("template_default_model_id") || "").trim();
+    const selectedModelId = getSelectValueWithCustom("template_model_id", "template_model_id_custom");
     if (!providerId || !apiMode) {
       return;
     }
@@ -1615,11 +1820,11 @@ function setupModelEditor() {
     if (templateSelect) {
       templateSelect.value = resolvedProviderId;
     }
-    renderTemplatePreset(resolvedProviderId, { apiOverride: apiMode, defaultModelId: selectedModelId });
+    renderTemplatePreset(resolvedProviderId, { apiOverride: apiMode, modelId: selectedModelId, forceModelName: true });
   };
 
   const syncTemplateByModelSelection = () => {
-    const selectedModelId = String(getInputValue("template_default_model_id") || "").trim();
+    const selectedModelId = getSelectValueWithCustom("template_model_id", "template_model_id_custom");
     if (!selectedModelId) {
       return;
     }
@@ -1635,7 +1840,7 @@ function setupModelEditor() {
     if (templateSelect) {
       templateSelect.value = providerId;
     }
-    renderTemplatePreset(providerId, { apiOverride: providerApi, defaultModelId: selectedModelId });
+    renderTemplatePreset(providerId, { apiOverride: providerApi, modelId: selectedModelId, forceModelName: true });
   };
 
   const refreshTemplateApiCustomInput = () => {
@@ -1644,6 +1849,14 @@ function setupModelEditor() {
     }
     const useCustom = String(templateApiSelect.value || "") === "custom";
     templateApiCustomInput.classList.toggle("is-visible", useCustom);
+  };
+
+  const refreshTemplateModelCustomInput = () => {
+    if (!templateModelSelect || !templateModelCustomInput) {
+      return;
+    }
+    const useCustom = String(templateModelSelect.value || "") === "custom";
+    templateModelCustomInput.classList.toggle("is-visible", useCustom);
   };
 
   templateApiSelect?.addEventListener("change", () => {
@@ -1656,15 +1869,29 @@ function setupModelEditor() {
     }
     syncTemplateByApiMode();
   });
-  templateDefaultModelSelect?.addEventListener("change", () => {
+  templateModelSelect?.addEventListener("change", () => {
+    refreshTemplateModelCustomInput();
     syncTemplateByModelSelection();
   });
+  templateModelCustomInput?.addEventListener("input", () => {
+    if (String(templateModelSelect?.value || "") !== "custom") {
+      return;
+    }
+    syncTemplateByModelSelection();
+  });
+  templateModelNameInput?.addEventListener("input", () => {
+    renderTemplatePreset(String(templateSelect?.value || "aicodecat-gpt"), {
+      apiOverride: getSelectValueWithCustom("template_api", "template_api_custom"),
+      modelId: getSelectValueWithCustom("template_model_id", "template_model_id_custom")
+    });
+  });
   refreshTemplateApiCustomInput();
+  refreshTemplateModelCustomInput();
 
   const customApiSelect = document.querySelector("#custom_api");
   const customApiCustomInput = document.querySelector("#custom_api_custom");
-  const customDefaultModelSelect = document.querySelector("#custom_default_model_id");
-  const customDefaultModelCustomInput = document.querySelector("#custom_default_model_id_custom");
+  const customModelSelect = document.querySelector("#custom_model_id");
+  const customModelCustomInput = document.querySelector("#custom_model_id_custom");
   const customProviderInput = document.querySelector("#custom_provider_id");
 
   const syncCustomByApiMode = () => {
@@ -1684,7 +1911,7 @@ function setupModelEditor() {
 
   const syncCustomByModelSelection = () => {
     const providerId = String(getInputValue("custom_provider_id") || "").trim();
-    const selectedModelId = getSelectValueWithCustom("custom_default_model_id", "custom_default_model_id_custom");
+    const selectedModelId = getSelectValueWithCustom("custom_model_id", "custom_model_id_custom");
     if (!providerId || !selectedModelId) {
       return;
     }
@@ -1707,12 +1934,12 @@ function setupModelEditor() {
     customApiCustomInput.classList.toggle("is-visible", useCustom);
   };
 
-  const refreshCustomDefaultModelCustomInput = () => {
-    if (!customDefaultModelSelect || !customDefaultModelCustomInput) {
+  const refreshCustomModelCustomInput = () => {
+    if (!customModelSelect || !customModelCustomInput) {
       return;
     }
-    const useCustom = String(customDefaultModelSelect.value || "") === "custom";
-    customDefaultModelCustomInput.classList.toggle("is-visible", useCustom);
+    const useCustom = String(customModelSelect.value || "") === "custom";
+    customModelCustomInput.classList.toggle("is-visible", useCustom);
   };
 
   customApiSelect?.addEventListener("change", () => {
@@ -1725,12 +1952,12 @@ function setupModelEditor() {
     }
     syncCustomByApiMode();
   });
-  customDefaultModelSelect?.addEventListener("change", () => {
-    refreshCustomDefaultModelCustomInput();
+  customModelSelect?.addEventListener("change", () => {
+    refreshCustomModelCustomInput();
     syncCustomByModelSelection();
   });
-  customDefaultModelCustomInput?.addEventListener("input", () => {
-    if (String(customDefaultModelSelect?.value || "") !== "custom") {
+  customModelCustomInput?.addEventListener("input", () => {
+    if (String(customModelSelect?.value || "") !== "custom") {
       return;
     }
     syncCustomByModelSelection();
@@ -1739,7 +1966,7 @@ function setupModelEditor() {
     syncCustomByApiMode();
   });
   refreshCustomApiCustomInput();
-  refreshCustomDefaultModelCustomInput();
+  refreshCustomModelCustomInput();
 
   if (defaultSelect instanceof HTMLSelectElement) {
     defaultSelect.addEventListener("change", () => {
@@ -1782,20 +2009,46 @@ function setupModelEditor() {
     const providerApi = getSelectValueWithCustom("template_api", "template_api_custom");
     const providerBaseUrl = String(getInputValue("template_base_url") || "").trim();
     const providerApiKey = String(getInputValue("template_api_key") || "").trim();
-    const defaultModelId =
-      String(getInputValue("template_default_model_id") || "").trim() || template.models[0]?.id || DEFAULT_MODEL_OPTIONS[0]?.id;
-    const defaultModel =
-      template.models.find((item) => item.id === defaultModelId) ||
-      DEFAULT_MODEL_OPTIONS.find((item) => item.id === defaultModelId) ||
-      template.models[0];
+    const modelId = getSelectValueWithCustom("template_model_id", "template_model_id_custom");
+    const modelNameInput = String(getInputValue("template_model_name") || "").trim();
 
-    if (!providerId || !providerApi || !providerBaseUrl || !defaultModel) {
-      setMessage("模板配置不完整，请检查提供商名称 / API 模式 / URL / 默认模型", "error");
+    if (!providerId || !providerApi || !providerBaseUrl || !modelId) {
+      setMessage("模板配置不完整，请检查提供商名称 / API 模式 / URL / 模型 ID", "error");
       return;
     }
 
-    const providerModels = template.models.map((item) => ({ ...item }));
-    const targetPrimaryRef = `${providerId}/${defaultModel.id}`;
+    const matchedTemplateModel = template.models.find((item) => String(item?.id || "").trim() === modelId) || null;
+    const family = modelFamilyById(modelId);
+    const familyProfile = MODEL_PROFILE_BY_FAMILY[family] || MODEL_PROFILE_BY_FAMILY.gpt;
+    const fallbackModel = {
+      id: modelId,
+      name: matchedTemplateModel?.name || modelNameInput || modelId,
+      reasoning:
+        matchedTemplateModel?.reasoning !== undefined
+          ? Boolean(matchedTemplateModel.reasoning)
+          : Boolean(template.models?.[0]?.reasoning),
+      input:
+        Array.isArray(matchedTemplateModel?.input) && matchedTemplateModel.input.length > 0
+          ? matchedTemplateModel.input
+          : Array.isArray(template.models?.[0]?.input) && template.models[0].input.length > 0
+            ? template.models[0].input
+            : ["text"],
+      contextWindow: matchedTemplateModel?.contextWindow || familyProfile.contextWindow,
+      maxTokens: matchedTemplateModel?.maxTokens || familyProfile.maxTokens
+    };
+    const nextModel = normalizeModelDraft(
+      {
+        id: modelId,
+        name: modelNameInput || fallbackModel.name
+      },
+      fallbackModel
+    );
+    if (!nextModel) {
+      setMessage("模型信息无效，请检查模型 ID", "error");
+      return;
+    }
+
+    const targetPrimaryRef = `${providerId}/${nextModel.id}`;
     const primaryRef = resolveProviderSavePrimaryRef(targetPrimaryRef, "template_set_as_primary");
     if (!primaryRef) {
       setMessage("无法确定默认模型指向，请先在路径 1 设置默认模型或勾选“保存后设为当前默认模型”", "error");
@@ -1808,15 +2061,23 @@ function setupModelEditor() {
       providerApi,
       providerBaseUrl,
       providerApiKey,
-      modelId: defaultModel.id,
-      modelName: defaultModel.name || defaultModel.id,
-      contextWindow: defaultModel.contextWindow,
-      maxTokens: defaultModel.maxTokens,
-      providerModels
+      modelId: nextModel.id,
+      modelName: nextModel.name || nextModel.id,
+      contextWindow: nextModel.contextWindow,
+      maxTokens: nextModel.maxTokens,
+      providerModels: [nextModel]
     });
     const shouldSwitchPrimary = Boolean(getInputValue("template_set_as_primary"));
-    const actionLabel = shouldSwitchPrimary ? "模板提供商已写入，默认模型已切换" : "模板提供商已写入（默认模型未变）";
-    saveModelSettings(payload, actionLabel).catch((error) => setMessage(error.message, "error"));
+    const actionLabel = shouldSwitchPrimary ? "模型已写入并切换为默认模型" : "模型已写入（默认模型未变）";
+    setModelAddSaveStatus("save_provider_template_status", "正在保存配置...", "working");
+    saveModelSettings(payload, actionLabel)
+      .then(() => {
+        setModelAddSaveStatus("save_provider_template_status", "配置完成，模型已成功写入。", "ok");
+      })
+      .catch((error) => {
+        setModelAddSaveStatus("save_provider_template_status", `保存失败：${error.message || String(error)}`, "error");
+        setMessage(error.message || String(error), "error");
+      });
   });
 
   document.querySelector("#save_provider_existing")?.addEventListener("click", () => {
@@ -1827,7 +2088,7 @@ function setupModelEditor() {
       return;
     }
 
-    const modelId = String(getInputValue("existing_model_id") || "").trim();
+    const modelId = getSelectValueWithCustom("existing_model_id", "existing_model_id_custom");
     const modelNameInput = String(getInputValue("existing_model_name") || "").trim();
     const contextWindowInput = Number(getInputValue("existing_model_context_window") || 0);
     const maxTokensInput = Number(getInputValue("existing_model_max_tokens") || 0);
@@ -1844,9 +2105,10 @@ function setupModelEditor() {
     }
 
     const currentModels = Array.isArray(providerEntry.models) ? providerEntry.models : [];
+    const defaultModelFallback = toModelFallbackFromDefaultEntry(buildDefaultModelEntry(modelId, modelNameInput || modelId));
     const fallbackModel =
       currentModels.find((item) => String(item?.id || "").trim() === modelId) ||
-      buildDefaultModelEntry(modelId, modelNameInput || modelId) ||
+      defaultModelFallback ||
       {};
     const nextModel = normalizeModelDraft(
       {
@@ -1894,15 +2156,20 @@ function setupModelEditor() {
     const actionLabel = shouldSwitchPrimary
       ? `已在供应商 ${providerId} 下新增模型并切换默认`
       : `已在供应商 ${providerId} 下新增模型（默认模型未变）`;
+    setModelAddSaveStatus("save_provider_existing_status", "正在保存配置...", "working");
     saveModelSettings(payload, actionLabel)
       .then(() => {
-        setInput("existing_model_id", "");
         setInput("existing_model_name", "");
         setInput("existing_model_context_window", "");
         setInput("existing_model_max_tokens", "");
         setInput("existing_set_as_primary", false);
+        setSelectValueWithCustom("existing_model_id", "existing_model_id_custom", nextModel.id);
+        setModelAddSaveStatus("save_provider_existing_status", "配置完成，模型已成功写入。", "ok");
       })
-      .catch((error) => setMessage(error.message, "error"));
+      .catch((error) => {
+        setModelAddSaveStatus("save_provider_existing_status", `保存失败：${error.message || String(error)}`, "error");
+        setMessage(error.message || String(error), "error");
+      });
   });
 
   document.querySelector("#save_provider_custom")?.addEventListener("click", () => {
@@ -1910,34 +2177,44 @@ function setupModelEditor() {
     const providerApi = getSelectValueWithCustom("custom_api", "custom_api_custom");
     const providerBaseUrl = String(getInputValue("custom_base_url") || "").trim();
     const providerApiKey = String(getInputValue("custom_api_key") || "").trim();
-    const defaultModelId = getSelectValueWithCustom("custom_default_model_id", "custom_default_model_id_custom");
-    const rawModels = String(getInputValue("custom_models_json") || "").trim();
-    if (!providerId || !providerApi || !providerBaseUrl || !rawModels) {
-      setMessage("自定义配置不完整，请至少填写提供商名称 / API 模式 / URL / models JSON", "error");
-      return;
-    }
-
-    let parsedModels;
+    const modelId = getSelectValueWithCustom("custom_model_id", "custom_model_id_custom");
+    const modelNameInput = String(getInputValue("custom_model_name") || "").trim();
+    let contextWindowInput;
+    let maxTokensInput;
     try {
-      parsedModels = JSON.parse(rawModels);
+      contextWindowInput = parseOptionalPositiveIntInput(getInputValue("custom_model_context_window"), "上下文长度");
+      maxTokensInput = parseOptionalPositiveIntInput(getInputValue("custom_model_max_tokens"), "最大输出长度");
     } catch (error) {
-      setMessage(`models JSON 解析失败：${error.message}`, "error");
-      return;
-    }
-    if (!Array.isArray(parsedModels) || parsedModels.length === 0) {
-      setMessage("models JSON 必须是非空数组", "error");
+      setMessage(error.message || String(error), "error");
       return;
     }
 
-    const normalizedModels = parsedModels.map((item) => normalizeModelDraft(item)).filter(Boolean);
-    const selectedDefaultModelId = defaultModelId || normalizedModels[0]?.id;
-    const defaultModel = normalizedModels.find((item) => item.id === selectedDefaultModelId);
-    if (!defaultModel) {
-      setMessage("默认模型 ID 未命中 models 数组，请检查 custom_default_model_id", "error");
+    if (!providerId || !providerApi || !providerBaseUrl || !modelId) {
+      setMessage("自定义配置不完整，请至少填写提供商名称 / API 模式 / URL / 模型 ID", "error");
       return;
     }
 
-    const targetPrimaryRef = `${providerId}/${defaultModel.id}`;
+    const defaultModelFallback = toModelFallbackFromDefaultEntry(buildDefaultModelEntry(modelId, modelNameInput || modelId));
+    const fallbackModel = {
+      ...defaultModelFallback,
+      id: modelId,
+      name: modelNameInput || defaultModelFallback.name || modelId
+    };
+    const nextModel = normalizeModelDraft(
+      {
+        id: modelId,
+        name: modelNameInput || fallbackModel.name,
+        contextWindow: contextWindowInput,
+        maxTokens: maxTokensInput
+      },
+      fallbackModel
+    );
+    if (!nextModel) {
+      setMessage("模型信息无效，请检查模型 ID", "error");
+      return;
+    }
+
+    const targetPrimaryRef = `${providerId}/${nextModel.id}`;
     const primaryRef = resolveProviderSavePrimaryRef(targetPrimaryRef, "custom_set_as_primary");
     if (!primaryRef) {
       setMessage("无法确定默认模型指向，请先在路径 1 设置默认模型或勾选“保存后设为当前默认模型”", "error");
@@ -1950,15 +2227,27 @@ function setupModelEditor() {
       providerApi,
       providerBaseUrl,
       providerApiKey,
-      modelId: defaultModel.id,
-      modelName: defaultModel.name || defaultModel.id,
-      contextWindow: defaultModel.contextWindow,
-      maxTokens: defaultModel.maxTokens,
-      providerModels: normalizedModels
+      modelId: nextModel.id,
+      modelName: nextModel.name || nextModel.id,
+      contextWindow: nextModel.contextWindow,
+      maxTokens: nextModel.maxTokens,
+      providerModels: [nextModel]
     });
     const shouldSwitchPrimary = Boolean(getInputValue("custom_set_as_primary"));
-    const actionLabel = shouldSwitchPrimary ? "自定义提供商已写入，默认模型已切换" : "自定义提供商已写入（默认模型未变）";
-    saveModelSettings(payload, actionLabel).catch((error) => setMessage(error.message, "error"));
+    const actionLabel = shouldSwitchPrimary ? "供应商与模型已写入，默认模型已切换" : "供应商与模型已写入（默认模型未变）";
+    setModelAddSaveStatus("save_provider_custom_status", "正在保存配置...", "working");
+    saveModelSettings(payload, actionLabel)
+      .then(() => {
+        setInput("custom_model_name", "");
+        setInput("custom_model_context_window", "");
+        setInput("custom_model_max_tokens", "");
+        setInput("custom_set_as_primary", false);
+        setModelAddSaveStatus("save_provider_custom_status", "配置完成，模型已成功写入。", "ok");
+      })
+      .catch((error) => {
+        setModelAddSaveStatus("save_provider_custom_status", `保存失败：${error.message || String(error)}`, "error");
+        setMessage(error.message || String(error), "error");
+      });
   });
 
   renderTemplatePreset(String(getInputValue("model_template_key") || "aicodecat-gpt"));

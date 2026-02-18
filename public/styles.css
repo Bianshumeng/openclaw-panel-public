@@ -330,6 +330,42 @@ body {
   padding: 12px;
 }
 
+.update-progress-card {
+  margin-bottom: 1rem;
+  padding: 10px 12px;
+  border: 1px solid var(--nested-card-border);
+  border-radius: 10px;
+  background: var(--nested-card-bg);
+  box-shadow: var(--cfg-field-shadow);
+}
+
+.update-progress-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+
+.update-progress-card progress {
+  width: 100%;
+  height: 8px;
+}
+
+.update-progress-card.is-working .update-progress-head {
+  color: var(--primary);
+}
+
+.update-progress-card.is-done .update-progress-head {
+  color: var(--success);
+}
+
+.update-progress-card.is-fail .update-progress-head {
+  color: var(--danger);
+}
+
 .update-advanced-card {
   margin-top: 0.75rem;
   padding: 12px;
@@ -654,6 +690,33 @@ button:hover {
 
 .model-add-workspace input[readonly] {
   background: var(--cfg-field-bg-readonly);
+}
+
+.model-add-save-status {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface-muted);
+  color: var(--muted);
+}
+
+.model-add-save-status.is-working {
+  color: var(--primary);
+  border-color: color-mix(in srgb, var(--primary) 40%, var(--border));
+  background: color-mix(in srgb, var(--primary) 9%, var(--surface-muted));
+}
+
+.model-add-save-status.is-done {
+  color: var(--success);
+  border-color: color-mix(in srgb, var(--success) 40%, var(--border));
+  background: color-mix(in srgb, var(--success) 10%, var(--surface-muted));
+}
+
+.model-add-save-status.is-fail {
+  color: var(--danger);
+  border-color: color-mix(in srgb, var(--danger) 40%, var(--border));
+  background: color-mix(in srgb, var(--danger) 9%, var(--surface-muted));
 }
 
 .model-provider-groups {
@@ -1226,6 +1289,39 @@ body[data-theme="dark"] .dashboard-stat-error {
   gap: 10px;
 }
 
+.dashboard-gateway-token-box {
+  margin-top: 12px;
+  border: 1px solid var(--nested-card-border);
+  border-radius: 10px;
+  background: var(--nested-card-bg);
+  padding: 12px;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.dashboard-gateway-token-box h3 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.dashboard-gateway-token-box .btn-soft {
+  white-space: nowrap;
+}
+
+.dashboard-gateway-token-status {
+  margin-top: 6px;
+}
+
+.dashboard-gateway-token-status.is-done {
+  color: var(--success);
+}
+
+.dashboard-gateway-token-status.is-fail {
+  color: var(--danger);
+}
+
 .dashboard-quick-btn {
   text-align: left;
   justify-content: flex-start;
@@ -1633,5 +1729,14 @@ body[data-theme="dark"] .dashboard-stat-error {
 
   .tabs {
     grid-template-columns: 1fr;
+  }
+
+  .dashboard-gateway-token-box {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .dashboard-gateway-token-box .btn-soft {
+    width: 100%;
   }
 }

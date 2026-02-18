@@ -120,6 +120,16 @@
               <button class="btn-soft dashboard-quick-btn" data-dashboard-jump="panel-update" type="button">检查版本更新</button>
               <button class="btn-soft dashboard-quick-btn" data-dashboard-jump="panel-service" type="button">服务控制</button>
             </div>
+            <div class="dashboard-gateway-token-box">
+              <div>
+                <h3>Gateway Token 自动配置</h3>
+                <p class="muted-line">模板机克隆后如果提示要填 Token，点一次按钮即可自动获取并写入真实配置文件。</p>
+                <p id="dashboard_gateway_token_status" class="muted-line dashboard-gateway-token-status">
+                  尚未执行自动配置。
+                </p>
+              </div>
+              <button id="dashboard_gateway_token_sync" class="btn-soft" type="button">一键自动配置 Gateway Token</button>
+            </div>
           </article>
 
           <!-- ③ 切换 AI 模型（精简版） -->

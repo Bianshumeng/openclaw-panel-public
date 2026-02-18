@@ -1,5 +1,6 @@
 import path from "node:path";
 import fs from "node:fs/promises";
+import { execFile } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import Fastify from "fastify";
 import fastifyStatic from "@fastify/static";
@@ -21,7 +22,7 @@ import { runServiceAction } from "./systemd.js";
 import { createLogStream, getErrorSummary, getTailLogs } from "./logs.js";
 import { testDiscordBot, testFeishuBot, testSlackBot, testTelegramBot } from "./channel-tests.js";
 import { expandHome, toPositiveInt } from "./utils.js";
-import { checkForUpdates, pullTag, rollbackToTag, upgradeToTag } from "./docker-update.js";
+import { applyPulledTag, checkForUpdates, pullTag, rollbackToTag, upgradeToTag } from "./docker-update.js";
 import { buildDashboardSummary } from "./dashboard-service.js";
 import { getSkillConfig, listSkillsStatus, prepareSkillConfigUpdate, setSkillEnabled } from "./skills-service.js";
 import { approveTelegramPairing, setupTelegramBasic } from "./channel-onboarding.js";
@@ -217,6 +218,74 @@ function trimText(value) {
   return String(value || "").trim();
 }
 
+function runCommand(command, args, timeout = 15000) {
+  return new Promise((resolve) => {
+    execFile(command, args, { timeout, maxBuffer: 5 * 1024 * 1024 }, (error, stdout, stderr) => {
+      resolve({
+        ok: !error,
+        stdout: String(stdout || "").trim(),
+        stderr: String(stderr || "").trim(),
+        message: error?.message || ""
+      });
+    });
+  });
+}
+
+function maskToken(value) {
+  const token = trimText(value);
+  if (!token) {
+    return "";
+  }
+  if (token.length <= 8) {
+    return "*".repeat(token.length);
+  }
+  return `${token.slice(0, 4)}***${token.slice(-4)}`;
+}
+
+function tokenFromEnvDump(rawText) {
+  const lines = String(rawText || "")
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const target = lines.find((line) => line.startsWith("OPENCLAW_GATEWAY_TOKEN="));
+  if (!target) {
+    return "";
+  }
+  return trimText(target.slice("OPENCLAW_GATEWAY_TOKEN=".length));
+}
+
+async function resolveGatewayTokenForSync(panelConfig) {
+  const fromPanelEnv = trimText(process.env.OPENCLAW_GATEWAY_TOKEN);
+  if (fromPanelEnv) {
+    return {
+      token: fromPanelEnv,
+      source: "panel-env"
+    };
+  }
+
+  const containerName =
+    trimText(panelConfig?.openclaw?.container_name) || trimText(panelConfig?.openclaw?.service_name) || "openclaw-gateway";
+  const inspectResult = await runCommand("docker", [
+    "inspect",
+    "--format",
+    "{{range .Config.Env}}{{println .}}{{end}}",
+    containerName
+  ]);
+  if (!inspectResult.ok) {
+    throw new Error(`读取网关容器环境变量失败：${inspectResult.stderr || inspectResult.message || "unknown"}`);
+  }
+
+  const tokenFromContainer = tokenFromEnvDump(inspectResult.stdout);
+  if (!tokenFromContainer) {
+    throw new Error("未在网关容器环境变量中找到 OPENCLAW_GATEWAY_TOKEN");
+  }
+
+  return {
+    token: tokenFromContainer,
+    source: "gateway-container-env"
+  };
+}
+
 function resolveUpdateTarget(panelConfig, target = "bot") {
   const selectedTarget = updateTargetSchema.parse(target);
   if (selectedTarget === "panel") {
@@ -408,6 +477,54 @@ app.put("/api/settings", async (request, reply) => {
       message: "配置写入成功",
       path: saved.path,
       backupPath: saved.backupPath
+    };
+  } catch (error) {
+    reply.code(400);
+    return {
+      ok: false,
+      message: error.message
+    };
+  }
+});
+
+app.post("/api/gateway/token/sync", async (request, reply) => {
+  try {
+    const { config: panelConfig } = await loadPanelConfig();
+    const currentConfig = await loadOpenClawConfig(panelConfig.openclaw.config_path);
+    const tokenResult = await resolveGatewayTokenForSync(panelConfig);
+
+    const prevMode = trimText(currentConfig?.gateway?.auth?.mode);
+    const prevToken = trimText(currentConfig?.gateway?.auth?.token);
+
+    const nextGateway =
+      currentConfig?.gateway && typeof currentConfig.gateway === "object" && !Array.isArray(currentConfig.gateway)
+        ? { ...currentConfig.gateway }
+        : {};
+    const nextAuth =
+      nextGateway?.auth && typeof nextGateway.auth === "object" && !Array.isArray(nextGateway.auth)
+        ? { ...nextGateway.auth }
+        : {};
+    nextAuth.mode = "token";
+    nextAuth.token = tokenResult.token;
+    nextGateway.auth = nextAuth;
+
+    const nextConfig = {
+      ...currentConfig,
+      gateway: nextGateway
+    };
+    const saved = await saveOpenClawConfig(panelConfig.openclaw.config_path, nextConfig);
+    const changed = prevMode !== "token" || prevToken !== tokenResult.token;
+
+    return {
+      ok: true,
+      result: {
+        changed,
+        source: tokenResult.source,
+        tokenMasked: maskToken(tokenResult.token),
+        message: changed ? "Gateway Token 已自动同步到真实配置文件" : "Gateway Token 已是最新，无需改动",
+        path: saved.path,
+        backupPath: saved.backupPath
+      }
     };
   } catch (error) {
     reply.code(400);
@@ -1278,7 +1395,7 @@ app.post("/api/update/upgrade", async (request, reply) => {
       });
       result = {
         ...pulled,
-        message: pulled.ok ? "控制台镜像拉取成功；请重启控制台容器使新版本生效" : pulled.message
+        message: pulled.ok ? "控制台镜像拉取成功；请点击“重启并应用更新”完成升级" : pulled.message
       };
     } else {
       result = await upgradeToTag({
@@ -1320,10 +1437,47 @@ app.post("/api/update/rollback", async (request, reply) => {
       result = {
         ...pulled,
         action: "rollback-pull",
-        message: pulled.ok ? "控制台回滚镜像拉取成功；请重启控制台容器生效" : pulled.message
+        message: pulled.ok ? "控制台回滚镜像拉取成功；请点击“重启并应用更新”完成回滚" : pulled.message
       };
     } else {
       result = await rollbackToTag({
+        containerName: targetConfig.containerName,
+        targetTag: payload.tag,
+        imageRepo: targetConfig.imageRepo
+      });
+    }
+    return {
+      ok: result.ok,
+      result: {
+        ...result,
+        target: targetConfig.target,
+        upgradeMode: targetConfig.upgradeMode
+      }
+    };
+  } catch (error) {
+    reply.code(400);
+    return {
+      ok: false,
+      message: error.message
+    };
+  }
+});
+
+app.post("/api/update/apply", async (request, reply) => {
+  try {
+    const payload = tagPayloadSchema.parse(request.body || {});
+    const { config: panelConfig } = await loadPanelConfig();
+    ensureDockerMode(panelConfig);
+    const targetConfig = resolveUpdateTarget(panelConfig, payload.target);
+    let result;
+    if (targetConfig.target === "panel") {
+      result = await applyPulledTag({
+        containerName: targetConfig.containerName,
+        targetTag: payload.tag,
+        imageRepo: targetConfig.imageRepo
+      });
+    } else {
+      result = await upgradeToTag({
         containerName: targetConfig.containerName,
         targetTag: payload.tag,
         imageRepo: targetConfig.imageRepo

@@ -80,12 +80,12 @@
                 基于已有供应商添加
               </button>
             </div>
-            <p id="model_provider_mode_hint" class="muted-line">直接添加模型：基于预置模板快速新增。</p>
+            <p id="model_provider_mode_hint" class="muted-line">直接添加模型：选择或自定义模型 ID，每次只写入一个模型。</p>
           </article>
 
           <article id="model_provider_template_section" class="card model-add-workspace" data-model-provider-mode-panel="template">
             <h2>直接添加模型</h2>
-            <p class="muted-line">选模型系列并填写必要信息，快速写入。</p>
+            <p class="muted-line">选模型系列后指定一个模型 ID，只写入这一个模型。</p>
             <div class="grid">
               <label>
                 模型系列
@@ -98,6 +98,17 @@
               <label>
                 提供商名称
                 <input id="template_provider_id" type="text" />
+              </label>
+              <label>
+                模型 ID
+                <div class="field-stack">
+                  <select id="template_model_id"></select>
+                  <input id="template_model_id_custom" class="custom-field" type="text" placeholder="输入自定义模型 ID" />
+                </div>
+              </label>
+              <label>
+                模型名称（可选）
+                <input id="template_model_name" type="text" placeholder="不填则默认使用模型 ID" />
               </label>
               <label>
                 API 地址
@@ -124,10 +135,6 @@
                     <input id="template_api_custom" class="custom-field" type="text" placeholder="输入自定义 API 模式" />
                   </div>
                 </label>
-                <label>
-                  设为默认模型
-                  <select id="template_default_model_id"></select>
-                </label>
                 <label class="inline-check">
                   保存后设为当前默认模型
                   <input id="template_set_as_primary" type="checkbox" />
@@ -135,12 +142,15 @@
               </div>
             </details>
             <label>
-              将写入的模型
+              将写入的模型（单个）
               <pre id="template_model_preview" class="output"></pre>
             </label>
             <div class="actions">
               <button id="save_provider_template">保存</button>
             </div>
+            <p id="save_provider_template_status" class="model-add-save-status" role="status" aria-live="polite">
+              填写后点击“保存”，这里会显示结果。
+            </p>
           </article>
 
           <article
@@ -165,7 +175,10 @@
               </label>
               <label>
                 模型 ID
-                <input id="existing_model_id" type="text" placeholder="例如 gpt-5.2-mini" />
+                <div class="field-stack">
+                  <select id="existing_model_id"></select>
+                  <input id="existing_model_id_custom" class="custom-field" type="text" placeholder="输入自定义模型 ID" />
+                </div>
               </label>
               <label>
                 模型名称
@@ -187,11 +200,14 @@
             <div class="actions">
               <button id="save_provider_existing">保存</button>
             </div>
+            <p id="save_provider_existing_status" class="model-add-save-status" role="status" aria-live="polite">
+              填写后点击“保存”，这里会显示结果。
+            </p>
           </article>
 
           <article id="model_provider_custom_section" class="card model-add-workspace is-hidden" data-model-provider-mode-panel="custom">
             <h2>新增供应商并添加模型</h2>
-            <p class="muted-line">需要完整自定义时，直接编辑模型 JSON 数组。每个模型至少要有 id 和 name。</p>
+            <p class="muted-line">新增供应商后，指定一个模型 ID 进行写入。</p>
             <div class="grid">
               <label>
                 供应商名称
@@ -204,6 +220,25 @@
               <label>
                 API 密钥
                 <input id="custom_api_key" type="password" autocomplete="off" />
+              </label>
+              <label>
+                模型 ID
+                <div class="field-stack">
+                  <select id="custom_model_id"></select>
+                  <input id="custom_model_id_custom" class="custom-field" type="text" placeholder="输入自定义模型 ID" />
+                </div>
+              </label>
+              <label>
+                模型名称（可选）
+                <input id="custom_model_name" type="text" placeholder="不填则默认使用模型 ID" />
+              </label>
+              <label>
+                上下文长度（可选）
+                <input id="custom_model_context_window" type="number" min="1" step="1" placeholder="例如 200000" />
+              </label>
+              <label>
+                最大输出长度（可选）
+                <input id="custom_model_max_tokens" type="number" min="1" step="1" placeholder="例如 8192" />
               </label>
             </div>
             <details>
@@ -222,35 +257,18 @@
                     <input id="custom_api_custom" class="custom-field" type="text" placeholder="输入自定义 API 模式" />
                   </div>
                 </label>
-                <label>
-                  默认模型 ID
-                  <div class="field-stack">
-                    <select id="custom_default_model_id"></select>
-                    <input
-                      id="custom_default_model_id_custom"
-                      class="custom-field"
-                      type="text"
-                      placeholder="输入 models 数组中的某个 id"
-                    />
-                  </div>
-                </label>
                 <label class="inline-check">
                   保存后设为当前默认模型
                   <input id="custom_set_as_primary" type="checkbox" />
                 </label>
               </div>
             </details>
-            <label>
-              models 数组 JSON
-              <textarea
-                id="custom_models_json"
-                rows="10"
-                placeholder='[{"id":"model-id","name":"模型名","reasoning":true,"input":["text","image"],"contextWindow":200000,"maxTokens":64000}]'
-              ></textarea>
-            </label>
             <div class="actions">
               <button id="save_provider_custom">保存</button>
             </div>
+            <p id="save_provider_custom_status" class="model-add-save-status" role="status" aria-live="polite">
+              填写后点击“保存”，这里会显示结果。
+            </p>
           </article>
         </section>
 

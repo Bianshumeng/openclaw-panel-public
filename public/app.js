@@ -118,6 +118,9 @@ document.querySelector("#panel_check_update")?.addEventListener("click", () => {
 document.querySelector("#panel_upgrade_update")?.addEventListener("click", () => {
   mutateVersion("upgrade", { target: "panel" }).catch((error) => setMessage(error.message, "error"));
 });
+document.querySelector("#panel_apply_update")?.addEventListener("click", () => {
+  mutateVersion("apply", { target: "panel" }).catch((error) => setMessage(error.message, "error"));
+});
 document.querySelector("#panel_rollback_update")?.addEventListener("click", () => {
   mutateVersion("rollback", { target: "panel" }).catch((error) => setMessage(error.message, "error"));
 });

@@ -65,6 +65,14 @@
               <p class="muted-line update-status-hint" id="bot_update_hint">页面打开后会自动检查，你也可以手动再检查一次</p>
             </div>
 
+            <div id="bot_update_progress_wrap" class="update-progress-card" aria-live="polite">
+              <div class="update-progress-head">
+                <span>操作进度</span>
+                <span id="bot_update_progress_text">等待操作（0%）</span>
+              </div>
+              <progress id="bot_update_progress" max="100" value="0"></progress>
+            </div>
+
             <div class="grid update-version-card" style="grid-template-columns:1fr 1fr;gap:0.75rem 1.2rem;">
               <label>
                 当前版本
@@ -105,6 +113,14 @@
               <p class="muted-line update-status-hint" id="panel_update_hint">页面打开后会自动检查，你也可以手动再检查一次</p>
             </div>
 
+            <div id="panel_update_progress_wrap" class="update-progress-card" aria-live="polite">
+              <div class="update-progress-head">
+                <span>操作进度</span>
+                <span id="panel_update_progress_text">等待操作（0%）</span>
+              </div>
+              <progress id="panel_update_progress" max="100" value="0"></progress>
+            </div>
+
             <div class="grid update-version-card" style="grid-template-columns:1fr 1fr;gap:0.75rem 1.2rem;">
               <label>
                 当前版本
@@ -119,6 +135,7 @@
             <div class="actions" style="margin-top:1rem;">
               <button id="panel_check_update">检查新版本</button>
               <button id="panel_upgrade_update">拉取更新镜像</button>
+              <button id="panel_apply_update" class="btn-soft">重启并应用更新</button>
             </div>
 
             <details style="margin-top:1.2rem;">

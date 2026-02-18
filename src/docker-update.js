@@ -1,6 +1,140 @@
 import { execFile } from "node:child_process";
 
 const DEFAULT_IMAGE_REPO = "ghcr.io/openclaw/openclaw";
+const SELF_RECREATE_PLAN_ENV = "OPENCLAW_RECREATE_PLAN_B64";
+const SELF_RECREATE_HELPER_SCRIPT = `
+const { spawnSync } = require("node:child_process");
+const PLAN_ENV_KEY = "${SELF_RECREATE_PLAN_ENV}";
+const SLEEP_SEC = 1;
+
+function run(args) {
+  return spawnSync("docker", args, { encoding: "utf8" });
+}
+
+function runSleep(seconds) {
+  return spawnSync("sh", ["-lc", "sleep " + String(seconds)], { encoding: "utf8" });
+}
+
+function outputOf(result) {
+  return [result?.stdout, result?.stderr, result?.error?.message].filter(Boolean).join("\\n").trim();
+}
+
+function fail(message, result) {
+  const detail = result ? outputOf(result) : "";
+  console.error(detail ? \`\${message}: \${detail}\` : message);
+  process.exit(1);
+}
+
+const encodedPlan = String(process.env[PLAN_ENV_KEY] || "").trim();
+if (!encodedPlan) {
+  fail("missing recreate plan");
+}
+
+let plan;
+try {
+  plan = JSON.parse(Buffer.from(encodedPlan, "base64").toString("utf8"));
+} catch (error) {
+  fail(\`invalid recreate plan: \${error.message}\`);
+}
+
+if (!plan || !plan.containerName || !Array.isArray(plan.args)) {
+  fail("recreate plan is malformed");
+}
+
+function waitRunning(containerName) {
+  for (let i = 0; i < 20; i += 1) {
+    const statusResult = run(["inspect", "--format", "{{.State.Status}}", String(containerName)]);
+    const status = String(statusResult.stdout || "").trim().toLowerCase();
+    if (statusResult.status === 0 && status === "running") {
+      return true;
+    }
+    runSleep(SLEEP_SEC);
+  }
+  return false;
+}
+
+function connectExtraNetworks(containerName, extraNetworks) {
+  const networks = Array.isArray(extraNetworks) ? extraNetworks : [];
+  for (const network of networks) {
+    if (!network) {
+      continue;
+    }
+    const connectResult = run(["network", "connect", String(network), String(containerName)]);
+    const connectOutput = outputOf(connectResult).toLowerCase();
+    if (connectResult.status !== 0 && !connectOutput.includes("already exists")) {
+      return {
+        ok: false,
+        result: connectResult,
+        message: \`failed to connect extra network \${network}\`
+      };
+    }
+  }
+  return {
+    ok: true,
+    result: null,
+    message: ""
+  };
+}
+
+function recreateAndVerify(containerName, args, extraNetworks, reasonLabel) {
+  const recreateResult = run(args);
+  if (recreateResult.status !== 0) {
+    return {
+      ok: false,
+      result: recreateResult,
+      message: \`failed to recreate container (\${reasonLabel})\`
+    };
+  }
+
+  const connectResult = connectExtraNetworks(containerName, extraNetworks);
+  if (!connectResult.ok) {
+    return connectResult;
+  }
+
+  if (!waitRunning(containerName)) {
+    return {
+      ok: false,
+      result: null,
+      message: \`container did not reach running state (\${reasonLabel})\`
+    };
+  }
+
+  return {
+    ok: true,
+    result: null,
+    message: ""
+  };
+}
+
+const containerName = String(plan.containerName);
+const extraNetworks = Array.isArray(plan.extraNetworks) ? plan.extraNetworks : [];
+const rollbackArgs = Array.isArray(plan.rollbackArgs) ? plan.rollbackArgs : [];
+const rollbackExtraNetworks = Array.isArray(plan.rollbackExtraNetworks) ? plan.rollbackExtraNetworks : extraNetworks;
+
+// ignore errors if container does not exist
+run(["rm", "-f", containerName]);
+
+const applyResult = recreateAndVerify(containerName, plan.args, extraNetworks, "apply");
+if (applyResult.ok) {
+  console.log("running");
+  process.exit(0);
+}
+
+if (rollbackArgs.length > 0) {
+  // apply failed: best-effort restore the previous image to keep panel available.
+  run(["rm", "-f", containerName]);
+  const rollbackResult = recreateAndVerify(containerName, rollbackArgs, rollbackExtraNetworks, "rollback");
+  if (rollbackResult.ok) {
+    fail("failed to apply target image; rolled back to previous image", applyResult.result);
+  }
+  fail(
+    \`failed to apply target image, and rollback also failed: \${rollbackResult.message}\`,
+    rollbackResult.result || applyResult.result
+  );
+}
+
+fail(applyResult.message || "container did not reach running state", applyResult.result);
+`;
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -307,7 +441,6 @@ export async function fetchLatestRelease({ imageRepo = DEFAULT_IMAGE_REPO, fetch
   const ghcrPackage = resolveGhcrPackageFromImageRepo(imageRepo);
   if (ghcrPackage) {
     let latest = null;
-    let githubApiError = null;
 
     try {
       const versions = await fetchGhcrPackageVersions({
@@ -318,27 +451,22 @@ export async function fetchLatestRelease({ imageRepo = DEFAULT_IMAGE_REPO, fetch
       });
       latest = extractLatestTagFromPackageVersions(versions);
     } catch (error) {
-      githubApiError = error;
-      if (!token && (error?.status === 401 || error?.status === 403)) {
+      if (error?.status === 401 || error?.status === 403) {
         // Public GHCR packages can be read without PAT via anonymous pull token.
-        const tags = await fetchGhcrRegistryTags({
-          owner: ghcrPackage.owner,
-          packageName: ghcrPackage.packageName,
-          fetchImpl
-        });
-        latest = extractLatestTagFromRegistryTags(tags);
+        try {
+          const tags = await fetchGhcrRegistryTags({
+            owner: ghcrPackage.owner,
+            packageName: ghcrPackage.packageName,
+            fetchImpl
+          });
+          latest = extractLatestTagFromRegistryTags(tags);
+        } catch {
+          // Keep original auth error to preserve guidance for private package troubleshooting.
+          throw error;
+        }
       } else {
         throw error;
       }
-    }
-
-    if (!latest && githubApiError && !token && (githubApiError?.status === 401 || githubApiError?.status === 403)) {
-      const tags = await fetchGhcrRegistryTags({
-        owner: ghcrPackage.owner,
-        packageName: ghcrPackage.packageName,
-        fetchImpl
-      });
-      latest = extractLatestTagFromRegistryTags(tags);
     }
 
     if (!latest) {
@@ -637,6 +765,119 @@ export async function pullTag({
     requiresRestart: true,
     message: "镜像拉取成功；重启容器后生效"
   };
+}
+
+async function scheduleSelfRecreateByHelper({ plan, helperImage, runCmd = runCommand }) {
+  const payload = {
+    containerName: String(plan?.containerName || "").trim(),
+    args: Array.isArray(plan?.args) ? plan.args : [],
+    extraNetworks: Array.isArray(plan?.extraNetworks) ? plan.extraNetworks : [],
+    rollbackArgs: Array.isArray(plan?.rollbackArgs) ? plan.rollbackArgs : [],
+    rollbackExtraNetworks: Array.isArray(plan?.rollbackExtraNetworks) ? plan.rollbackExtraNetworks : []
+  };
+  if (!payload.containerName || payload.args.length === 0) {
+    throw new Error("无法生成重建计划，缺少必要容器参数");
+  }
+
+  const encodedPlan = Buffer.from(JSON.stringify(payload), "utf8").toString("base64");
+  const helperResult = await runCmd(
+    "docker",
+    [
+      "run",
+      "-d",
+      "--rm",
+      "-v",
+      "/var/run/docker.sock:/var/run/docker.sock",
+      "-e",
+      `${SELF_RECREATE_PLAN_ENV}=${encodedPlan}`,
+      "--pull",
+      "never",
+      helperImage,
+      "node",
+      "-e",
+      SELF_RECREATE_HELPER_SCRIPT
+    ],
+    30000
+  );
+
+  if (!helperResult.ok) {
+    throw new Error(helperResult.stderr || helperResult.message || "无法启动更新重建任务");
+  }
+
+  const helperContainerId = ensureString(helperResult.stdout)
+    .split(/\s+/)
+    .filter(Boolean)
+    .pop();
+
+  return {
+    helperContainerId: helperContainerId || ""
+  };
+}
+
+export async function applyPulledTag({
+  containerName = "openclaw-panel",
+  targetTag,
+  imageRepo = DEFAULT_IMAGE_REPO,
+  runCmd = runCommand
+}) {
+  const normalizedTag = normalizeTag(targetTag);
+  const targetImage = makeImageRef(normalizedTag, imageRepo);
+  const snapshot = await inspectContainer(containerName, runCmd);
+  const oldImage = ensureString(snapshot?.Config?.Image || "");
+
+  const pullResult = await pullImageWithRetry(targetImage, runCmd, 3);
+  if (!pullResult.ok) {
+    return {
+      ok: false,
+      action: "apply",
+      containerName,
+      targetImage,
+      oldImage,
+      rolledBack: false,
+      requiresRestart: false,
+      requiresReconnect: false,
+      message: pullResult.stderr || pullResult.message || "目标镜像拉取失败"
+    };
+  }
+
+  try {
+    const plan = buildDockerRunArgs(snapshot, targetImage);
+    const rollbackPlan = oldImage ? buildDockerRunArgs(snapshot, oldImage) : null;
+    const helper = await scheduleSelfRecreateByHelper({
+      plan: {
+        ...plan,
+        rollbackArgs: rollbackPlan?.args || [],
+        rollbackExtraNetworks: rollbackPlan?.extraNetworks || []
+      },
+      helperImage: oldImage || targetImage,
+      runCmd
+    });
+    return {
+      ok: true,
+      action: "apply",
+      containerName,
+      targetImage,
+      oldImage,
+      rolledBack: false,
+      requiresRestart: false,
+      requiresReconnect: true,
+      reconnectAfterMs: 6000,
+      helperContainerId: helper.helperContainerId,
+      message: "已开始重启并应用更新，页面会短暂断开并自动恢复"
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      action: "apply",
+      containerName,
+      targetImage,
+      oldImage,
+      rolledBack: false,
+      requiresRestart: false,
+      requiresReconnect: false,
+      message: error.message || "无法启动重启并应用更新任务"
+    };
+  }
 }
 
 async function mutateVersion({

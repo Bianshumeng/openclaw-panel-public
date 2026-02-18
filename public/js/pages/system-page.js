@@ -23,7 +23,13 @@ const UPDATE_TARGET_CONFIG = Object.freeze({
     hintId: "bot_update_hint",
     currentTagId: "bot_update_current_tag",
     latestTagId: "bot_update_latest_tag",
-    targetTagId: "bot_update_target_tag"
+    targetTagId: "bot_update_target_tag",
+    checkButtonId: "bot_check_update",
+    upgradeButtonId: "bot_upgrade_update",
+    rollbackButtonId: "bot_rollback_update",
+    progressWrapId: "bot_update_progress_wrap",
+    progressBarId: "bot_update_progress",
+    progressTextId: "bot_update_progress_text"
   },
   panel: {
     label: "龙虾控制台",
@@ -31,7 +37,14 @@ const UPDATE_TARGET_CONFIG = Object.freeze({
     hintId: "panel_update_hint",
     currentTagId: "panel_update_current_tag",
     latestTagId: "panel_update_latest_tag",
-    targetTagId: "panel_update_target_tag"
+    targetTagId: "panel_update_target_tag",
+    checkButtonId: "panel_check_update",
+    upgradeButtonId: "panel_upgrade_update",
+    rollbackButtonId: "panel_rollback_update",
+    applyButtonId: "panel_apply_update",
+    progressWrapId: "panel_update_progress_wrap",
+    progressBarId: "panel_update_progress",
+    progressTextId: "panel_update_progress_text"
   }
 });
 
@@ -89,6 +102,115 @@ function setUpdateHint(text, target = "bot") {
     return;
   }
   hintElement.textContent = text;
+}
+
+const updateActionLocks = {
+  bot: false,
+  panel: false
+};
+
+const updateProgressState = {
+  bot: {
+    value: 0,
+    timer: null
+  },
+  panel: {
+    value: 0,
+    timer: null
+  }
+};
+
+function setUpdateProgress(value = 0, { target = "bot", mode = "idle", text = "" } = {}) {
+  const targetKey = normalizeUpdateTarget(target);
+  const targetConfig = getUpdateTargetConfig(targetKey);
+  const wrap = document.querySelector(`#${targetConfig.progressWrapId}`);
+  const progress = document.querySelector(`#${targetConfig.progressBarId}`);
+  const progressText = document.querySelector(`#${targetConfig.progressTextId}`);
+  if (!wrap || !(progress instanceof HTMLProgressElement) || !progressText) {
+    return;
+  }
+
+  const normalizedValue = Math.max(0, Math.min(100, Number(value) || 0));
+  updateProgressState[targetKey].value = normalizedValue;
+  progress.value = normalizedValue;
+  progressText.textContent = text || `等待操作（${Math.round(normalizedValue)}%）`;
+  wrap.classList.toggle("is-working", mode === "working");
+  wrap.classList.toggle("is-done", mode === "done");
+  wrap.classList.toggle("is-fail", mode === "fail");
+}
+
+function stopUpdateProgressTicker(target = "bot") {
+  const targetKey = normalizeUpdateTarget(target);
+  const timer = updateProgressState[targetKey].timer;
+  if (timer) {
+    clearInterval(timer);
+    updateProgressState[targetKey].timer = null;
+  }
+}
+
+function startUpdateProgressTicker(target = "bot", text = "正在处理...") {
+  const targetKey = normalizeUpdateTarget(target);
+  stopUpdateProgressTicker(targetKey);
+  const initial = Math.max(updateProgressState[targetKey].value || 0, 10);
+  setUpdateProgress(initial, {
+    target: targetKey,
+    mode: "working",
+    text: `${text}（${Math.round(initial)}%）`
+  });
+
+  updateProgressState[targetKey].timer = setInterval(() => {
+    const current = updateProgressState[targetKey].value || 0;
+    if (current >= 92) {
+      return;
+    }
+    const step = current < 55 ? 6 : 2;
+    const next = Math.min(92, current + step);
+    setUpdateProgress(next, {
+      target: targetKey,
+      mode: "working",
+      text: `${text}（${Math.round(next)}%）`
+    });
+  }, 550);
+}
+
+function completeUpdateProgress(target = "bot", { success = true, text = "" } = {}) {
+  const targetKey = normalizeUpdateTarget(target);
+  stopUpdateProgressTicker(targetKey);
+  setUpdateProgress(100, {
+    target: targetKey,
+    mode: success ? "done" : "fail",
+    text: text || `${success ? "操作完成" : "操作失败"}（100%）`
+  });
+}
+
+function setUpdateButtonsBusy(target = "bot", busy = false) {
+  const targetKey = normalizeUpdateTarget(target);
+  const targetConfig = getUpdateTargetConfig(targetKey);
+  [
+    targetConfig.checkButtonId,
+    targetConfig.upgradeButtonId,
+    targetConfig.rollbackButtonId,
+    targetConfig.applyButtonId
+  ]
+    .filter(Boolean)
+    .forEach((id) => {
+      const button = document.querySelector(`#${id}`);
+      if (!(button instanceof HTMLButtonElement)) {
+        return;
+      }
+      button.disabled = Boolean(busy);
+      button.setAttribute("aria-busy", busy ? "true" : "false");
+    });
+}
+
+function initUpdateProgressState() {
+  ["bot", "panel"].forEach((targetKey) => {
+    setUpdateProgress(0, {
+      target: targetKey,
+      mode: "idle",
+      text: "等待操作（0%）"
+    });
+  });
 }
 
 function hasNonEmptyChannelValue(value) {
@@ -505,6 +627,7 @@ function fillSettings(settings) {
 async function loadInitialData() {
   const [panelConfig, settings] = await Promise.all([api("/api/panel-config"), api("/api/settings")]);
   channelSettingsSnapshot.settings = settings.settings || null;
+  initUpdateProgressState();
   fillPanelMeta(panelConfig.config, panelConfig.deployment || {});
   fillSettings(settings.settings);
 }
@@ -590,8 +713,19 @@ async function resolveUpgradeTargetTag(rawTag = "", target = "bot") {
 async function mutateVersion(action, { target = "bot" } = {}) {
   const targetKey = normalizeUpdateTarget(target);
   const targetConfig = getUpdateTargetConfig(targetKey);
+  if (updateActionLocks[targetKey]) {
+    setMessage(`${targetConfig.label} 正在执行更新操作，请稍候`, "info");
+    return;
+  }
+
+  const actionLabelMap = {
+    upgrade: "升级",
+    rollback: "回滚",
+    apply: "重启并应用"
+  };
+  const actionLabel = actionLabelMap[action] || "更新";
   let tag = String(getInputValue(targetConfig.targetTagId) || "").trim();
-  if (!tag && action === "upgrade") {
+  if (!tag && (action === "upgrade" || action === "apply")) {
     tag = await resolveUpgradeTargetTag(tag, targetKey);
     setMessage(`${targetConfig.label} 未填写目标版本，已自动选择最新版本：${tag}`, "info");
   }
@@ -602,49 +736,85 @@ async function mutateVersion(action, { target = "bot" } = {}) {
     throw new Error("请先输入目标版本");
   }
 
-  const result = await api(`/api/update/${action}`, {
-    method: "POST",
-    body: JSON.stringify({ tag, target: targetKey }),
-    allowBusinessError: true
-  });
-  const payload = result.result || {};
-  if (payload.ok) {
-    const targetImageTag = String(payload.targetImage || "").trim().split(":").pop() || "";
-    const oldImageTag = String(payload.oldImage || "").trim().split(":").pop() || "";
-    const successText =
-      targetKey === "panel"
-        ? action === "upgrade"
-          ? "镜像已拉取"
-          : "回滚镜像已拉取"
-        : action === "upgrade"
-          ? "升级成功"
-          : "回滚成功";
-    setUpdateState(successText, "success", targetKey);
-    setUpdateHint(payload.message || `当前镜像：${payload.targetImage || "-"}`, targetKey);
-    if (targetKey === "panel") {
-      // pull-only flow: keep current tag as running container tag until restart actually applies new image
-      setInput(targetConfig.currentTagId, oldImageTag || "");
-      if (targetImageTag) {
-        setInput(targetConfig.targetTagId, targetImageTag);
+  updateActionLocks[targetKey] = true;
+  setUpdateButtonsBusy(targetKey, true);
+  setUpdateState(`${actionLabel}进行中`, "info", targetKey);
+  setUpdateHint(`${actionLabel}执行中，请稍候...`, targetKey);
+  startUpdateProgressTicker(targetKey, `${actionLabel}执行中`);
+
+  try {
+    const endpoint = action === "apply" ? "/api/update/apply" : `/api/update/${action}`;
+    const result = await api(endpoint, {
+      method: "POST",
+      body: JSON.stringify({ tag, target: targetKey }),
+      allowBusinessError: true
+    });
+    const payload = result.result || {};
+    if (payload.ok) {
+      const targetImageTag = String(payload.targetImage || "")
+        .trim()
+        .split(":")
+        .pop();
+      const oldImageTag = String(payload.oldImage || "")
+        .trim()
+        .split(":")
+        .pop();
+
+      if (targetKey === "panel" && action !== "apply") {
+        const successText = action === "upgrade" ? "镜像已拉取" : "回滚镜像已拉取";
+        setUpdateState(successText, "success", targetKey);
+        setUpdateHint(payload.message || "镜像已拉取完成，请点击“重启并应用更新”生效", targetKey);
+        // pull-only flow: keep current tag as running container tag until apply step recreates the container
+        setInput(targetConfig.currentTagId, oldImageTag || "");
+        if (targetImageTag) {
+          setInput(targetConfig.targetTagId, targetImageTag);
+        }
+        completeUpdateProgress(targetKey, { success: true, text: `${actionLabel}完成（100%）` });
+        setMessage(`${targetConfig.label}${actionLabel}成功：${payload.targetImage}`, "ok");
+        return;
       }
-      setMessage(`${targetConfig.label}${action === "upgrade" ? "升级" : "回滚"}成功：${payload.targetImage}`, "ok");
+
+      const successStateText =
+        action === "apply" ? "已重启并应用" : action === "upgrade" ? "升级成功" : "回滚成功";
+      setUpdateState(successStateText, "success", targetKey);
+      setUpdateHint(payload.message || `当前镜像：${payload.targetImage || "-"}`, targetKey);
+      setInput(targetConfig.currentTagId, targetImageTag || tag);
+      completeUpdateProgress(targetKey, { success: true, text: `${actionLabel}完成（100%）` });
+      setMessage(`${targetConfig.label}${actionLabel}成功：${payload.targetImage}`, "ok");
+
+      await checkUpdate({ silent: true, target: targetKey }).catch(() => {});
+      if (targetKey === "bot") {
+        await runService("status").catch(() => {});
+        await loadTail().catch(() => {});
+      }
+      if (targetKey === "panel" && action === "apply" && payload.requiresReconnect) {
+        const reconnectDelay = Math.max(2000, Number(payload.reconnectAfterMs) || 6000);
+        setMessage(`控制台正在重启，页面将在约 ${Math.ceil(reconnectDelay / 1000)} 秒后自动刷新`, "info");
+        window.setTimeout(() => {
+          window.location.reload();
+        }, reconnectDelay);
+      }
       return;
     }
-    setInput(targetConfig.currentTagId, targetImageTag || "");
-    setMessage(`${targetConfig.label}${action === "upgrade" ? "升级" : "回滚"}成功：${payload.targetImage}`, "ok");
-    await checkUpdate({ silent: true, target: targetKey });
-    if (targetKey === "bot") {
-      await runService("status");
-      await loadTail();
-    }
-    return;
-  }
 
-  setUpdateState(action === "upgrade" ? "升级失败" : "回滚失败", "fail", targetKey);
-  const rollbackNote = payload.rollbackMessage ? `；${payload.rollbackMessage}` : payload.rolledBack ? "；已自动回滚" : "";
-  const detail = `${payload.message || "操作失败"}${rollbackNote}`;
-  setUpdateHint(detail, targetKey);
-  setMessage(`${targetConfig.label}${action === "upgrade" ? "升级" : "回滚"}失败：${detail}`, "error");
+    const rollbackNote = payload.rollbackMessage ? `；${payload.rollbackMessage}` : payload.rolledBack ? "；已自动回滚" : "";
+    const detail = `${payload.message || "操作失败"}${rollbackNote}`;
+    const failText = action === "apply" ? "应用失败" : action === "upgrade" ? "升级失败" : "回滚失败";
+    setUpdateState(failText, "fail", targetKey);
+    setUpdateHint(detail, targetKey);
+    completeUpdateProgress(targetKey, { success: false, text: `${actionLabel}失败（100%）` });
+    setMessage(`${targetConfig.label}${actionLabel}失败：${detail}`, "error");
+  } catch (error) {
+    const detail = error?.message || String(error);
+    const failText = action === "apply" ? "应用失败" : action === "upgrade" ? "升级失败" : "回滚失败";
+    setUpdateState(failText, "fail", targetKey);
+    setUpdateHint(detail, targetKey);
+    completeUpdateProgress(targetKey, { success: false, text: `${actionLabel}失败（100%）` });
+    setMessage(`${targetConfig.label}${actionLabel}异常：${detail}`, "error");
+  } finally {
+    updateActionLocks[targetKey] = false;
+    setUpdateButtonsBusy(targetKey, false);
+  }
 }
 
 async function saveModelSettings(modelPayload, actionLabel) {
