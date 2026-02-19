@@ -5,21 +5,41 @@ import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import test from "node:test";
 import { loadPanelConfig, resolveOpenClawConfigPath } from "../../src/panel-config.js";
 
-test("resolveOpenClawConfigPath always uses direct-install default when env override is absent", () => {
+test("resolveOpenClawConfigPath keeps configured path when env override is absent", () => {
   const homeDir = path.join(path.sep, "home", "panel-test");
-  const directPath = path.join(homeDir, ".openclaw", "openclaw.json");
+  const configuredPath = "/custom/openclaw/openclaw.json";
   const resolved = resolveOpenClawConfigPath(
     {
       openclaw: {
-        config_path: "/data/openclaw/openclaw.json"
+        config_path: configuredPath
       }
     },
     { homeDir }
   );
-  assert.equal(resolved, directPath);
+  assert.equal(resolved, configuredPath);
 });
 
-test("loadPanelConfig enforces direct-install runtime and default paths", async () => {
+test("resolveOpenClawConfigPath uses env override before configured path", () => {
+  const homeDir = path.join(path.sep, "home", "panel-test");
+  const envPath = "/env/openclaw/openclaw.json";
+  const configuredPath = "/custom/openclaw/openclaw.json";
+  const resolved = resolveOpenClawConfigPath(
+    {
+      openclaw: {
+        config_path: configuredPath
+      }
+    },
+    {
+      homeDir,
+      env: {
+        OPENCLAW_CONFIG_PATH: envPath
+      }
+    }
+  );
+  assert.equal(resolved, envPath);
+});
+
+test("loadPanelConfig enforces direct-install runtime but keeps configured log path", async () => {
   const tmpRoot = await mkdtemp(path.join(os.tmpdir(), "panel-config-"));
   const panelConfigPath = path.join(tmpRoot, "panel.config.json");
   const directConfigPath = path.join(tmpRoot, ".openclaw", "openclaw.json");
@@ -57,7 +77,7 @@ test("loadPanelConfig enforces direct-install runtime and default paths", async 
     assert.equal(config.runtime.mode, "systemd");
     assert.equal(config.docker.enabled, false);
     assert.equal(config.log.source, process.platform === "linux" ? "journal" : "file");
-    assert.equal(config.log.file_path, "~/.openclaw/logs/gateway.log");
+    assert.equal(config.log.file_path, "/data/openclaw/logs/gateway.log");
     assert.equal(config.openclaw.gateway_media_root, "");
   } finally {
     if (prevPanelConfigPath === undefined) {

@@ -14,6 +14,10 @@ export function resolveOpenClawConfigPath(panelConfig, options = {}) {
   if (envOverride) {
     return envOverride;
   }
+  const configuredPath = expandHome(trimString(panelConfig?.openclaw?.config_path));
+  if (configuredPath) {
+    return configuredPath;
+  }
   return path.join(homeDir, ".openclaw", "openclaw.json");
 }
 
@@ -112,6 +116,7 @@ export async function loadPanelConfig() {
           source: process.platform === "linux" ? "journal" : "file"
         }
       : parsed.log;
+  const normalizedLogFilePath = trimString(logWithAutoFix.file_path) || defaults.log.file_path;
   return {
     filePath,
     config: {
@@ -126,7 +131,7 @@ export async function loadPanelConfig() {
       },
       log: {
         ...logWithAutoFix,
-        file_path: "~/.openclaw/logs/gateway.log"
+        file_path: normalizedLogFilePath
       }
     }
   };
