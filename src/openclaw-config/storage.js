@@ -1,9 +1,6 @@
 import fs from "node:fs/promises";
 import { expandHome, nowIso, readJsonFile, writeJsonFileAtomic } from "../utils.js";
 
-const DEFAULT_OPENCLAW_CONFIG_OWNER_UID = 1000;
-const DEFAULT_OPENCLAW_CONFIG_OWNER_GID = 1000;
-
 function toNonNegativeInt(value, fallback) {
   const parsed = Number.parseInt(String(value ?? ""), 10);
   if (!Number.isFinite(parsed) || parsed < 0) {
@@ -13,10 +10,19 @@ function toNonNegativeInt(value, fallback) {
 }
 
 function resolveExpectedOwner() {
-  return {
-    uid: toNonNegativeInt(process.env.OPENCLAW_CONFIG_OWNER_UID, DEFAULT_OPENCLAW_CONFIG_OWNER_UID),
-    gid: toNonNegativeInt(process.env.OPENCLAW_CONFIG_OWNER_GID, DEFAULT_OPENCLAW_CONFIG_OWNER_GID)
-  };
+  const rawUid = String(process.env.OPENCLAW_CONFIG_OWNER_UID ?? "").trim();
+  const rawGid = String(process.env.OPENCLAW_CONFIG_OWNER_GID ?? "").trim();
+  const hasUid = rawUid.length > 0;
+  const hasGid = rawGid.length > 0;
+  if (!hasUid && !hasGid) {
+    return null;
+  }
+  const uid = toNonNegativeInt(rawUid, NaN);
+  const gid = toNonNegativeInt(rawGid, NaN);
+  if (!Number.isFinite(uid) || !Number.isFinite(gid)) {
+    throw new Error("OPENCLAW_CONFIG_OWNER_UID / OPENCLAW_CONFIG_OWNER_GID 必须同时为非负整数");
+  }
+  return { uid, gid };
 }
 
 function isRootRuntime() {
@@ -50,7 +56,7 @@ async function ensureOpenClawConfigPermissions(configPath) {
   }
 
   let ownerFixed = false;
-  if (isRootRuntime()) {
+  if (isRootRuntime() && expected) {
     if (stats.uid !== expected.uid || stats.gid !== expected.gid) {
       await fs.chown(realPath, expected.uid, expected.gid);
       ownerFixed = true;

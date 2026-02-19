@@ -1,6 +1,7 @@
 import path from "node:path";
 import fs from "node:fs/promises";
 import { execFile } from "node:child_process";
+import { randomBytes } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import Fastify from "fastify";
 import fastifyStatic from "@fastify/static";
@@ -237,6 +238,97 @@ function runCommand(command, args, timeout = 15000, options = {}) {
   });
 }
 
+const OPENCLAW_CLI_CANDIDATES = ["/usr/bin/openclaw", "/usr/local/bin/openclaw", "openclaw"];
+const OPENCLAW_CMD_NOT_FOUND_PATTERNS = [
+  /ENOENT/i,
+  /not found/i,
+  /executable file not found/i,
+  /is not recognized as an internal or external command/i,
+  /无法将.*识别为 cmdlet/i
+];
+const TOKEN_MISSING_ERROR = "openclaw 配置中未发现 gateway.auth.token";
+
+function isCommandMissingError(detail) {
+  const text = trimText(detail);
+  if (!text) {
+    return false;
+  }
+  return OPENCLAW_CMD_NOT_FOUND_PATTERNS.some((pattern) => pattern.test(text));
+}
+
+function buildOpenClawCommandCandidates() {
+  const preferred = trimText(process.env.OPENCLAW_BIN);
+  const result = [];
+  const seen = new Set();
+  for (const item of [preferred, ...OPENCLAW_CLI_CANDIDATES]) {
+    const command = trimText(item);
+    if (!command || seen.has(command)) {
+      continue;
+    }
+    seen.add(command);
+    result.push(command);
+  }
+  return result;
+}
+
+async function readGatewayTokenFromOpenClawCli(openclawConfigPath) {
+  const cliEnv = openclawConfigPath
+    ? {
+        OPENCLAW_CONFIG_PATH: expandHome(openclawConfigPath)
+      }
+    : {};
+  const candidates = buildOpenClawCommandCandidates();
+  let lastError = "";
+  let allMissing = true;
+  let tokenMissing = false;
+
+  for (const command of candidates) {
+    const cliResult = await runCommand(command, ["config", "get", "gateway.auth.token"], 15000, {
+      env: cliEnv
+    });
+
+    if (cliResult.ok) {
+      const token = trimText(cliResult.stdout);
+      if (token) {
+        return {
+          ok: true,
+          token,
+          command
+        };
+      }
+      allMissing = false;
+      tokenMissing = true;
+      lastError = lastError || TOKEN_MISSING_ERROR;
+      continue;
+    }
+
+    const detail = trimText(cliResult.stderr || cliResult.message);
+    if (detail) {
+      lastError = detail;
+    }
+    if (isCommandMissingError(detail)) {
+      continue;
+    }
+    allMissing = false;
+    return {
+      ok: false,
+      allMissing: false,
+      error: detail || "openclaw 命令执行失败"
+    };
+  }
+
+  return {
+    ok: false,
+    allMissing,
+    tokenMissing,
+    error: lastError
+  };
+}
+
+function generateGatewayToken() {
+  return randomBytes(32).toString("hex");
+}
+
 function maskToken(value) {
   const token = trimText(value);
   if (!token) {
@@ -271,32 +363,26 @@ async function resolveGatewayTokenForSync(panelConfig) {
   }
 
   const openclawConfigPath = trimText(panelConfig?.openclaw?.config_path);
-  const cliEnv = openclawConfigPath
-    ? {
-        OPENCLAW_CONFIG_PATH: expandHome(openclawConfigPath)
-      }
-    : {};
-  const cliResult = await runCommand("openclaw", ["config", "get", "gateway.auth.token"], 15000, {
-    env: cliEnv
-  });
+  const cliResult = await readGatewayTokenFromOpenClawCli(openclawConfigPath);
   if (cliResult.ok) {
-    const tokenFromCli = trimText(cliResult.stdout);
-    if (tokenFromCli) {
-      return {
-        token: tokenFromCli,
-        source: "openclaw-cli-config"
-      };
-    }
+    return {
+      token: cliResult.token,
+      source: "openclaw-cli-config"
+    };
   }
 
-  const cliError = trimText(cliResult.stderr || cliResult.message);
-  if (cliError && /ENOENT/i.test(cliError)) {
-    throw new Error("未能读取 Gateway Token：当前环境未安装 openclaw 命令，且配置文件中未发现 gateway.auth.token");
+  if (cliResult.allMissing || cliResult.tokenMissing) {
+    return {
+      token: generateGatewayToken(),
+      source: "generated-local"
+    };
   }
+
+  const cliError = trimText(cliResult.error);
   throw new Error(
     cliError
       ? `未能读取 Gateway Token：${cliError}`
-      : "未能读取 Gateway Token：openclaw 配置中未发现 gateway.auth.token"
+      : `未能读取 Gateway Token：${TOKEN_MISSING_ERROR}`
   );
 }
 
