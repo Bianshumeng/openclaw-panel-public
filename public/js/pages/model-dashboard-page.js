@@ -899,6 +899,7 @@ function renderDashboardModelCards(modelSettings) {
 }
 
 let dashboardGatewayTokenSyncPending = false;
+let dashboardGatewayTokenLoadPending = false;
 
 function setDashboardGatewayTokenStatus(message, type = "info") {
   const statusEl = document.querySelector("#dashboard_gateway_token_status");
@@ -908,6 +909,127 @@ function setDashboardGatewayTokenStatus(message, type = "info") {
   statusEl.textContent = String(message || "").trim();
   statusEl.classList.toggle("is-done", type === "ok");
   statusEl.classList.toggle("is-fail", type === "error");
+}
+
+function setDashboardGatewayTokenValue(token = "") {
+  const value = String(token || "").trim();
+  const tokenInput = document.querySelector("#dashboard_gateway_token_value");
+  if (tokenInput instanceof HTMLInputElement) {
+    tokenInput.value = value;
+  }
+  const copyButton = document.querySelector("#dashboard_gateway_token_copy");
+  if (copyButton instanceof HTMLButtonElement) {
+    copyButton.disabled = !value;
+  }
+}
+
+function readDashboardGatewayTokenValue() {
+  const tokenInput = document.querySelector("#dashboard_gateway_token_value");
+  if (!(tokenInput instanceof HTMLInputElement)) {
+    return "";
+  }
+  return String(tokenInput.value || "").trim();
+}
+
+async function copyTextToClipboard(text) {
+  const value = String(text || "");
+  if (!value) {
+    return;
+  }
+  if (navigator?.clipboard?.writeText && window.isSecureContext) {
+    await navigator.clipboard.writeText(value);
+    return;
+  }
+  const temp = document.createElement("textarea");
+  temp.value = value;
+  temp.setAttribute("readonly", "true");
+  temp.style.position = "fixed";
+  temp.style.opacity = "0";
+  temp.style.pointerEvents = "none";
+  document.body.appendChild(temp);
+  temp.focus();
+  temp.select();
+  const copied = document.execCommand("copy");
+  document.body.removeChild(temp);
+  if (!copied) {
+    throw new Error("浏览器未允许复制，请手动复制");
+  }
+}
+
+async function loadDashboardGatewayToken({ silent = false } = {}) {
+  if (dashboardGatewayTokenLoadPending) {
+    return;
+  }
+  dashboardGatewayTokenLoadPending = true;
+  try {
+    const result = await api("/api/gateway/token/current", {
+      allowBusinessError: true
+    });
+    const payload = result?.result || {};
+    if (!result.ok) {
+      throw new Error(payload.message || result.message || "读取 Gateway Token 失败");
+    }
+    const token = String(payload.token || "").trim();
+    if (!token) {
+      setDashboardGatewayTokenValue("");
+      setDashboardGatewayTokenStatus("当前未检测到 Gateway Token，请先点击自动配置。", "info");
+      if (!silent) {
+        setMessage("当前未检测到 Gateway Token，请先自动配置。", "info");
+      }
+      return;
+    }
+    setDashboardGatewayTokenValue(token);
+    const tokenMasked = String(payload.tokenMasked || "").trim() || "已加载";
+    const sourceLabel = String(payload.source || "openclaw-config").trim();
+    setDashboardGatewayTokenStatus(`当前 Token：${tokenMasked}（来源：${sourceLabel}）`, "ok");
+    if (!silent) {
+      setMessage("Gateway Token 已读取，可直接复制使用", "ok");
+    }
+  } catch (error) {
+    const detail = error.message || String(error);
+    setDashboardGatewayTokenValue("");
+    setDashboardGatewayTokenStatus(`读取 Gateway Token 失败：${detail}`, "error");
+    if (!silent) {
+      setMessage(`读取 Gateway Token 失败：${detail}`, "error");
+    }
+  } finally {
+    dashboardGatewayTokenLoadPending = false;
+  }
+}
+
+async function copyDashboardGatewayToken() {
+  const token = readDashboardGatewayTokenValue();
+  if (!token) {
+    setMessage("当前没有可复制的 Gateway Token，请先点击自动配置。", "error");
+    return;
+  }
+  const copyButton = document.querySelector("#dashboard_gateway_token_copy");
+  const rawLabel = copyButton instanceof HTMLButtonElement ? copyButton.textContent : "";
+  if (copyButton instanceof HTMLButtonElement) {
+    copyButton.disabled = true;
+    copyButton.textContent = "复制中...";
+  }
+  try {
+    await copyTextToClipboard(token);
+    setDashboardGatewayTokenStatus("Gateway Token 已复制到剪贴板。", "ok");
+    setMessage("Gateway Token 已复制到剪贴板", "ok");
+    if (copyButton instanceof HTMLButtonElement) {
+      copyButton.textContent = "已复制";
+    }
+  } catch (error) {
+    const detail = error.message || String(error);
+    setMessage(`Gateway Token 复制失败：${detail}`, "error");
+    if (copyButton instanceof HTMLButtonElement) {
+      copyButton.textContent = "复制失败";
+    }
+  } finally {
+    if (copyButton instanceof HTMLButtonElement) {
+      setTimeout(() => {
+        copyButton.textContent = rawLabel || "复制 Gateway Token";
+        copyButton.disabled = !readDashboardGatewayTokenValue();
+      }, 1200);
+    }
+  }
 }
 
 async function syncDashboardGatewayToken() {
@@ -932,6 +1054,10 @@ async function syncDashboardGatewayToken() {
     const payload = result?.result || {};
     if (!result.ok) {
       throw new Error(payload.message || result.message || "自动配置失败");
+    }
+    const tokenPlain = String(payload.token || "").trim();
+    if (tokenPlain) {
+      setDashboardGatewayTokenValue(tokenPlain);
     }
     const tokenMasked = String(payload.tokenMasked || "").trim() || "已写入";
     const sourceLabel = String(payload.source || "runtime").trim();
@@ -1042,6 +1168,15 @@ function setupDashboard() {
       setMessage(`Gateway Token 自动配置失败：${detail}`, "error");
     });
   });
+
+  document.querySelector("#dashboard_gateway_token_copy")?.addEventListener("click", () => {
+    copyDashboardGatewayToken().catch((error) => {
+      const detail = error.message || String(error);
+      setMessage(`Gateway Token 复制失败：${detail}`, "error");
+    });
+  });
+
+  loadDashboardGatewayToken({ silent: true }).catch(() => {});
 }
 
 function truncateText(value, max = 72) {

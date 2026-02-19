@@ -218,9 +218,15 @@ function trimText(value) {
   return String(value || "").trim();
 }
 
-function runCommand(command, args, timeout = 15000) {
+function runCommand(command, args, timeout = 15000, options = {}) {
+  const extraEnv =
+    options?.env && typeof options.env === "object" && !Array.isArray(options.env) ? options.env : {};
+  const commandEnv = {
+    ...process.env,
+    ...extraEnv
+  };
   return new Promise((resolve) => {
-    execFile(command, args, { timeout, maxBuffer: 5 * 1024 * 1024 }, (error, stdout, stderr) => {
+    execFile(command, args, { timeout, maxBuffer: 5 * 1024 * 1024, env: commandEnv }, (error, stdout, stderr) => {
       resolve({
         ok: !error,
         stdout: String(stdout || "").trim(),
@@ -242,16 +248,8 @@ function maskToken(value) {
   return `${token.slice(0, 4)}***${token.slice(-4)}`;
 }
 
-function tokenFromEnvDump(rawText) {
-  const lines = String(rawText || "")
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter(Boolean);
-  const target = lines.find((line) => line.startsWith("OPENCLAW_GATEWAY_TOKEN="));
-  if (!target) {
-    return "";
-  }
-  return trimText(target.slice("OPENCLAW_GATEWAY_TOKEN=".length));
+function readGatewayTokenFromConfig(openclawConfig) {
+  return trimText(openclawConfig?.gateway?.auth?.token);
 }
 
 async function resolveGatewayTokenForSync(panelConfig) {
@@ -263,27 +261,43 @@ async function resolveGatewayTokenForSync(panelConfig) {
     };
   }
 
-  const containerName =
-    trimText(panelConfig?.openclaw?.container_name) || trimText(panelConfig?.openclaw?.service_name) || "openclaw-gateway";
-  const inspectResult = await runCommand("docker", [
-    "inspect",
-    "--format",
-    "{{range .Config.Env}}{{println .}}{{end}}",
-    containerName
-  ]);
-  if (!inspectResult.ok) {
-    throw new Error(`读取网关容器环境变量失败：${inspectResult.stderr || inspectResult.message || "unknown"}`);
+  const currentConfig = await loadOpenClawConfig(panelConfig.openclaw.config_path);
+  const tokenFromConfig = readGatewayTokenFromConfig(currentConfig);
+  if (tokenFromConfig) {
+    return {
+      token: tokenFromConfig,
+      source: "openclaw-config-file"
+    };
   }
 
-  const tokenFromContainer = tokenFromEnvDump(inspectResult.stdout);
-  if (!tokenFromContainer) {
-    throw new Error("未在网关容器环境变量中找到 OPENCLAW_GATEWAY_TOKEN");
+  const openclawConfigPath = trimText(panelConfig?.openclaw?.config_path);
+  const cliEnv = openclawConfigPath
+    ? {
+        OPENCLAW_CONFIG_PATH: expandHome(openclawConfigPath)
+      }
+    : {};
+  const cliResult = await runCommand("openclaw", ["config", "get", "gateway.auth.token"], 15000, {
+    env: cliEnv
+  });
+  if (cliResult.ok) {
+    const tokenFromCli = trimText(cliResult.stdout);
+    if (tokenFromCli) {
+      return {
+        token: tokenFromCli,
+        source: "openclaw-cli-config"
+      };
+    }
   }
 
-  return {
-    token: tokenFromContainer,
-    source: "gateway-container-env"
-  };
+  const cliError = trimText(cliResult.stderr || cliResult.message);
+  if (cliError && /ENOENT/i.test(cliError)) {
+    throw new Error("未能读取 Gateway Token：当前环境未安装 openclaw 命令，且配置文件中未发现 gateway.auth.token");
+  }
+  throw new Error(
+    cliError
+      ? `未能读取 Gateway Token：${cliError}`
+      : "未能读取 Gateway Token：openclaw 配置中未发现 gateway.auth.token"
+  );
 }
 
 function resolveUpdateTarget(panelConfig, target = "bot") {
@@ -520,10 +534,36 @@ app.post("/api/gateway/token/sync", async (request, reply) => {
       result: {
         changed,
         source: tokenResult.source,
+        token: tokenResult.token,
         tokenMasked: maskToken(tokenResult.token),
         message: changed ? "Gateway Token 已自动同步到真实配置文件" : "Gateway Token 已是最新，无需改动",
         path: saved.path,
         backupPath: saved.backupPath
+      }
+    };
+  } catch (error) {
+    reply.code(400);
+    return {
+      ok: false,
+      message: error.message
+    };
+  }
+});
+
+app.get("/api/gateway/token/current", async (request, reply) => {
+  try {
+    const { config: panelConfig } = await loadPanelConfig();
+    const currentConfig = await loadOpenClawConfig(panelConfig.openclaw.config_path);
+    const token = readGatewayTokenFromConfig(currentConfig);
+    const exists = Boolean(token);
+
+    return {
+      ok: true,
+      result: {
+        exists,
+        source: "openclaw-config",
+        token,
+        tokenMasked: maskToken(token)
       }
     };
   } catch (error) {

@@ -635,7 +635,30 @@ async function loadInitialData() {
 async function checkUpdate({ silent = false, target = "bot" } = {}) {
   const targetKey = normalizeUpdateTarget(target);
   const targetConfig = getUpdateTargetConfig(targetKey);
-  const result = await api(`/api/update/check?target=${encodeURIComponent(targetKey)}`);
+  let result;
+  try {
+    result = await api(`/api/update/check?target=${encodeURIComponent(targetKey)}`);
+  } catch (error) {
+    const detail = String(error?.message || error || "").trim();
+    if (detail.includes("当前不是 Docker 运行模式")) {
+      setInput(targetConfig.currentTagId, "");
+      setInput(targetConfig.latestTagId, "");
+      setUpdateState("直装模式", "success", targetKey);
+      setUpdateHint("当前为直装模式，已禁用 Docker 镜像升级/回滚。", targetKey);
+      if (targetKey === "bot") {
+        setText("dashboard_summary_version", "直装模式");
+        setText("dashboard_summary_version_meta", "镜像升级入口已禁用");
+      }
+      if (!silent) {
+        setMessage(`${targetConfig.label}：当前为直装模式，已禁用 Docker 镜像更新。`, "info");
+      }
+      return {
+        disabled: true,
+        mode: "systemd"
+      };
+    }
+    throw error;
+  }
   const data = result.result || {};
 
   setInput(targetConfig.currentTagId, data.currentTag || "");
