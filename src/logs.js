@@ -52,7 +52,7 @@ export async function getTailLogs({ panelConfig, lines = 200, filter = "" }) {
   const containerName =
     panelConfig?.openclaw?.container_name || panelConfig?.openclaw?.service_name || "openclaw-gateway";
 
-  if (source === "docker" || panelConfig?.runtime?.mode === "docker") {
+  if (source === "docker") {
     const { stdout, stderr } = await runCapture("docker", ["logs", "--tail", String(maxLines), containerName]);
     const merged = `${stdout}\n${stderr}`;
     return filterLines(splitLines(merged), filter);
@@ -89,7 +89,7 @@ export function createLogStream({ panelConfig, onLine, onError }) {
     panelConfig?.openclaw?.container_name || panelConfig?.openclaw?.service_name || "openclaw-gateway";
   let child;
 
-  if (source === "docker" || panelConfig?.runtime?.mode === "docker") {
+  if (source === "docker") {
     child = spawn("docker", ["logs", "-f", "--tail", "20", containerName]);
   } else if (source === "journal" && process.platform === "linux") {
     child = spawn("journalctl", [

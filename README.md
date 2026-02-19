@@ -70,6 +70,17 @@ npm start
 npm run check
 ```
 
+## 直装发布构建（含轻度混淆）
+```bash
+npm run build:runtime
+```
+
+说明：
+- `build:runtime` 默认会对运行产物做轻度混淆（light），提高逆向阅读成本。
+- 若需关闭混淆：
+  - Linux/macOS: `RUNTIME_OBFUSCATION=off npm run build:runtime`
+  - PowerShell: `$env:RUNTIME_OBFUSCATION='off'; npm run build:runtime`
+
 ## 测试
 ```bash
 # 单元 + 回归

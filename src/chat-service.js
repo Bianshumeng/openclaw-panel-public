@@ -91,9 +91,6 @@ function resolveGatewayMediaRoot(panelConfig) {
   if (explicit) {
     return explicit;
   }
-  if (trimString(panelConfig?.runtime?.mode) === "docker") {
-    return "/home/node/.openclaw";
-  }
   const configPath = expandHome(String(panelConfig?.openclaw?.config_path || "~/.openclaw/openclaw.json"));
   return path.dirname(configPath);
 }
