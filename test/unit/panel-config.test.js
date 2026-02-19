@@ -51,13 +51,13 @@ test("loadPanelConfig enforces direct-install runtime but keeps configured log p
       {
         runtime: { mode: "docker" },
         openclaw: {
-          config_path: "/data/openclaw/openclaw.json",
+          config_path: "/opt/openclaw/openclaw.json",
           gateway_media_root: "/home/node/.openclaw"
         },
         docker: { enabled: true },
         log: {
           source: "docker",
-          file_path: "/data/openclaw/logs/gateway.log"
+          file_path: "/var/log/openclaw/gateway.log"
         }
       },
       null,
@@ -77,7 +77,7 @@ test("loadPanelConfig enforces direct-install runtime but keeps configured log p
     assert.equal(config.runtime.mode, "systemd");
     assert.equal(config.docker.enabled, false);
     assert.equal(config.log.source, process.platform === "linux" ? "journal" : "file");
-    assert.equal(config.log.file_path, "/data/openclaw/logs/gateway.log");
+    assert.equal(config.log.file_path, "/var/log/openclaw/gateway.log");
     assert.equal(config.openclaw.gateway_media_root, "");
   } finally {
     if (prevPanelConfigPath === undefined) {
