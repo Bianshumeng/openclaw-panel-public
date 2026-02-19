@@ -1,6 +1,7 @@
 import path from "node:path";
 import fs from "node:fs/promises";
 import { execFile } from "node:child_process";
+import { randomBytes } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import Fastify from "fastify";
 import fastifyStatic from "@fastify/static";
@@ -245,6 +246,7 @@ const OPENCLAW_CMD_NOT_FOUND_PATTERNS = [
   /is not recognized as an internal or external command/i,
   /无法将.*识别为 cmdlet/i
 ];
+const TOKEN_MISSING_ERROR = "openclaw 配置中未发现 gateway.auth.token";
 
 function isCommandMissingError(detail) {
   const text = trimText(detail);
@@ -278,6 +280,7 @@ async function readGatewayTokenFromOpenClawCli(openclawConfigPath) {
   const candidates = buildOpenClawCommandCandidates();
   let lastError = "";
   let allMissing = true;
+  let tokenMissing = false;
 
   for (const command of candidates) {
     const cliResult = await runCommand(command, ["config", "get", "gateway.auth.token"], 15000, {
@@ -294,7 +297,8 @@ async function readGatewayTokenFromOpenClawCli(openclawConfigPath) {
         };
       }
       allMissing = false;
-      lastError = lastError || "openclaw 配置中未发现 gateway.auth.token";
+      tokenMissing = true;
+      lastError = lastError || TOKEN_MISSING_ERROR;
       continue;
     }
 
@@ -316,8 +320,13 @@ async function readGatewayTokenFromOpenClawCli(openclawConfigPath) {
   return {
     ok: false,
     allMissing,
+    tokenMissing,
     error: lastError
   };
+}
+
+function generateGatewayToken() {
+  return randomBytes(32).toString("hex");
 }
 
 function maskToken(value) {
@@ -362,14 +371,18 @@ async function resolveGatewayTokenForSync(panelConfig) {
     };
   }
 
-  const cliError = trimText(cliResult.error);
-  if (cliResult.allMissing) {
-    throw new Error("未能读取 Gateway Token：当前环境未安装 openclaw 命令，且配置文件中未发现 gateway.auth.token");
+  if (cliResult.allMissing || cliResult.tokenMissing) {
+    return {
+      token: generateGatewayToken(),
+      source: "generated-local"
+    };
   }
+
+  const cliError = trimText(cliResult.error);
   throw new Error(
     cliError
       ? `未能读取 Gateway Token：${cliError}`
-      : "未能读取 Gateway Token：openclaw 配置中未发现 gateway.auth.token"
+      : `未能读取 Gateway Token：${TOKEN_MISSING_ERROR}`
   );
 }
 
