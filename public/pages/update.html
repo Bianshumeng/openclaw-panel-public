@@ -56,8 +56,8 @@
 
 <section class="panel is-visible" data-panel="panel-update">
           <article class="card">
-            <h2>龙虾 Bot Docker 版本更新</h2>
-            <p class="muted-line">用于更新 openclaw-gateway。升级后会自动重建并确保容器保持运行。</p>
+            <h2>龙虾 Bot 直装更新</h2>
+            <p class="muted-line">使用官方直装更新命令执行升级/回滚，完成后自动执行 doctor、gateway restart、health。</p>
             <div class="update-status-card">
               <div class="status-row">
                 <span class="pill" id="bot_update_state" style="font-size:1.05rem;padding:0.45rem 1.4rem;">还没检查</span>
@@ -104,8 +104,8 @@
           </article>
 
           <article class="card" style="margin-top:1rem;">
-            <h2>龙虾控制台 Docker 版本更新</h2>
-            <p class="muted-line">用于更新 openclaw-panel。当前流程是先拉取目标镜像，重启控制台容器后生效。</p>
+            <h2>龙虾控制台版本更新（公开仓库发版）</h2>
+            <p class="muted-line">更新包来自公开仓库 release。先准备版本包，再点击“应用更新并重启”生效。</p>
             <div class="update-status-card">
               <div class="status-row">
                 <span class="pill" id="panel_update_state" style="font-size:1.05rem;padding:0.45rem 1.4rem;">还没检查</span>
@@ -134,19 +134,19 @@
 
             <div class="actions" style="margin-top:1rem;">
               <button id="panel_check_update">检查新版本</button>
-              <button id="panel_upgrade_update">拉取更新镜像</button>
-              <button id="panel_apply_update" class="btn-soft">重启并应用更新</button>
+              <button id="panel_upgrade_update">准备更新包</button>
+              <button id="panel_apply_update" class="btn-soft">应用更新并重启</button>
             </div>
 
             <details style="margin-top:1.2rem;">
               <summary class="muted-line" style="cursor:pointer;user-select:none;">高级选项（指定版本 / 回滚）</summary>
               <div class="update-advanced-card">
                 <label>
-                  要拉取的目标版本
-                  <input id="panel_update_target_tag" type="text" placeholder="留空则拉取最新版" />
+                  要准备的目标版本
+                  <input id="panel_update_target_tag" type="text" placeholder="留空则准备最新版" />
                 </label>
                 <div class="actions" style="margin-top:0.75rem;">
-                  <button id="panel_rollback_update" class="btn-soft">拉取回滚镜像</button>
+                  <button id="panel_rollback_update" class="btn-soft">准备回滚包</button>
                 </div>
               </div>
             </details>

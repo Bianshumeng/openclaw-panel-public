@@ -64,7 +64,11 @@ const panelConfigSchema = z.object({
     .default({}),
   update: z
     .object({
-      github_token: z.string().default("")
+      github_token: z.string().default(""),
+      bot_release_repo: z.string().default("openclaw/openclaw"),
+      panel_release_repo: z.string().default("Bianshumeng/openclaw-panel-public"),
+      panel_service_name: z.string().default("openclaw-panel"),
+      panel_app_dir: z.string().default("/opt/openclaw-panel")
     })
     .default({}),
   log: z

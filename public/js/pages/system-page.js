@@ -695,30 +695,7 @@ async function loadInitialData() {
 async function checkUpdate({ silent = false, target = "bot" } = {}) {
   const targetKey = normalizeUpdateTarget(target);
   const targetConfig = getUpdateTargetConfig(targetKey);
-  let result;
-  try {
-    result = await api(`/api/update/check?target=${encodeURIComponent(targetKey)}`);
-  } catch (error) {
-    const detail = String(error?.message || error || "").trim();
-    if (detail.includes("当前不是 Docker 运行模式")) {
-      setInput(targetConfig.currentTagId, "");
-      setInput(targetConfig.latestTagId, "");
-      setUpdateState("直装模式", "success", targetKey);
-      setUpdateHint("当前为直装模式，已禁用 Docker 镜像升级/回滚。", targetKey);
-      if (targetKey === "bot") {
-        setText("dashboard_summary_version", "直装模式");
-        setText("dashboard_summary_version_meta", "镜像升级入口已禁用");
-      }
-      if (!silent) {
-        setMessage(`${targetConfig.label}：当前为直装模式，已禁用 Docker 镜像更新。`, "info");
-      }
-      return {
-        disabled: true,
-        mode: "systemd"
-      };
-    }
-    throw error;
-  }
+  const result = await api(`/api/update/check?target=${encodeURIComponent(targetKey)}`);
   const data = result.result || {};
 
   setInput(targetConfig.currentTagId, data.currentTag || "");
@@ -844,10 +821,10 @@ async function mutateVersion(action, { target = "bot" } = {}) {
         .pop();
 
       if (targetKey === "panel" && action !== "apply") {
-        const successText = action === "upgrade" ? "镜像已拉取" : "回滚镜像已拉取";
+        const successText = action === "upgrade" ? "更新包已准备" : "回滚包已准备";
         setUpdateState(successText, "success", targetKey);
-        setUpdateHint(payload.message || "镜像已拉取完成，请点击“重启并应用更新”生效", targetKey);
-        // pull-only flow: keep current tag as running container tag until apply step recreates the container
+        setUpdateHint(payload.message || "版本包已准备完成，请点击“应用更新并重启”生效", targetKey);
+        // stage-only flow: keep current tag as running version until apply step restarts the panel service
         setInput(targetConfig.currentTagId, oldImageTag || "");
         if (targetImageTag) {
           setInput(targetConfig.targetTagId, targetImageTag);
@@ -860,7 +837,7 @@ async function mutateVersion(action, { target = "bot" } = {}) {
       const successStateText =
         action === "apply" ? "已重启并应用" : action === "upgrade" ? "升级成功" : "回滚成功";
       setUpdateState(successStateText, "success", targetKey);
-      setUpdateHint(payload.message || `当前镜像：${payload.targetImage || "-"}`, targetKey);
+      setUpdateHint(payload.message || `当前版本：${payload.targetImage || "-"}`, targetKey);
       setInput(targetConfig.currentTagId, targetImageTag || tag);
       completeUpdateProgress(targetKey, { success: true, text: `${actionLabel}完成（100%）` });
       setMessage(`${targetConfig.label}${actionLabel}成功：${payload.targetImage}`, "ok");

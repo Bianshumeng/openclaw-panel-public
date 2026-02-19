@@ -45,7 +45,11 @@ if [ ! -f "$CONFIG_DIR/panel.config.json" ]; then
     "gateway_ws_url": ""
   },
   "update": {
-    "github_token": ""
+    "github_token": "",
+    "bot_release_repo": "openclaw/openclaw",
+    "panel_release_repo": "Bianshumeng/openclaw-panel-public",
+    "panel_service_name": "openclaw-panel",
+    "panel_app_dir": "/opt/openclaw-panel"
   },
   "log": {
     "source": "journal",
