@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OpenClaw 龙虾控制台</title>
+    <script>
+      (function initThemeEarly() {
+        var theme = "light";
+        try {
+          var saved = window.localStorage.getItem("openclaw-panel-theme");
+          theme = saved === "dark" ? "dark" : "light";
+        } catch (_error) {
+          theme = "light";
+        }
+        var root = document.documentElement;
+        root.dataset.theme = theme;
+        root.classList.toggle("sl-theme-dark", theme === "dark");
+        root.classList.toggle("sl-theme-light", theme !== "dark");
+      })();
+    </script>
+    <link rel="stylesheet" href="/shoelace/themes/light.css" />
+    <link rel="stylesheet" href="/shoelace/themes/dark.css" />
+    <link rel="stylesheet" href="/styles.css" />
+    <script type="module" src="/shoelace/shoelace-autoloader.js"></script>
+  </head>
+  <body data-theme="light">
+    <div class="layout">
+      <aside class="sidebar">
+        <div class="brand">
+          <p class="eyebrow">OpenClaw</p>
+          <h1>龙虾控制台</h1>
+          <p class="sub">管理你的 AI 助手：模型、渠道、技能，一站搞定。</p>
+        </div>
+
+        <nav class="tabs sidebar-tabs">
+          <a class="tab" data-tab-target="panel-dashboard" href="/dashboard">仪表盘</a>
+          <a class="tab is-active" data-tab-target="panel-model-add" href="/model/add">模型配置</a>
+          <a class="tab" data-tab-target="panel-chat-console" href="/chat-console">智能对话</a>
+          <a class="tab" data-tab-target="panel-skills" href="/skills">技能管理</a>
+          <a class="tab" data-tab-target="panel-config-generator" href="/config-generator">配置生成器</a>
+          <a class="tab" data-tab-target="panel-channel" href="/channels">平台接入</a>
+          <a class="tab" data-tab-target="panel-update" href="/update">版本更新</a>
+          <a class="tab" data-tab-target="panel-service" href="/service">服务控制</a>
+          <a class="tab" data-tab-target="panel-logs" href="/logs">运行日志</a>
+        </nav>
+      </aside>
+
+      <main class="content">
+        <header class="page-header">
+          <div class="page-header-left">
+            <a class="page-back-link" href="/model" aria-label="返回模型列表" title="返回模型列表">←</a>
+            <div>
+              <h2 class="page-title">模型配置</h2>
+              <p class="page-subtitle">添加模型与供应商</p>
+            </div>
+          </div>
+          <div class="page-header-actions">
+            <button id="theme_toggle" class="btn-soft" type="button">切换到深夜模式</button>
+          </div>
+        </header>
+
+        <section class="panel is-visible" data-panel="panel-model-add">
+          <article id="model_provider_mode_section" class="card">
+            <h2>添加模型</h2>
+            <p class="muted-line">选择一种添加路径后填写即可。</p>
+            <div class="model-provider-mode-switch">
+              <button
+                class="btn-soft model-provider-mode-btn is-active"
+                type="button"
+                data-model-provider-mode="template"
+                aria-pressed="true"
+              >
+                直接添加模型
+              </button>
+              <button class="btn-soft model-provider-mode-btn" type="button" data-model-provider-mode="custom" aria-pressed="false">
+                新增供应商并添加模型
+              </button>
+              <button class="btn-soft model-provider-mode-btn" type="button" data-model-provider-mode="existing" aria-pressed="false">
+                基于已有供应商添加
+              </button>
+            </div>
+            <p id="model_provider_mode_hint" class="muted-line">直接添加模型：选择或自定义模型 ID，每次只写入一个模型。</p>
+          </article>
+
+          <article id="model_provider_template_section" class="card model-add-workspace" data-model-provider-mode-panel="template">
+            <h2>直接添加模型</h2>
+            <p class="muted-line">选模型系列后指定一个模型 ID，只写入这一个模型。</p>
+            <div class="grid">
+              <label>
+                模型系列
+                <select id="model_template_key">
+                  <option value="aicodecat-gpt">GPT 系列</option>
+                  <option value="aicodecat-claude">Claude 系列</option>
+                  <option value="aicodecat-gemini">Gemini 系列</option>
+                </select>
+              </label>
+              <label>
+                提供商名称
+                <input id="template_provider_id" type="text" />
+              </label>
+              <label>
+                模型 ID
+                <div class="field-stack">
+                  <select id="template_model_id"></select>
+                  <input id="template_model_id_custom" class="custom-field" type="text" placeholder="输入自定义模型 ID" />
+                </div>
+              </label>
+              <label>
+                模型名称（可选）
+                <input id="template_model_name" type="text" placeholder="不填则默认使用模型 ID" />
+              </label>
+              <label>
+                API 地址
+                <input id="template_base_url" type="url" />
+              </label>
+              <label>
+                API 密钥
+                <input id="template_api_key" type="password" autocomplete="off" />
+              </label>
+            </div>
+            <details>
+              <summary>高级参数（通常不用改）</summary>
+              <div class="grid">
+                <label>
+                  接口协议
+                  <div class="field-stack">
+                    <select id="template_api">
+                      <option value="openai-responses">openai-responses（GPT Responses）</option>
+                      <option value="openai-completions">openai-completions（GPT 兼容）</option>
+                      <option value="anthropic-messages">anthropic-messages（Claude）</option>
+                      <option value="google-generative-ai">google-generative-ai（Gemini）</option>
+                      <option value="custom">自定义</option>
+                    </select>
+                    <input id="template_api_custom" class="custom-field" type="text" placeholder="输入自定义 API 模式" />
+                  </div>
+                </label>
+                <label class="inline-check">
+                  保存后设为当前默认模型
+                  <input id="template_set_as_primary" type="checkbox" />
+                </label>
+              </div>
+            </details>
+            <label>
+              将写入的模型（单个）
+              <pre id="template_model_preview" class="output"></pre>
+            </label>
+            <div class="actions">
+              <button id="save_provider_template">保存</button>
+            </div>
+            <p id="save_provider_template_status" class="model-add-save-status" role="status" aria-live="polite">
+              填写后点击“保存”，这里会显示结果。
+            </p>
+          </article>
+
+          <article
+            id="model_provider_existing_section"
+            class="card model-add-workspace is-hidden"
+            data-model-provider-mode-panel="existing"
+          >
+            <h2>基于已有供应商添加模型</h2>
+            <p class="muted-line">先选已有供应商，再填模型信息。</p>
+            <div class="grid">
+              <label>
+                已有供应商
+                <select id="existing_provider_id"></select>
+              </label>
+              <label>
+                接口协议（只读）
+                <input id="existing_provider_api" type="text" readonly />
+              </label>
+              <label>
+                API 地址（只读）
+                <input id="existing_provider_baseurl" type="text" readonly />
+              </label>
+              <label>
+                模型 ID
+                <div class="field-stack">
+                  <select id="existing_model_id"></select>
+                  <input id="existing_model_id_custom" class="custom-field" type="text" placeholder="输入自定义模型 ID" />
+                </div>
+              </label>
+              <label>
+                模型名称
+                <input id="existing_model_name" type="text" placeholder="例如 GPT-5.2 Mini" />
+              </label>
+              <label>
+                上下文长度
+                <input id="existing_model_context_window" type="number" min="1" step="1" placeholder="例如 200000" />
+              </label>
+              <label>
+                最大输出长度
+                <input id="existing_model_max_tokens" type="number" min="1" step="1" placeholder="例如 8192" />
+              </label>
+              <label class="inline-check">
+                保存后设为当前默认模型
+                <input id="existing_set_as_primary" type="checkbox" />
+              </label>
+            </div>
+            <div class="actions">
+              <button id="save_provider_existing">保存</button>
+            </div>
+            <p id="save_provider_existing_status" class="model-add-save-status" role="status" aria-live="polite">
+              填写后点击“保存”，这里会显示结果。
+            </p>
+          </article>
+
+          <article id="model_provider_custom_section" class="card model-add-workspace is-hidden" data-model-provider-mode-panel="custom">
+            <h2>新增供应商并添加模型</h2>
+            <p class="muted-line">新增供应商后，指定一个模型 ID 进行写入。</p>
+            <div class="grid">
+              <label>
+                供应商名称
+                <input id="custom_provider_id" type="text" placeholder="例如 my-provider" />
+              </label>
+              <label>
+                API 地址
+                <input id="custom_base_url" type="url" placeholder="例如 https://api.example.com/v1" />
+              </label>
+              <label>
+                API 密钥
+                <input id="custom_api_key" type="password" autocomplete="off" />
+              </label>
+              <label>
+                模型 ID
+                <div class="field-stack">
+                  <select id="custom_model_id"></select>
+                  <input id="custom_model_id_custom" class="custom-field" type="text" placeholder="输入自定义模型 ID" />
+                </div>
+              </label>
+              <label>
+                模型名称（可选）
+                <input id="custom_model_name" type="text" placeholder="不填则默认使用模型 ID" />
+              </label>
+              <label>
+                上下文长度（可选）
+                <input id="custom_model_context_window" type="number" min="1" step="1" placeholder="例如 200000" />
+              </label>
+              <label>
+                最大输出长度（可选）
+                <input id="custom_model_max_tokens" type="number" min="1" step="1" placeholder="例如 8192" />
+              </label>
+            </div>
+            <details>
+              <summary>高级参数（通常不用改）</summary>
+              <div class="grid">
+                <label>
+                  接口协议
+                  <div class="field-stack">
+                    <select id="custom_api">
+                      <option value="openai-responses">openai-responses（GPT Responses）</option>
+                      <option value="openai-completions">openai-completions（GPT 兼容）</option>
+                      <option value="anthropic-messages">anthropic-messages（Claude）</option>
+                      <option value="google-generative-ai">google-generative-ai（Gemini）</option>
+                      <option value="custom">自定义</option>
+                    </select>
+                    <input id="custom_api_custom" class="custom-field" type="text" placeholder="输入自定义 API 模式" />
+                  </div>
+                </label>
+                <label class="inline-check">
+                  保存后设为当前默认模型
+                  <input id="custom_set_as_primary" type="checkbox" />
+                </label>
+              </div>
+            </details>
+            <div class="actions">
+              <button id="save_provider_custom">保存</button>
+            </div>
+            <p id="save_provider_custom_status" class="model-add-save-status" role="status" aria-live="polite">
+              填写后点击“保存”，这里会显示结果。
+            </p>
+          </article>
+        </section>
+
+        <section class="card">
+          <h2>操作记录</h2>
+          <p class="muted-line">每次操作的结果都会记录在这里。</p>
+          <pre id="messages" class="output"></pre>
+        </section>
+      </main>
+    </div>
+
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>

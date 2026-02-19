@@ -1,0 +1,16 @@
+[Unit]
+Description=OpenClaw Visual Panel
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/openclaw-panel
+ExecStart=/usr/bin/node /opt/openclaw-panel/src/server.js
+Restart=always
+RestartSec=3
+Environment=PANEL_CONFIG_PATH=/etc/openclaw-panel/panel.config.json
+
+[Install]
+WantedBy=multi-user.target
+

@@ -1,0 +1,1015 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OpenClaw 龙虾控制台</title>
+        <script>
+      (function initThemeEarly() {
+        var theme = "light";
+        try {
+          var saved = window.localStorage.getItem("openclaw-panel-theme");
+          theme = saved === "dark" ? "dark" : "light";
+        } catch (_error) {
+          theme = "light";
+        }
+        var root = document.documentElement;
+        root.dataset.theme = theme;
+        root.classList.toggle("sl-theme-dark", theme === "dark");
+        root.classList.toggle("sl-theme-light", theme !== "dark");
+      })();
+    </script>    <link rel="stylesheet" href="/shoelace/themes/light.css" />
+    <link rel="stylesheet" href="/shoelace/themes/dark.css" />
+    <link rel="stylesheet" href="/styles.css" />
+    <script type="module" src="/shoelace/shoelace-autoloader.js"></script>
+  </head>
+  <body data-theme="light">
+    <div class="layout">
+      <aside class="sidebar">
+        <div class="brand">
+          <p class="eyebrow">OpenClaw</p>
+          <h1>龙虾控制台</h1>
+          <p class="sub">管理你的 AI 助手：模型、渠道、技能，一站搞定。</p>
+        </div>
+
+        <nav class="tabs sidebar-tabs">
+          <a class="tab" data-tab-target="panel-dashboard" href="/dashboard">仪表盘</a>
+          <a class="tab is-active" data-tab-target="panel-model" href="/model">模型配置</a>
+          <a class="tab" data-tab-target="panel-chat-console" href="/chat-console">智能对话</a>
+          <a class="tab" data-tab-target="panel-skills" href="/skills">技能管理</a>
+          <a class="tab" data-tab-target="panel-config-generator" href="/config-generator">配置生成器</a>
+          <a class="tab" data-tab-target="panel-channel" href="/channels">平台接入</a>
+          <a class="tab" data-tab-target="panel-update" href="/update">版本更新</a>
+          <a class="tab" data-tab-target="panel-service" href="/service">服务控制</a>
+          <a class="tab" data-tab-target="panel-logs" href="/logs">运行日志</a>
+        </nav>
+      </aside>
+
+      <main class="content">
+        <header class="page-header">
+          <div>
+            <h2 class="page-title">龙虾控制台</h2>
+            <p class="page-subtitle">你的 AI 助手管理中心</p>
+          </div>
+          <button id="theme_toggle" class="btn-soft" type="button">切换到深夜模式</button>
+        </header>
+
+        <section class="panel" data-panel="panel-dashboard">
+          <!-- ① 健康状态栏（原仪表盘总览，扁平化） -->
+          <article class="card dashboard-overview-card">
+            <div class="dashboard-overview-row">
+              <div>
+                <h2 class="dashboard-hero-status">
+                  <span class="dot"></span>
+                  <span id="runtime_state">面板已连接</span>
+                  <span class="dashboard-hero-model" id="dashboard_hero_model"></span>
+                </h2>
+              </div>
+              <div class="actions dashboard-overview-actions">
+                <sl-button id="dashboard_summary_refresh" variant="primary" size="small">刷新总览</sl-button>
+              </div>
+            </div>
+            <!-- 技术元数据：保留 ID，对小白隐藏 -->
+            <div class="sr-only" aria-hidden="true">
+              <span id="meta_service_name">service: -</span>
+              <span id="meta_log_source">log: -</span>
+            </div>
+            <div class="dashboard-stat-row">
+              <div class="dashboard-stat">
+                <span class="dashboard-stat-label">运行状态</span>
+                <span id="dashboard_summary_runtime" class="dashboard-stat-value">-</span>
+                <span id="dashboard_summary_runtime_meta" class="sr-only">等待刷新</span>
+              </div>
+              <div class="dashboard-stat">
+                <span class="dashboard-stat-label">当前模型</span>
+                <span id="dashboard_summary_model" class="dashboard-stat-value">-</span>
+                <span id="dashboard_summary_model_meta" class="sr-only">等待刷新</span>
+              </div>
+              <div class="dashboard-stat">
+                <span class="dashboard-stat-label">渠道</span>
+                <span id="dashboard_summary_channels" class="dashboard-stat-value">-</span>
+                <span id="dashboard_summary_channels_meta" class="sr-only">等待刷新</span>
+              </div>
+              <div class="dashboard-stat">
+                <span class="dashboard-stat-label">技能</span>
+                <span id="dashboard_summary_skills" class="dashboard-stat-value">-</span>
+                <span id="dashboard_summary_skills_meta" class="sr-only">等待刷新</span>
+              </div>
+              <div class="dashboard-stat dashboard-stat-error">
+                <span class="dashboard-stat-label">错误</span>
+                <span id="dashboard_summary_errors" class="dashboard-stat-value">-</span>
+                <span id="dashboard_summary_errors_meta" class="sr-only">等待刷新</span>
+              </div>
+              <div class="dashboard-stat">
+                <span class="dashboard-stat-label">版本</span>
+                <span id="dashboard_summary_version" class="dashboard-stat-value">-</span>
+                <span id="dashboard_summary_version_meta" class="sr-only">等待刷新</span>
+              </div>
+            </div>
+            <p id="dashboard_summary_hint" class="muted-line">点击"刷新总览"后显示最新状态。</p>
+          </article>
+
+          <!-- ② 快捷操作（提升到第 2 位） -->
+          <article class="card dashboard-surface-card">
+            <h2>我想要...</h2>
+            <div class="dashboard-quick-grid">
+              <button class="btn-soft dashboard-quick-btn" data-dashboard-jump="panel-chat-console" type="button">打开智能对话</button>
+              <button class="btn-soft dashboard-quick-btn" data-dashboard-jump="panel-model" type="button">配置模型</button>
+              <button class="btn-soft dashboard-quick-btn" data-dashboard-jump="panel-channel" type="button">配置平台接入</button>
+              <button class="btn-soft dashboard-quick-btn" data-dashboard-jump="panel-skills" type="button">管理技能</button>
+              <button class="btn-soft dashboard-quick-btn" data-dashboard-jump="panel-update" type="button">检查版本更新</button>
+              <button class="btn-soft dashboard-quick-btn" data-dashboard-jump="panel-service" type="button">服务控制</button>
+            </div>
+          </article>
+
+          <!-- ③ 切换 AI 模型（精简版） -->
+          <article class="card dashboard-surface-card">
+            <h2>切换 AI 模型</h2>
+            <p class="muted-line">当前模型：<strong id="dashboard_model_display">-</strong></p>
+            <!-- 隐藏字段：保留 ID 防 JS 报错 -->
+            <div class="sr-only" aria-hidden="true">
+              <input id="dashboard_current_model" type="text" readonly />
+              <input id="dashboard_current_provider" type="text" readonly />
+              <input id="dashboard_current_context_window" type="text" readonly />
+              <input id="dashboard_current_thinking_strength" type="text" readonly />
+              <input id="dashboard_quick_context_tokens" data-dashboard-context-input="1" type="number" min="0" step="1" />
+            </div>
+            <div class="dashboard-model-switch-row">
+              <label class="dashboard-model-switch-label">
+                切换到
+                <select id="dashboard_quick_model_ref"></select>
+              </label>
+              <button id="dashboard_quick_switch" class="btn-soft" type="button">切换</button>
+            </div>
+            <p class="muted-line">从长上下文模型切到短上下文模型时，请确保当前会话已用上下文不超过目标模型上限，否则会报错。</p>
+            <p id="dashboard_quick_switch_hint" class="muted-line">选择目标模型后点击切换。</p>
+          </article>
+
+          <!-- ④ 地址与接入配置（折叠，默认收起） -->
+          <article class="card dashboard-surface-card">
+            <sl-details summary="地址与接入配置（初次部署时需要）">
+              <div class="grid">
+                <label>
+                  本地地址
+                  <input id="dashboard_panel_local_url" type="text" readonly />
+                </label>
+                <label>
+                  公网地址
+                  <input id="dashboard_panel_public_url" type="text" readonly />
+                </label>
+                <label>
+                  网关地址
+                  <input id="dashboard_gateway_public_url" type="text" readonly />
+                </label>
+                <label>
+                  Webhook 地址
+                  <input id="dashboard_webhook_base_url" type="text" readonly />
+                </label>
+              </div>
+              <p id="dashboard_public_hint" class="muted-line">
+                若为空，请在 <code>data/panel/panel.config.json</code> 的 <code>reverse_proxy</code> 中填写公网 IP 与端口。
+              </p>
+            </sl-details>
+          </article>
+
+          <!-- ⑤ 运行态明细（技能列表折叠/过滤） -->
+          <article class="card dashboard-surface-card">
+            <h2>运行态明细</h2>
+            <p class="muted-line">当前在跑什么一目了然。</p>
+            <div class="dashboard-runtime-grid">
+              <article class="dashboard-runtime-card">
+                <div class="dashboard-runtime-head">
+                  <h3>渠道运行态</h3>
+                  <span class="muted-line">最近检查与错误</span>
+                </div>
+                <div id="dashboard_channel_runtime_list" class="stack-list dashboard-channel-runtime-list"></div>
+              </article>
+              <article class="dashboard-runtime-card">
+                <div class="dashboard-runtime-head">
+                  <h3>技能运行态</h3>
+                  <span id="dashboard_skills_summary_text" class="muted-line">按技能展示状态</span>
+                </div>
+                <div id="dashboard_skills_runtime_list" class="stack-list dashboard-skills-runtime-list"></div>
+                <button id="dashboard_skills_toggle_all" class="btn-soft dashboard-skills-toggle-btn" type="button" style="display:none;">显示全部</button>
+              </article>
+            </div>
+          </article>
+        </section>
+
+        <section class="panel" data-panel="panel-skills">
+          <article class="card">
+            <h2>技能管理</h2>
+            <p class="muted-line">查看和管理你的 AI 技能，包括启停和配置。</p>
+            <div class="actions">
+              <button id="skills_refresh" type="button">刷新技能列表</button>
+            </div>
+            <div class="grid">
+              <label>
+                总数
+                <input id="skills_total" type="text" readonly />
+              </label>
+              <label>
+                已启用
+                <input id="skills_enabled" type="text" readonly />
+              </label>
+              <label>
+                已禁用
+                <input id="skills_disabled" type="text" readonly />
+              </label>
+            </div>
+            <div id="skills_list" class="stack-list"></div>
+          </article>
+
+          <article class="card">
+            <sl-details summary="查看技能配置（开发者）">
+              <h2>技能配置详情</h2>
+              <p class="muted-line">查看当前选中技能的有效配置（敏感字段已脱敏）。</p>
+              <pre id="skills_config_preview" class="output">请选择一个技能查看配置</pre>
+            </sl-details>
+          </article>
+
+          <article class="card">
+            <h2>修改技能设置</h2>
+            <p class="muted-line">只会写你填写的字段。留空代表不改；环境变量写成 <code>KEY=</code> 代表删除该键。</p>
+            <div class="grid">
+              <label>
+                启用状态
+                <select id="skills_edit_enabled">
+                  <option value="" selected>保持不变</option>
+                  <option value="true">启用</option>
+                  <option value="false">禁用</option>
+                </select>
+              </label>
+              <label>
+                密钥（留空不改）
+                <input id="skills_edit_api_key" type="password" autocomplete="off" placeholder="输入新密钥（可选）" />
+              </label>
+              <label class="inline-check">
+                清除当前密钥
+                <input id="skills_edit_clear_api_key" type="checkbox" />
+              </label>
+            </div>
+            <sl-details summary="高级设置（环境变量）">
+              <label>
+                环境变量补丁（每行一个 KEY=VALUE）
+                <textarea
+                  id="skills_edit_env_patch"
+                  rows="6"
+                  placeholder="例如：&#10;HTTP_PROXY=http://127.0.0.1:7890&#10;OPENAI_BASE_URL=&#10;# 上面第二行表示删除 OPENAI_BASE_URL"
+                ></textarea>
+              </label>
+            </sl-details>
+            <div class="actions">
+              <button id="skills_save_config" type="button">保存设置</button>
+            </div>
+            <p id="skills_save_result" class="muted-line">请选择技能后再进行修改。</p>
+          </article>
+        </section>
+
+        <section class="panel" data-panel="panel-chat-console">
+          <article class="card">
+            <h2>智能对话</h2>
+            <p class="muted-line">面向小白用户的聊天工作台：选会话、发消息、看实时回复，必要时再展开高级调试信息。</p>
+
+            <div class="chat-workspace">
+              <div class="chat-topbar">
+                <div class="actions">
+                  <button id="chat_new_session" type="button">新建会话</button>
+                  <button id="chat_refresh_sessions" class="btn-soft" type="button">刷新会话</button>
+                </div>
+                <div class="actions">
+                  <label class="inline-check">
+                    显示思考状态
+                    <input id="chat_show_thinking" type="checkbox" checked />
+                  </label>
+                  <label>
+                    思考深度
+                    <select id="chat_thinking_level">
+                      <option value="">自动</option>
+                      <option value="minimal">简略</option>
+                      <option value="low">较少</option>
+                      <option value="medium">适中</option>
+                      <option value="high">深入</option>
+                    </select>
+                  </label>
+                </div>
+              </div>
+
+              <div class="grid">
+                <label>
+                  当前会话
+                  <select id="chat_session_select"></select>
+                </label>
+                <label class="sr-only">
+                  最近任务 ID
+                  <input id="chat_last_run_id" type="text" readonly />
+                </label>
+                <label class="sr-only">
+                  实时通道状态
+                  <input id="chat_stream_status" type="text" readonly />
+                </label>
+              </div>
+
+              <div id="chat_messages" class="chat-messages">
+                <div class="chat-empty">请选择会话后开始对话</div>
+              </div>
+
+              <label>
+                输入消息
+                <textarea id="chat_message_input" rows="4" placeholder="输入后按 Enter 发送，Shift+Enter 换行"></textarea>
+              </label>
+              <div class="actions">
+                <button id="chat_pick_files" class="btn-soft" type="button">添加附件</button>
+                <input id="chat_file_input" type="file" multiple hidden />
+                <span id="chat_attachment_hint" class="muted-line">支持点击上传、粘贴或拖拽文件（图片会显示预览）</span>
+              </div>
+              <div id="chat_attachment_list" class="chat-attachment-list">
+                <div class="chat-empty">当前没有附件</div>
+              </div>
+
+              <div class="actions">
+                <button id="chat_send_message" type="button">发送消息</button>
+                <button id="chat_abort_run" class="btn-soft" type="button">停止回复</button>
+                <button id="chat_reset_session" class="btn-soft" type="button">清空当前会话</button>
+              </div>
+              <p id="chat_inline_hint" class="muted-line chat-inline-hint"></p>
+
+              <details class="chat-debug">
+                <summary>排障工具（遇到问题时展开）</summary>
+                <div class="grid">
+                  <label class="sr-only">
+                    幂等键（可选）
+                    <input id="chat_idempotency_key" type="text" placeholder="留空自动生成" />
+                  </label>
+                </div>
+                <div class="actions">
+                  <button id="chat_load_history" class="btn-soft" type="button">刷新历史</button>
+                  <button id="chat_reconnect_stream" class="btn-soft" type="button">重新连接</button>
+                </div>
+                <label>
+                  历史记录（原始数据）
+                  <pre id="chat_history_output" class="output">请选择会话后加载历史</pre>
+                </label>
+                <label>
+                  实时事件（原始数据）
+                  <pre id="chat_stream_output" class="output">等待流式事件...</pre>
+                </label>
+              </details>
+            </div>
+          </article>
+        </section>
+
+        <section class="panel is-visible" data-panel="panel-model">
+          <article class="card">
+            <h2>模型配置</h2>
+            <p class="muted-line">
+              选择你需要的操作：切换已有模型，或添加新的模型服务。
+            </p>
+            <div class="model-flow-grid">
+              <button class="btn-soft model-flow-btn" data-model-flow-jump="model_default_section" type="button">切换默认模型</button>
+              <button class="btn-soft model-flow-btn" data-model-flow-jump="model_provider_mode_section" type="button">添加新模型服务</button>
+            </div>
+          </article>
+
+          <article id="model_default_section" class="card">
+            <h2>切换默认模型</h2>
+            <p class="muted-line">选择要使用的默认模型，然后点击保存。</p>
+            <div class="grid">
+              <label>
+                当前默认模型
+                <select id="model_default_ref"></select>
+              </label>
+              <label class="sr-only">
+                主模型引用
+                <input id="model_current_primary" type="text" readonly />
+              </label>
+              <label class="sr-only">
+                提供商标识
+                <input id="model_current_provider" type="text" readonly />
+              </label>
+              <label class="sr-only">
+                API 模式
+                <input id="model_current_api" type="text" readonly />
+              </label>
+              <label class="sr-only">
+                API 地址
+                <input id="model_current_baseurl" type="text" readonly />
+              </label>
+              <label class="sr-only">
+                模型 ID
+                <input id="model_current_id" type="text" readonly />
+              </label>
+            </div>
+            <sl-details summary="模型详细信息">
+              <div class="grid">
+                <label>
+                  模型名称
+                  <input id="model_current_name" type="text" readonly />
+                </label>
+                <label>
+                  上下文长度
+                  <input id="model_current_context_window" type="text" readonly />
+                </label>
+                <label>
+                  最大输出长度
+                  <input id="model_current_max_tokens" type="text" readonly />
+                </label>
+              </div>
+            </sl-details>
+            <div class="actions">
+              <button id="save_default_model">保存默认模型</button>
+            </div>
+            <p class="muted-line">提示：这里只切换默认模型，不会新增或删除模型服务。</p>
+          </article>
+
+          <article class="card">
+            <h2>可用模型</h2>
+            <p class="muted-line">在这里直接按提供商查看并切换模型。切换前建议填写当前会话上下文，系统会在可能超限时提醒你。</p>
+            <sl-details summary="切换前检查（可选）">
+              <div class="grid">
+                <label>
+                  当前对话已用量
+                  <input
+                    id="dashboard_context_tokens"
+                    data-dashboard-context-input="1"
+                    type="number"
+                    min="0"
+                    step="1"
+                    placeholder="用于切换时上下文超限提示"
+                  />
+                </label>
+              </div>
+              <p id="dashboard_context_hint" class="muted-line">当目标模型上下文更短，且当前会话上下文超过目标上限时，将弹出风险提示。</p>
+            </sl-details>
+            <div id="model_provider_cards" class="provider-grid"></div>
+          </article>
+
+          <article id="model_provider_mode_section" class="card">
+            <h2>添加新模型服务</h2>
+            <p class="muted-line">基础配置适合绝大多数用户；只有你需要自定义 models JSON 时，再切换到自定义模式。</p>
+            <div class="model-provider-mode-switch">
+              <button
+                class="btn-soft model-provider-mode-btn is-active"
+                type="button"
+                data-model-provider-mode="template"
+                aria-pressed="true"
+              >
+                快速配置（推荐）
+              </button>
+              <button class="btn-soft model-provider-mode-btn" type="button" data-model-provider-mode="custom" aria-pressed="false">
+                高级模式
+              </button>
+            </div>
+            <p id="model_provider_mode_hint" class="muted-line">当前为快速配置模式：你通常只需要填写服务名称、接口地址和密钥。</p>
+          </article>
+
+          <article id="model_provider_template_section" class="card" data-model-provider-mode-panel="template">
+            <h2>快速配置</h2>
+            <p class="muted-line">选择模型类型，填写基本信息即可使用。</p>
+            <div class="grid">
+              <label>
+                模型类型
+                <select id="model_template_key">
+                  <option value="aicodecat-gpt">GPT 系列</option>
+                  <option value="aicodecat-claude">Claude 系列</option>
+                  <option value="aicodecat-gemini">Gemini 系列</option>
+                </select>
+              </label>
+              <label>
+                服务名称
+                <input id="template_provider_id" type="text" />
+              </label>
+              <label>
+                接口地址
+                <input id="template_base_url" type="url" />
+              </label>
+              <label>
+                密钥
+                <input id="template_api_key" type="password" autocomplete="off" />
+              </label>
+            </div>
+            <details>
+              <summary>高级参数（通常不用改）</summary>
+              <div class="grid">
+                <label>
+                  接口协议
+                  <div class="field-stack">
+                    <select id="template_api">
+                      <option value="openai-responses">openai-responses（GPT Responses）</option>
+                      <option value="openai-completions">openai-completions（GPT 兼容）</option>
+                      <option value="anthropic-messages">anthropic-messages（Claude）</option>
+                      <option value="google-generative-ai">google-generative-ai（Gemini）</option>
+                      <option value="custom">自定义</option>
+                    </select>
+                    <input id="template_api_custom" class="custom-field" type="text" placeholder="输入自定义 API 模式" />
+                  </div>
+                </label>
+                <label>
+                  设为默认模型
+                  <select id="template_default_model_id"></select>
+                </label>
+                <label class="inline-check">
+                  保存后设为当前默认模型
+                  <input id="template_set_as_primary" type="checkbox" />
+                </label>
+              </div>
+            </details>
+            <label>
+              模板内置模型（可直接用）
+              <pre id="template_model_preview" class="output"></pre>
+            </label>
+            <div class="actions">
+              <button id="save_provider_template">保存</button>
+            </div>
+            <p class="muted-line">提示：保存后默认只新增模型服务；勾选「保存后设为当前默认模型」才会同时切换默认模型。</p>
+          </article>
+
+          <article id="model_provider_custom_section" class="card is-hidden" data-model-provider-mode-panel="custom">
+            <h2>高级模式</h2>
+            <p class="muted-line">需要完全自定义时，直接编辑模型 JSON 数组。每个模型至少要有 id 和 name。</p>
+            <div class="grid">
+              <label>
+                服务名称
+                <input id="custom_provider_id" type="text" placeholder="例如 my-provider" />
+              </label>
+              <label>
+                接口协议
+                <div class="field-stack">
+                  <select id="custom_api">
+                    <option value="openai-responses">openai-responses（GPT Responses）</option>
+                    <option value="openai-completions">openai-completions（GPT 兼容）</option>
+                    <option value="anthropic-messages">anthropic-messages（Claude）</option>
+                    <option value="google-generative-ai">google-generative-ai（Gemini）</option>
+                    <option value="custom">自定义</option>
+                  </select>
+                  <input id="custom_api_custom" class="custom-field" type="text" placeholder="输入自定义 API 模式" />
+                </div>
+              </label>
+              <label>
+                接口地址
+                <input id="custom_base_url" type="url" placeholder="例如 https://api.example.com/v1" />
+              </label>
+              <label>
+                密钥
+                <input id="custom_api_key" type="password" autocomplete="off" />
+              </label>
+              <label>
+                默认模型 ID
+                <div class="field-stack">
+                  <select id="custom_default_model_id"></select>
+                  <input
+                    id="custom_default_model_id_custom"
+                    class="custom-field"
+                    type="text"
+                    placeholder="输入 models 数组中的某个 id"
+                  />
+                </div>
+              </label>
+              <label class="inline-check">
+                保存后设为当前默认模型
+                <input id="custom_set_as_primary" type="checkbox" />
+              </label>
+            </div>
+            <label>
+              models 数组 JSON
+              <textarea id="custom_models_json" rows="10" placeholder='[{"id":"model-id","name":"模型名","reasoning":true,"input":["text","image"],"contextWindow":200000,"maxTokens":64000}]'></textarea>
+            </label>
+            <div class="actions">
+              <button id="save_provider_custom">保存</button>
+            </div>
+          </article>
+        </section>
+
+        <section class="panel" data-panel="panel-config-generator">
+          <article class="card">
+            <h2>高级配置工具</h2>
+            <p class="muted-line">普通用户请使用「模型配置」页面，这里面向开发者。</p>
+            <sl-details summary="展开配置工具">
+
+            <div class="grid">
+              <label>
+                服务商
+                <div class="field-stack">
+                  <select id="cfg_provider">
+                    <option value="aicodecat">aicodecat</option>
+                    <option value="custom">自定义</option>
+                  </select>
+                  <input id="cfg_provider_custom" class="custom-field" type="text" placeholder="输入自定义服务商 ID" />
+                </div>
+              </label>
+
+              <label>
+                接口协议
+                <div class="field-stack">
+                  <select id="cfg_apimode">
+                    <option value="anthropic-messages">anthropic-messages（Claude）</option>
+                    <option value="openai-responses" selected>openai-responses（GPT）</option>
+                    <option value="openai-completions">openai-completions（GPT 兼容）</option>
+                    <option value="google-generative-ai">google-generative-ai（Gemini）</option>
+                    <option value="custom">自定义</option>
+                  </select>
+                  <input id="cfg_apimode_custom" class="custom-field" type="text" placeholder="输入自定义 API 模式" />
+                </div>
+              </label>
+            </div>
+
+            <div class="grid">
+              <label>
+                接口地址
+                <div class="field-stack">
+                  <select id="cfg_baseurl">
+                    <option value="https://aicode.cat/v1" selected>https://aicode.cat/v1 (GPT)</option>
+                    <option value="https://aicode.cat">https://aicode.cat (Claude)</option>
+                    <option value="https://aicode.cat/v1beta">https://aicode.cat/v1beta (Gemini)</option>
+                    <option value="custom">自定义</option>
+                  </select>
+                  <input id="cfg_baseurl_custom" class="custom-field" type="url" placeholder="输入自定义 Base URL" />
+                </div>
+              </label>
+
+              <label>
+                模型 ID
+                <div class="field-stack">
+                  <select id="cfg_model_id"></select>
+                  <input id="cfg_model_id_custom" class="custom-field" type="text" placeholder="输入自定义模型 ID" />
+                </div>
+              </label>
+            </div>
+
+            <div class="grid">
+              <label>
+                密钥
+                <input id="cfg_apikey" type="password" autocomplete="off" placeholder="输入密钥" />
+              </label>
+              <label>
+                保留已有配置
+                <select id="cfg_inherit_existing">
+                  <option value="false" selected>否（只生成当前页面配置）</option>
+                  <option value="true">是（保留当前配置中的其他字段）</option>
+                </select>
+              </label>
+              <label>
+                状态
+                <input id="cfg_status" type="text" value="就绪" readonly />
+              </label>
+            </div>
+
+            <label>
+              原始配置
+              <textarea id="cfg_input" rows="8" placeholder="粘贴你的 ~/.openclaw/openclaw.json"></textarea>
+            </label>
+
+            <div class="actions">
+              <button id="cfg_generate" type="button">生成配置</button>
+              <button id="cfg_copy" class="btn-soft" type="button">复制结果</button>
+            </div>
+
+            <label>
+              生成结果
+              <pre id="cfg_output" class="output">响应将显示在这里</pre>
+            </label>
+            </sl-details>
+          </article>
+        </section>
+
+        <section class="panel" data-panel="panel-channel">
+          <article class="card">
+            <h2>平台接入</h2>
+            <p class="muted-line">配置你的聊天平台连接，修改后点击保存生效。</p>
+            <p class="muted-line sr-only">
+              范围说明：本页面只写入 `channels.telegram` / `channels.feishu` / `channels.discord` / `channels.slack`（以及飞书兼容所需
+              `accounts.main`），不会创建任何面板私有“虚拟渠道”。
+            </p>
+            <div class="actions">
+              <button id="save_settings">保存渠道配置</button>
+            </div>
+          </article>
+
+          <article class="card">
+            <h2>Telegram</h2>
+            <p class="muted-line sr-only">对应 channels.telegram.*，默认建议 DM 策略用 pairing。</p>
+            <div class="grid">
+              <label class="inline-check">
+                启用 Telegram
+                <input id="tg_enabled" type="checkbox" />
+              </label>
+              <label>
+                机器人令牌
+                <input id="tg_bot_token" type="text" autocomplete="off" />
+              </label>
+              <label>
+                私聊权限
+                <select id="tg_dm_policy">
+                  <option value="pairing">配对验证（推荐）</option>
+                  <option value="allowlist">白名单</option>
+                  <option value="open">完全开放</option>
+                  <option value="disabled">关闭</option>
+                </select>
+              </label>
+              <label>
+                群聊权限
+                <select id="tg_group_policy">
+                  <option value="allowlist">白名单</option>
+                  <option value="open">完全开放</option>
+                  <option value="disabled">关闭</option>
+                </select>
+              </label>
+              <label>
+                消息发送方式
+                <select id="tg_stream_mode">
+                  <option value="partial">逐步发送（推荐）</option>
+                  <option value="block">整条发送</option>
+                  <option value="off">关闭</option>
+                </select>
+              </label>
+              <label class="inline-check">
+                群聊需要 @ 才回复
+                <input id="tg_require_mention" type="checkbox" />
+              </label>
+            </div>
+            <div class="grid">
+              <label>
+                允许的用户（每行一个）
+                <textarea id="tg_allow_from" rows="4"></textarea>
+              </label>
+              <label>
+                允许的群组（每行一个）
+                <textarea id="tg_group_allow_from" rows="4"></textarea>
+              </label>
+            </div>
+            <div class="actions">
+              <button id="test_telegram" class="btn-soft">测试 Telegram</button>
+              <button id="save_and_test_telegram" class="btn-soft">保存并测试 Telegram</button>
+            </div>
+            <p id="tg_test_result" class="muted-line">最近测试：未执行</p>
+          </article>
+
+          <article class="card">
+            <h2>飞书</h2>
+            <p class="muted-line sr-only">对应 channels.feishu.*，兼容 accounts.main。</p>
+            <div class="grid">
+              <label class="inline-check">
+                启用 Feishu
+                <input id="fs_enabled" type="checkbox" />
+              </label>
+              <label>
+                App ID
+                <input id="fs_app_id" type="text" />
+              </label>
+              <label>
+                应用密钥
+                <input id="fs_app_secret" type="password" autocomplete="off" />
+              </label>
+              <label>
+                Domain
+                <select id="fs_domain">
+                  <option value="feishu">feishu</option>
+                  <option value="lark">lark</option>
+                </select>
+              </label>
+              <label>
+                连接方式
+                <select id="fs_connection_mode">
+                  <option value="websocket">长连接（推荐）</option>
+                  <option value="webhook">回调模式</option>
+                </select>
+              </label>
+              <label>
+                私聊权限
+                <select id="fs_dm_policy">
+                  <option value="pairing">配对验证（推荐）</option>
+                  <option value="allowlist">白名单</option>
+                  <option value="open">完全开放</option>
+                </select>
+              </label>
+              <label>
+                群聊权限
+                <select id="fs_group_policy">
+                  <option value="allowlist">白名单</option>
+                  <option value="open">完全开放</option>
+                  <option value="disabled">关闭</option>
+                </select>
+              </label>
+              <label class="inline-check">
+                群聊需要 @ 才回复
+                <input id="fs_require_mention" type="checkbox" />
+              </label>
+            </div>
+            <div class="grid">
+              <label>
+                允许的用户（每行一个）
+                <textarea id="fs_allow_from" rows="4"></textarea>
+              </label>
+              <label>
+                允许的群组（每行一个）
+                <textarea id="fs_group_allow_from" rows="4"></textarea>
+              </label>
+            </div>
+            <div class="actions">
+              <button id="test_feishu" class="btn-soft">测试 Feishu</button>
+              <button id="save_and_test_feishu" class="btn-soft">保存并测试 Feishu</button>
+            </div>
+            <p id="fs_test_result" class="muted-line">最近测试：未执行</p>
+          </article>
+
+          <article class="card">
+            <h2>Discord</h2>
+            <p class="muted-line sr-only">
+              对应 `channels.discord.*`，`requireMention` 映射到 `channels.discord.guilds["*"].requireMention`。
+            </p>
+            <div class="grid">
+              <label class="inline-check">
+                启用 Discord
+                <input id="dc_enabled" type="checkbox" />
+              </label>
+              <label>
+                机器人令牌
+                <input id="dc_token" type="password" autocomplete="off" />
+              </label>
+              <label>
+                私聊权限
+                <select id="dc_dm_policy">
+                  <option value="pairing">配对验证（推荐）</option>
+                  <option value="allowlist">白名单</option>
+                  <option value="open">完全开放</option>
+                  <option value="disabled">关闭</option>
+                </select>
+              </label>
+              <label>
+                群聊权限
+                <select id="dc_group_policy">
+                  <option value="allowlist">白名单</option>
+                  <option value="open">完全开放</option>
+                  <option value="disabled">关闭</option>
+                </select>
+              </label>
+              <label class="inline-check">
+                允许其他机器人触发
+                <input id="dc_allow_bots" type="checkbox" />
+              </label>
+              <label class="inline-check">
+                群聊需要 @ 才回复
+                <input id="dc_require_mention" type="checkbox" />
+              </label>
+            </div>
+            <div class="grid">
+              <label>
+                允许的用户（每行一个）
+                <textarea id="dc_allow_from" rows="4"></textarea>
+              </label>
+            </div>
+            <div class="actions">
+              <button id="test_discord" class="btn-soft">测试 Discord</button>
+            </div>
+            <p id="dc_test_result" class="muted-line">最近测试：未执行</p>
+          </article>
+
+          <article class="card">
+            <h2>Slack</h2>
+            <p class="muted-line sr-only">对应 channels.slack.*，支持 socket/http 两种模式。</p>
+            <div class="grid">
+              <label class="inline-check">
+                启用 Slack
+                <input id="sl_enabled" type="checkbox" />
+              </label>
+              <label>
+                连接模式
+                <select id="sl_mode">
+                  <option value="socket">socket</option>
+                  <option value="http">http</option>
+                </select>
+              </label>
+              <label>
+                机器人令牌（xoxb-...）
+                <input id="sl_bot_token" type="password" autocomplete="off" />
+              </label>
+              <label>
+                应用令牌（xapp-...，socket 模式常用）
+                <input id="sl_app_token" type="password" autocomplete="off" />
+              </label>
+              <label>
+                签名密钥（http 模式必填）
+                <input id="sl_signing_secret" type="password" autocomplete="off" />
+              </label>
+              <label>
+                私聊权限
+                <select id="sl_dm_policy">
+                  <option value="pairing">配对验证（推荐）</option>
+                  <option value="allowlist">白名单</option>
+                  <option value="open">完全开放</option>
+                  <option value="disabled">关闭</option>
+                </select>
+              </label>
+              <label>
+                群聊权限
+                <select id="sl_group_policy">
+                  <option value="allowlist">白名单</option>
+                  <option value="open">完全开放</option>
+                  <option value="disabled">关闭</option>
+                </select>
+              </label>
+              <label class="inline-check">
+                允许其他机器人触发
+                <input id="sl_allow_bots" type="checkbox" />
+              </label>
+              <label class="inline-check">
+                群聊需要 @ 才回复
+                <input id="sl_require_mention" type="checkbox" />
+              </label>
+            </div>
+            <div class="grid">
+              <label>
+                允许的用户（每行一个）
+                <textarea id="sl_allow_from" rows="4"></textarea>
+              </label>
+            </div>
+            <div class="actions">
+              <button id="test_slack" class="btn-soft">测试 Slack</button>
+            </div>
+            <p id="sl_test_result" class="muted-line">最近测试：未执行</p>
+          </article>
+        </section>
+
+        <section class="panel" data-panel="panel-update">
+          <article class="card">
+            <h2>OpenClaw 版本更新</h2>
+            <p class="muted-line">检查并升级到最新版本，升级失败时可一键回滚。</p>
+
+            <div class="status-row">
+              <span class="pill" id="update_state">未检查</span>
+              <span class="muted-line" id="update_hint">建议先点“检查更新”，再执行升级。</span>
+            </div>
+
+            <div class="grid">
+              <label>
+                当前版本
+                <input id="update_current_tag" type="text" readonly />
+              </label>
+              <label>
+                最新版本
+                <input id="update_latest_tag" type="text" readonly />
+              </label>
+              <label>
+                目标版本
+                <input id="update_target_tag" type="text" placeholder="例如 v2026.2.14" />
+              </label>
+            </div>
+
+            <div class="actions">
+              <button id="check_update">检查更新</button>
+              <button id="upgrade_update">升级到目标版本</button>
+              <button id="rollback_update" class="btn-soft">回滚到目标版本</button>
+            </div>
+          </article>
+        </section>
+
+        <section class="panel" data-panel="panel-service">
+          <article class="card">
+            <h2>服务控制</h2>
+            <div class="status-row">
+              <span class="pill" id="service_state">未知</span>
+              <span class="muted-line" id="service_hint">页面会自动刷新一次状态，你也可以点击“刷新状态”。</span>
+            </div>
+            <div class="actions">
+              <button data-action="status">刷新状态</button>
+              <button data-action="start">启动</button>
+              <button data-action="stop">停止</button>
+              <button data-action="restart">重启</button>
+            </div>
+            <pre id="service_output" class="output"></pre>
+          </article>
+        </section>
+
+        <section class="panel" data-panel="panel-logs">
+          <article class="card">
+            <h2>运行日志</h2>
+            <div class="actions">
+              <label class="filter">
+                关键字过滤
+                <input id="log_filter" type="text" placeholder="error / timeout / token ..." />
+              </label>
+              <button id="load_tail">加载最近日志</button>
+              <button id="start_stream">开始实时查看</button>
+              <button id="stop_stream" class="btn-soft">停止实时查看</button>
+              <button id="load_errors" class="btn-soft">查看最近错误</button>
+            </div>
+            <pre id="log_output" class="output"></pre>
+            <ul id="error_summary" class="error-list"></ul>
+          </article>
+        </section>
+
+        <section class="card">
+          <h2>操作时间线</h2>
+          <p class="muted-line">每次点击后的结果都会记录在这里，方便你定位问题。</p>
+          <pre id="messages" class="output"></pre>
+        </section>
+      </main>
+    </div>
+
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>
+
+
+
+

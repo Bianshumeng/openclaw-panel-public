@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OpenClaw 龙虾控制台</title>
+        <script>
+      (function initThemeEarly() {
+        var theme = "light";
+        try {
+          var saved = window.localStorage.getItem("openclaw-panel-theme");
+          theme = saved === "dark" ? "dark" : "light";
+        } catch (_error) {
+          theme = "light";
+        }
+        var root = document.documentElement;
+        root.dataset.theme = theme;
+        root.classList.toggle("sl-theme-dark", theme === "dark");
+        root.classList.toggle("sl-theme-light", theme !== "dark");
+      })();
+    </script>    <link rel="stylesheet" href="/shoelace/themes/light.css" />
+    <link rel="stylesheet" href="/shoelace/themes/dark.css" />
+    <link rel="stylesheet" href="/styles.css" />
+    <script type="module" src="/shoelace/shoelace-autoloader.js"></script>
+    <style>
+      .service-status-hero {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+        padding: 28px 16px 20px;
+      }
+
+      .service-status-hero .pill {
+        font-size: 18px;
+        font-weight: 700;
+        padding: 10px 28px;
+        letter-spacing: 0.02em;
+      }
+
+      .service-hint-text {
+        margin: 0;
+        color: var(--muted);
+        font-size: 13px;
+        text-align: center;
+      }
+
+      .service-page-intro {
+        margin: 0;
+        color: var(--muted);
+        font-size: 13px;
+        text-align: center;
+        padding-bottom: 4px;
+      }
+
+      .service-actions-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 10px;
+      }
+
+      .service-actions-grid button {
+        padding: 12px 16px;
+        font-size: 14px;
+      }
+
+      .btn-danger-soft {
+        background: var(--soft-button);
+        border-color: var(--danger);
+        color: var(--danger);
+      }
+
+      .btn-danger-soft:hover {
+        background: #fef2f2;
+      }
+
+      body[data-theme="dark"] .btn-danger-soft:hover {
+        background: #2a1515;
+      }
+
+      .service-output-section h3 {
+        margin: 0 0 4px;
+        font-size: 15px;
+        font-weight: 600;
+      }
+
+      .service-output-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+      }
+
+      .service-output-header button {
+        font-size: 12px;
+        padding: 4px 10px;
+      }
+    </style>
+  </head>
+  <body data-theme="light">
+    <div class="layout">
+      <aside class="sidebar">
+        <div class="brand">
+          <p class="eyebrow">OpenClaw</p>
+          <h1>龙虾控制台</h1>
+          <p class="sub">管理你的 AI 助手：模型、渠道、技能，一站搞定。</p>
+        </div>
+
+                <nav class="tabs sidebar-tabs">
+          <a class="tab" data-tab-target="panel-dashboard" href="/dashboard">仪表盘</a>
+          <a class="tab" data-tab-target="panel-model" href="/model">模型配置</a>
+          <a class="tab" data-tab-target="panel-chat-console" href="/chat-console">智能对话</a>
+          <a class="tab" data-tab-target="panel-skills" href="/skills">技能管理</a>
+          <a class="tab" data-tab-target="panel-config-generator" href="/config-generator">配置生成器</a>
+          <a class="tab" data-tab-target="panel-channel" href="/channels">平台接入</a>
+          <a class="tab" data-tab-target="panel-update" href="/update">版本更新</a>
+          <a class="tab is-active" data-tab-target="panel-service" href="/service">服务控制</a>
+          <a class="tab" data-tab-target="panel-logs" href="/logs">运行日志</a>
+        </nav>
+      </aside>
+
+      <main class="content">
+        <header class="page-header">
+          <div>
+            <h2 class="page-title">龙虾控制台</h2>
+            <p class="page-subtitle">你的 AI 助手管理中心</p>
+          </div>
+          <button id="theme_toggle" class="btn-soft" type="button">切换到深夜模式</button>
+        </header>
+
+<section class="panel is-visible" data-panel="panel-service">
+          <!-- 状态区：视觉焦点 -->
+          <article class="card">
+            <h2>服务控制</h2>
+            <p class="service-page-intro">在这里检查服务状态，并执行启动、停止、重启操作。</p>
+            <div class="service-status-hero">
+              <span class="pill" id="service_state">还没检查</span>
+              <p class="service-hint-text" id="service_hint">页面会自动刷新一次状态，你也可以随时点击“刷新状态”</p>
+            </div>
+
+            <!-- 操作按钮 -->
+            <div class="service-actions-grid">
+              <button class="btn-soft" data-action="status">刷新状态</button>
+              <button data-action="start">启动服务</button>
+              <button class="btn-danger-soft" data-action="stop">停止服务</button>
+              <button class="btn-soft" data-action="restart">重启服务</button>
+            </div>
+          </article>
+
+          <!-- 运行信息 -->
+          <article class="card">
+            <div class="service-output-section">
+              <div class="service-output-header">
+                <h3>运行信息</h3>
+                <button class="btn-soft" onclick="document.getElementById('service_output').textContent=''">清空</button>
+              </div>
+              <pre id="service_output" class="output"></pre>
+            </div>
+          </article>
+        </section>
+
+        <!-- 操作记录 -->
+        <section class="card">
+          <h2>操作记录</h2>
+          <p class="muted-line">每次操作的结果都会记录在这里，方便你回头查看。</p>
+          <pre id="messages" class="output"></pre>
+        </section>
+      </main>
+    </div>
+
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>
+
+
+

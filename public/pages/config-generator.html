@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OpenClaw 龙虾控制台</title>
+        <script>
+      (function initThemeEarly() {
+        var theme = "light";
+        try {
+          var saved = window.localStorage.getItem("openclaw-panel-theme");
+          theme = saved === "dark" ? "dark" : "light";
+        } catch (_error) {
+          theme = "light";
+        }
+        var root = document.documentElement;
+        root.dataset.theme = theme;
+        root.classList.toggle("sl-theme-dark", theme === "dark");
+        root.classList.toggle("sl-theme-light", theme !== "dark");
+      })();
+    </script>    <link rel="stylesheet" href="/shoelace/themes/light.css" />
+    <link rel="stylesheet" href="/shoelace/themes/dark.css" />
+    <link rel="stylesheet" href="/styles.css" />
+    <script type="module" src="/shoelace/shoelace-autoloader.js"></script>
+  </head>
+  <body data-theme="light">
+    <div class="layout">
+      <aside class="sidebar">
+        <div class="brand">
+          <p class="eyebrow">OpenClaw</p>
+          <h1>龙虾控制台</h1>
+          <p class="sub">管理你的 AI 助手：模型、渠道、技能，一站搞定。</p>
+        </div>
+
+                <nav class="tabs sidebar-tabs">
+          <a class="tab" data-tab-target="panel-dashboard" href="/dashboard">仪表盘</a>
+          <a class="tab" data-tab-target="panel-model" href="/model">模型配置</a>
+          <a class="tab" data-tab-target="panel-chat-console" href="/chat-console">智能对话</a>
+          <a class="tab" data-tab-target="panel-skills" href="/skills">技能管理</a>
+          <a class="tab is-active" data-tab-target="panel-config-generator" href="/config-generator">配置生成器</a>
+          <a class="tab" data-tab-target="panel-channel" href="/channels">平台接入</a>
+          <a class="tab" data-tab-target="panel-update" href="/update">版本更新</a>
+          <a class="tab" data-tab-target="panel-service" href="/service">服务控制</a>
+          <a class="tab" data-tab-target="panel-logs" href="/logs">运行日志</a>
+        </nav>
+      </aside>
+
+      <main class="content">
+        <header class="page-header">
+          <div>
+            <h2 class="page-title">龙虾控制台</h2>
+            <p class="page-subtitle">你的 AI 助手管理中心</p>
+          </div>
+          <button id="theme_toggle" class="btn-soft" type="button">切换到深夜模式</button>
+        </header>
+
+<section class="panel is-visible" data-panel="panel-config-generator">
+          <article class="card config-generator-card">
+            <h2>配置生成器</h2>
+            <p class="muted-line">这个工具用于手动生成配置文件。如果你只是想切换模型，请去「模型配置」页面。</p>
+
+            <div class="grid">
+              <label>
+                AI 服务商
+                <div class="field-stack">
+                  <select id="cfg_provider">
+                    <option value="aicodecat">aicodecat</option>
+                    <option value="custom">自定义</option>
+                  </select>
+                  <input id="cfg_provider_custom" class="custom-field" type="text" placeholder="输入自定义服务商 ID" />
+                </div>
+              </label>
+
+              <label>
+                API 协议
+                <div class="field-stack">
+                  <select id="cfg_apimode">
+                    <option value="anthropic-messages">anthropic-messages（Claude）</option>
+                    <option value="openai-responses" selected>openai-responses（GPT）</option>
+                    <option value="openai-completions">openai-completions（GPT 兼容）</option>
+                    <option value="google-generative-ai">google-generative-ai（Gemini）</option>
+                    <option value="custom">自定义</option>
+                  </select>
+                  <input id="cfg_apimode_custom" class="custom-field" type="text" placeholder="输入自定义 API 模式" />
+                </div>
+              </label>
+            </div>
+
+            <div class="grid">
+              <label>
+                API 地址
+                <div class="field-stack">
+                  <select id="cfg_baseurl">
+                    <option value="https://aicode.cat/v1" selected>https://aicode.cat/v1 (GPT)</option>
+                    <option value="https://aicode.cat">https://aicode.cat (Claude)</option>
+                    <option value="https://aicode.cat/v1beta">https://aicode.cat/v1beta (Gemini)</option>
+                    <option value="custom">自定义</option>
+                  </select>
+                  <input id="cfg_baseurl_custom" class="custom-field" type="url" placeholder="输入自定义 Base URL" />
+                </div>
+              </label>
+
+              <label>
+                模型标识
+                <div class="field-stack">
+                  <select id="cfg_model_id"></select>
+                  <input id="cfg_model_id_custom" class="custom-field" type="text" placeholder="输入自定义模型标识" />
+                </div>
+              </label>
+            </div>
+
+            <div class="grid">
+              <label>
+                API 密钥
+                <div class="cfg-secret-field">
+                  <input id="cfg_apikey" type="password" autocomplete="off" placeholder="输入 API 密钥" />
+                  <button id="cfg_apikey_toggle" class="btn-soft cfg-secret-toggle" type="button" aria-label="显示 API 密钥" title="显示 API 密钥">
+                    👁
+                  </button>
+                </div>
+              </label>
+              <label>
+                模型最大上下文
+                <input id="cfg_context_window" type="number" min="1" step="1" placeholder="例如 400000" />
+              </label>
+              <label>
+                最大输出内容
+                <input id="cfg_max_tokens" type="number" min="1" step="1" placeholder="例如 128000" />
+              </label>
+              <label class="inline-check">
+                开启推理
+                <input id="cfg_reasoning" type="checkbox" />
+              </label>
+              <label>
+                合并到现有配置
+                <select id="cfg_inherit_existing">
+                  <option value="false" selected>否，生成全新配置</option>
+                  <option value="true">是，保留现有配置的其他设置</option>
+                </select>
+              </label>
+              <label>
+                状态
+                <input id="cfg_status" type="text" value="就绪" readonly />
+              </label>
+            </div>
+
+            <label>
+              当前配置（粘贴你的 openclaw.json）
+              <textarea id="cfg_input" rows="8" placeholder="粘贴你的 ~/.openclaw/openclaw.json"></textarea>
+            </label>
+
+            <div class="actions">
+              <button id="cfg_generate" type="button">生成配置</button>
+              <button id="cfg_copy" class="btn-soft" type="button">复制结果</button>
+            </div>
+
+            <label>
+              生成的配置
+              <pre id="cfg_output" class="output">点击「生成配置」后结果会显示在这里</pre>
+            </label>
+          </article>
+        </section>
+
+        <section class="card">
+          <h2>操作记录</h2>
+          <p class="muted-line">每次点击后的结果都会记录在这里，方便你定位问题。</p>
+          <pre id="messages" class="output"></pre>
+        </section>
+      </main>
+    </div>
+
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>
+
+
+

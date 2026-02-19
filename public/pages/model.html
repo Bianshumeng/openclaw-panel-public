@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OpenClaw 龙虾控制台</title>
+        <script>
+      (function initThemeEarly() {
+        var theme = "light";
+        try {
+          var saved = window.localStorage.getItem("openclaw-panel-theme");
+          theme = saved === "dark" ? "dark" : "light";
+        } catch (_error) {
+          theme = "light";
+        }
+        var root = document.documentElement;
+        root.dataset.theme = theme;
+        root.classList.toggle("sl-theme-dark", theme === "dark");
+        root.classList.toggle("sl-theme-light", theme !== "dark");
+      })();
+    </script>    <link rel="stylesheet" href="/shoelace/themes/light.css" />
+    <link rel="stylesheet" href="/shoelace/themes/dark.css" />
+    <link rel="stylesheet" href="/styles.css" />
+    <script type="module" src="/shoelace/shoelace-autoloader.js"></script>
+  </head>
+  <body data-theme="light">
+    <div class="layout">
+      <aside class="sidebar">
+        <div class="brand">
+          <p class="eyebrow">OpenClaw</p>
+          <h1>龙虾控制台</h1>
+          <p class="sub">管理你的 AI 助手：模型、渠道、技能，一站搞定。</p>
+        </div>
+
+                <nav class="tabs sidebar-tabs">
+          <a class="tab" data-tab-target="panel-dashboard" href="/dashboard">仪表盘</a>
+          <a class="tab is-active" data-tab-target="panel-model" href="/model">模型配置</a>
+          <a class="tab" data-tab-target="panel-chat-console" href="/chat-console">智能对话</a>
+          <a class="tab" data-tab-target="panel-skills" href="/skills">技能管理</a>
+          <a class="tab" data-tab-target="panel-config-generator" href="/config-generator">配置生成器</a>
+          <a class="tab" data-tab-target="panel-channel" href="/channels">平台接入</a>
+          <a class="tab" data-tab-target="panel-update" href="/update">版本更新</a>
+          <a class="tab" data-tab-target="panel-service" href="/service">服务控制</a>
+          <a class="tab" data-tab-target="panel-logs" href="/logs">运行日志</a>
+        </nav>
+      </aside>
+
+      <main class="content">
+        <header class="page-header">
+          <div>
+            <h2 class="page-title">龙虾控制台</h2>
+            <p class="page-subtitle">你的 AI 助手管理中心</p>
+          </div>
+          <button id="theme_toggle" class="btn-soft" type="button">切换到深夜模式</button>
+        </header>
+
+<section class="panel is-visible" data-panel="panel-model">
+          <div class="sr-only" aria-hidden="true">
+            <label>
+              正在使用
+              <select id="model_default_ref"></select>
+            </label>
+          </div>
+
+          <article class="card model-overview-card">
+            <div class="model-overview-head">
+              <div>
+                <h2>当前已配置模型</h2>
+                <p class="muted-line">按提供商分组显示。点击模型卡片可编辑，支持删除模型或整个供应商。</p>
+              </div>
+              <a
+                id="model_add_toggle"
+                class="model-add-toggle model-add-toggle-primary"
+                href="/model/add"
+                title="添加新模型"
+                aria-label="添加新模型"
+              >
+                添加新模型
+              </a>
+            </div>
+            <sl-details summary="切换风险提示（可选）">
+              <div class="grid">
+                <label>
+                  当前会话上下文 token（可选）
+                  <input
+                    id="dashboard_context_tokens"
+                    data-dashboard-context-input="1"
+                    type="number"
+                    min="0"
+                    step="1"
+                    placeholder="不填则按保守策略提醒"
+                  />
+                </label>
+              </div>
+              <p id="dashboard_context_hint" class="muted-line">切换到更小上下文模型时，若会话过长会先给出风险确认。</p>
+            </sl-details>
+            <div id="model_provider_cards" class="model-provider-groups"></div>
+          </article>
+
+          <article class="card model-raw-config-card">
+            <h2>当前龙虾 Bot 配置文件（实时 JSON）</h2>
+            <p class="muted-line model-raw-config-meta">
+              最后同步：<span id="model_raw_config_mtime">-</span> · 大小：<span id="model_raw_config_size">-</span>
+            </p>
+            <label>
+              配置 JSON
+              <textarea id="model_raw_config_editor" class="model-raw-config-editor" rows="18" spellcheck="false"></textarea>
+            </label>
+            <div class="actions">
+              <button id="model_raw_config_reload" class="btn-soft" type="button">刷新真实配置</button>
+              <button id="model_raw_config_save" type="button">保存到配置文件</button>
+            </div>
+            <p id="model_raw_config_status" class="muted-line model-raw-config-status">尚未加载配置文件。</p>
+          </article>
+
+          <sl-dialog id="model_provider_edit_dialog" label="编辑供应商">
+            <div class="model-dialog-grid">
+              <label>
+                供应商名称
+                <input id="model_provider_edit_id" type="text" />
+              </label>
+              <label>
+                API 模式
+                <input id="model_provider_edit_api" type="text" placeholder="例如 openai-responses" />
+              </label>
+              <label>
+                API 地址
+                <input id="model_provider_edit_baseurl" type="url" placeholder="例如 https://api.example.com/v1" />
+              </label>
+              <label>
+                API 密钥（可选）
+                <input id="model_provider_edit_apikey" type="password" autocomplete="off" placeholder="留空表示不修改" />
+              </label>
+            </div>
+            <p class="muted-line model-dialog-hint">修改供应商名称后，该供应商下所有模型引用会自动迁移。</p>
+            <div slot="footer" class="actions">
+              <button id="model_provider_edit_cancel" class="btn-soft" type="button">取消</button>
+              <button id="model_provider_edit_submit" type="button">保存</button>
+            </div>
+          </sl-dialog>
+
+          <sl-dialog id="model_item_edit_dialog" label="编辑模型">
+            <div class="model-dialog-grid">
+              <label>
+                所属供应商
+                <input id="model_item_edit_provider" type="text" readonly />
+              </label>
+              <label>
+                模型 ID
+                <input id="model_item_edit_id" type="text" />
+              </label>
+              <label>
+                模型名称
+                <input id="model_item_edit_name" type="text" />
+              </label>
+              <label>
+                最大上下文
+                <input id="model_item_edit_context_window" type="number" min="1" step="1" placeholder="例如 200000" />
+              </label>
+              <label>
+                最大输出
+                <input id="model_item_edit_max_tokens" type="number" min="1" step="1" placeholder="例如 8192" />
+              </label>
+            </div>
+            <div slot="footer" class="actions">
+              <button id="model_item_edit_cancel" class="btn-soft" type="button">取消</button>
+              <button id="model_item_edit_submit" type="button">保存</button>
+            </div>
+          </sl-dialog>
+        </section>
+
+        <section class="card">
+          <h2>操作记录</h2>
+          <p class="muted-line">每次操作的结果都会记录在这里。</p>
+          <pre id="messages" class="output"></pre>
+        </section>
+      </main>
+    </div>
+
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>
+
+
+
+

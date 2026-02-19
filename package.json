@@ -1,0 +1,27 @@
+{
+  "name": "openclaw-panel-mvp",
+  "version": "0.1.2",
+  "private": true,
+  "type": "module",
+  "description": "OpenClaw visual panel MVP for Debian templates",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "build:runtime": "node scripts/build-runtime.mjs",
+    "check": "node src/smoke-check.js",
+    "test": "npm run test:unit && npm run test:regression",
+    "test:unit": "node --test \"test/unit/*.test.js\"",
+    "test:regression": "node --test \"test/regression/*.test.js\""
+  },
+  "dependencies": {
+    "@fastify/static": "^7.0.4",
+    "@shoelace-style/shoelace": "^2.20.1",
+    "fastify": "^4.29.1",
+    "ws": "^8.19.0",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.12",
+    "terser": "^5.39.0"
+  }
+}
