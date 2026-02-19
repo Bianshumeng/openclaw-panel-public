@@ -418,6 +418,48 @@ const TELEGRAM_JSON_FIELD_RULES = Object.freeze([
   }
 ]);
 
+const TELEGRAM_ADVANCED_DEFAULT_INPUTS = Object.freeze({
+  tg_enabled: false,
+  tg_token_file: "",
+  tg_dm_policy: "pairing",
+  tg_allow_from: "",
+  tg_group_policy: "allowlist",
+  tg_group_allow_from: "",
+  tg_require_mention: true,
+  tg_stream_mode: "partial",
+  tg_chunk_mode: "length",
+  tg_text_chunk_limit: "",
+  tg_reply_to_mode: "off",
+  tg_link_preview: true,
+  tg_block_streaming: false,
+  tg_timeout_seconds: "",
+  tg_media_max_mb: "",
+  tg_dm_history_limit: "",
+  tg_history_limit: "",
+  tg_webhook_url: "",
+  tg_webhook_secret: "",
+  tg_webhook_path: "/telegram-webhook",
+  tg_proxy: "",
+  tg_config_writes: true,
+  tg_reaction_level: "minimal",
+  tg_reaction_notifications: "own",
+  tg_inline_buttons: "allowlist",
+  tg_action_send_message: true,
+  tg_action_reactions: true,
+  tg_action_delete_message: true,
+  tg_action_sticker: false,
+  tg_network_auto_select_family: "default",
+  tg_retry_attempts: "",
+  tg_retry_min_delay_ms: "",
+  tg_retry_max_delay_ms: "",
+  tg_retry_jitter: "",
+  tg_commands_native: "default",
+  tg_groups_json: "",
+  tg_accounts_json: "",
+  tg_custom_commands_json: "",
+  tg_draft_chunk_json: ""
+});
+
 function validateOptionalJsonField(elementId, label, expectedType) {
   const element = document.querySelector(`#${elementId}`);
   if (!element) {
@@ -448,6 +490,24 @@ function validateTelegramJsonOverrides() {
   TELEGRAM_JSON_FIELD_RULES.forEach((rule) => {
     validateOptionalJsonField(rule.elementId, `Telegram ${rule.label}`, rule.expectedType);
   });
+}
+
+function applyTelegramAdvancedDefaults() {
+  Object.entries(TELEGRAM_ADVANCED_DEFAULT_INPUTS).forEach(([elementId, value]) => {
+    setInput(elementId, value);
+  });
+}
+
+async function resetTelegramAdvancedSettings() {
+  const shouldReset = window.confirm("将 Telegram 高级配置重置为默认值并立即保存，是否继续？");
+  if (!shouldReset) {
+    setMessage("已取消重置 Telegram 高级配置", "info");
+    return;
+  }
+
+  applyTelegramAdvancedDefaults();
+  await saveSettings();
+  setMessage("Telegram 高级配置已重置为默认值并保存", "ok");
 }
 
 function collectChannelSettings() {
@@ -1278,6 +1338,7 @@ export {
   loadInitialData,
   loadTail,
   mutateVersion,
+  resetTelegramAdvancedSettings,
   renderChannelAccessOverview,
   runService,
   saveAndTestFeishu,

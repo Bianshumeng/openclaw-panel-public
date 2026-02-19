@@ -16,6 +16,7 @@ import {
   loadInitialData,
   loadTail,
   mutateVersion,
+  resetTelegramAdvancedSettings,
   runService,
   saveAndTestFeishu,
   saveAndTestTelegram,
@@ -81,6 +82,9 @@ document.querySelector("#tg_pairing_approve")?.addEventListener("click", () => {
 });
 document.querySelector("#tg_save_advanced")?.addEventListener("click", () => {
   saveSettings().catch((error) => setMessage(error.message, "error"));
+});
+document.querySelector("#tg_reset_advanced")?.addEventListener("click", () => {
+  resetTelegramAdvancedSettings().catch((error) => setMessage(error.message, "error"));
 });
 document.querySelector("#save_and_test_telegram")?.addEventListener("click", () => {
   saveAndTestTelegram().catch((error) => setMessage(error.message, "error"));

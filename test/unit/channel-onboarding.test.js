@@ -135,6 +135,57 @@ test("setupTelegramBasic treats already-enabled plugin output as success", async
   assert.equal(result.steps[0].ok, true);
 });
 
+test("setupTelegramBasic retries failed step and succeeds without repeated clicking", async () => {
+  const waits = [];
+  let telegramEnableAttempt = 0;
+  const runCommand = async (_command, args) => {
+    const line = args.join(" ");
+    if (line === "config set channels.telegram.enabled true") {
+      telegramEnableAttempt += 1;
+      if (telegramEnableAttempt === 1) {
+        return {
+          ok: false,
+          code: 1,
+          stdout: "",
+          stderr: "transient error",
+          message: "command failed"
+        };
+      }
+    }
+    return {
+      ok: true,
+      code: 0,
+      stdout: "ok",
+      stderr: "",
+      message: ""
+    };
+  };
+
+  const result = await setupTelegramBasic({
+    panelConfig: {
+      runtime: {
+        mode: "systemd"
+      }
+    },
+    botToken: "token-value",
+    deps: {
+      runCommand,
+      setupStepRetryAttempts: 3,
+      setupStepRetryDelayMs: 10,
+      sleep: async (ms) => {
+        waits.push(ms);
+      }
+    }
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(result.steps.length, 4);
+  assert.equal(result.steps[1].ok, false);
+  assert.match(result.steps[1].label, /尝试 1\/3/);
+  assert.match(result.steps[2].label, /尝试 2\/3/);
+  assert.deepEqual(waits, [10]);
+});
+
 test("approveTelegramPairing falls back to node openclaw.mjs when openclaw executable is missing", async () => {
   const calls = [];
   const runCommand = async (command, args) => {
