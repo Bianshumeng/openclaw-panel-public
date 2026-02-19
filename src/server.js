@@ -23,7 +23,13 @@ import { runServiceAction } from "./systemd.js";
 import { createLogStream, getErrorSummary, getTailLogs } from "./logs.js";
 import { testDiscordBot, testFeishuBot, testSlackBot, testTelegramBot } from "./channel-tests.js";
 import { expandHome, toPositiveInt } from "./utils.js";
-import { applyPulledTag, checkForUpdates, pullTag, rollbackToTag, upgradeToTag } from "./docker-update.js";
+import {
+  applyPanelDirectUpdate,
+  checkBotDirectUpdate,
+  checkPanelDirectUpdate,
+  mutateBotDirectUpdate,
+  stagePanelDirectUpdate
+} from "./direct-update.js";
 import { buildDashboardSummary } from "./dashboard-service.js";
 import { getSkillConfig, listSkillsStatus, prepareSkillConfigUpdate, setSkillEnabled } from "./skills-service.js";
 import { approveTelegramPairing, setupTelegramBasic } from "./channel-onboarding.js";
@@ -62,7 +68,7 @@ const updateCheckQuerySchema = z.object({
   target: updateTargetSchema.optional().default("bot")
 });
 const tagPayloadSchema = z.object({
-  tag: z.string().min(1, "tag 不能为空"),
+  tag: z.string().optional().default(""),
   target: updateTargetSchema.optional().default("bot")
 });
 const skillEnabledPayloadSchema = z.object({
@@ -155,16 +161,6 @@ const rawOpenClawConfigPayloadSchema = z.object({
   rawText: z.string().min(1, "配置 JSON 不能为空"),
   expectedMtimeMs: z.number().nonnegative().optional()
 });
-
-function ensureDockerMode(panelConfig) {
-  if ((panelConfig?.runtime?.mode || "systemd") !== "docker") {
-    throw new Error("当前不是 Docker 运行模式，不能执行镜像升级/回滚。");
-  }
-}
-
-const LEGACY_OPENCLAW_IMAGE_REPO = "ghcr.io/openclaw/openclaw";
-const DEFAULT_OPENCLAW_IMAGE_REPO = "ghcr.io/bianshumeng/openclaw-mymy";
-const DEFAULT_PANEL_IMAGE_REPO = "ghcr.io/bianshumeng/openclaw-panel";
 
 function normalizeBaseUrl(value) {
   const text = String(value || "").trim();
@@ -391,22 +387,17 @@ function resolveUpdateTarget(panelConfig, target = "bot") {
   if (selectedTarget === "panel") {
     return {
       target: selectedTarget,
-      containerName: trimText(panelConfig?.panel?.container_name) || "openclaw-panel",
-      imageRepo: trimText(panelConfig?.panel?.image_repo) || DEFAULT_PANEL_IMAGE_REPO,
-      upgradeMode: "pull-only"
+      releaseRepo: trimText(panelConfig?.update?.panel_release_repo),
+      panelServiceName: trimText(panelConfig?.update?.panel_service_name) || "openclaw-panel",
+      panelAppDir: trimText(panelConfig?.update?.panel_app_dir),
+      upgradeMode: "staged-apply"
     };
   }
 
-  const configuredImageRepo = trimText(panelConfig?.openclaw?.image_repo);
-  const imageRepo =
-    !configuredImageRepo || configuredImageRepo === LEGACY_OPENCLAW_IMAGE_REPO
-      ? DEFAULT_OPENCLAW_IMAGE_REPO
-      : configuredImageRepo;
   return {
     target: selectedTarget,
-    containerName: trimText(panelConfig?.openclaw?.container_name) || trimText(panelConfig?.openclaw?.service_name) || "openclaw-gateway",
-    imageRepo,
-    upgradeMode: "recreate"
+    releaseRepo: trimText(panelConfig?.update?.bot_release_repo),
+    upgradeMode: "direct"
   };
 }
 
@@ -517,6 +508,7 @@ app.put("/api/panel-config", async (request, reply) => {
       reverse_proxy: { ...defaults.reverse_proxy, ...(payload.reverse_proxy || {}) },
       openclaw: { ...defaults.openclaw, ...(payload.openclaw || {}) },
       docker: { ...defaults.docker, ...(payload.docker || {}) },
+      update: { ...defaults.update, ...(payload.update || {}) },
       log: { ...defaults.log, ...(payload.log || {}) }
     };
     const saved = await savePanelConfig(merged);
@@ -1481,14 +1473,19 @@ app.get("/api/update/check", async (request, reply) => {
   try {
     const query = updateCheckQuerySchema.parse(request.query || {});
     const { config: panelConfig } = await loadPanelConfig();
-    ensureDockerMode(panelConfig);
     const targetConfig = resolveUpdateTarget(panelConfig, query.target);
     const githubToken = trimText(panelConfig?.update?.github_token);
-    const result = await checkForUpdates({
-      containerName: targetConfig.containerName,
-      imageRepo: targetConfig.imageRepo,
-      githubToken
-    });
+    const result =
+      targetConfig.target === "panel"
+        ? await checkPanelDirectUpdate({
+            releaseRepo: targetConfig.releaseRepo,
+            githubToken,
+            appDir: targetConfig.panelAppDir
+          })
+        : await checkBotDirectUpdate({
+            runCmd: runCommand,
+            releaseRepo: targetConfig.releaseRepo
+          });
     return {
       ok: true,
       result: {
@@ -1510,24 +1507,21 @@ app.post("/api/update/upgrade", async (request, reply) => {
   try {
     const payload = tagPayloadSchema.parse(request.body || {});
     const { config: panelConfig } = await loadPanelConfig();
-    ensureDockerMode(panelConfig);
     const targetConfig = resolveUpdateTarget(panelConfig, payload.target);
+    const githubToken = trimText(panelConfig?.update?.github_token);
     let result;
     if (targetConfig.target === "panel") {
-      const pulled = await pullTag({
-        containerName: targetConfig.containerName,
-        targetTag: payload.tag,
-        imageRepo: targetConfig.imageRepo
+      result = await stagePanelDirectUpdate({
+        tag: payload.tag,
+        releaseRepo: targetConfig.releaseRepo,
+        githubToken,
+        appDir: targetConfig.panelAppDir
       });
-      result = {
-        ...pulled,
-        message: pulled.ok ? "控制台镜像拉取成功；请点击“重启并应用更新”完成升级" : pulled.message
-      };
     } else {
-      result = await upgradeToTag({
-        containerName: targetConfig.containerName,
-        targetTag: payload.tag,
-        imageRepo: targetConfig.imageRepo
+      result = await mutateBotDirectUpdate({
+        action: "upgrade",
+        tag: payload.tag,
+        runCmd: runCommand
       });
     }
     return {
@@ -1551,25 +1545,28 @@ app.post("/api/update/rollback", async (request, reply) => {
   try {
     const payload = tagPayloadSchema.parse(request.body || {});
     const { config: panelConfig } = await loadPanelConfig();
-    ensureDockerMode(panelConfig);
     const targetConfig = resolveUpdateTarget(panelConfig, payload.target);
+    const githubToken = trimText(panelConfig?.update?.github_token);
     let result;
     if (targetConfig.target === "panel") {
-      const pulled = await pullTag({
-        containerName: targetConfig.containerName,
-        targetTag: payload.tag,
-        imageRepo: targetConfig.imageRepo
+      if (!trimText(payload.tag)) {
+        throw new Error("回滚必须填写目标版本号");
+      }
+      result = await stagePanelDirectUpdate({
+        tag: payload.tag,
+        releaseRepo: targetConfig.releaseRepo,
+        githubToken,
+        appDir: targetConfig.panelAppDir
       });
-      result = {
-        ...pulled,
-        action: "rollback-pull",
-        message: pulled.ok ? "控制台回滚镜像拉取成功；请点击“重启并应用更新”完成回滚" : pulled.message
-      };
+      result.action = "rollback-stage";
+      result.message = result.ok
+        ? `已准备回滚版本包 ${trimText(payload.tag)}，请点击“应用更新并重启”完成回滚。`
+        : result.message;
     } else {
-      result = await rollbackToTag({
-        containerName: targetConfig.containerName,
-        targetTag: payload.tag,
-        imageRepo: targetConfig.imageRepo
+      result = await mutateBotDirectUpdate({
+        action: "rollback",
+        tag: payload.tag,
+        runCmd: runCommand
       });
     }
     return {
@@ -1593,20 +1590,22 @@ app.post("/api/update/apply", async (request, reply) => {
   try {
     const payload = tagPayloadSchema.parse(request.body || {});
     const { config: panelConfig } = await loadPanelConfig();
-    ensureDockerMode(panelConfig);
     const targetConfig = resolveUpdateTarget(panelConfig, payload.target);
+    const githubToken = trimText(panelConfig?.update?.github_token);
     let result;
     if (targetConfig.target === "panel") {
-      result = await applyPulledTag({
-        containerName: targetConfig.containerName,
-        targetTag: payload.tag,
-        imageRepo: targetConfig.imageRepo
+      result = await applyPanelDirectUpdate({
+        tag: payload.tag,
+        releaseRepo: targetConfig.releaseRepo,
+        githubToken,
+        appDir: targetConfig.panelAppDir,
+        panelServiceName: targetConfig.panelServiceName
       });
     } else {
-      result = await upgradeToTag({
-        containerName: targetConfig.containerName,
-        targetTag: payload.tag,
-        imageRepo: targetConfig.imageRepo
+      result = await mutateBotDirectUpdate({
+        action: "upgrade",
+        tag: payload.tag,
+        runCmd: runCommand
       });
     }
     return {
