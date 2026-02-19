@@ -5,9 +5,19 @@ const DEFAULT_DOCKER_CLI_PREFIXES = [
   ["openclaw"],
   ["node", "/app/openclaw.mjs"]
 ];
+const DEFAULT_SETUP_STEP_RETRY_ATTEMPTS = 3;
+const DEFAULT_SETUP_STEP_RETRY_DELAY_MS = 400;
 
 function trimText(value) {
   return String(value || "").trim();
+}
+
+function toPositiveInt(value, fallback) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return fallback;
+  }
+  return Math.floor(parsed);
 }
 
 function composeContainerName(panelConfig) {
@@ -224,6 +234,15 @@ export async function setupTelegramBasic({ panelConfig, botToken, deps = {} }) {
   if (!token) {
     throw new Error("Bot Token 不能为空");
   }
+  const setupRetryAttempts = toPositiveInt(deps.setupStepRetryAttempts, DEFAULT_SETUP_STEP_RETRY_ATTEMPTS);
+  const setupRetryDelayMs = toPositiveInt(deps.setupStepRetryDelayMs, DEFAULT_SETUP_STEP_RETRY_DELAY_MS);
+  const wait =
+    typeof deps.sleep === "function"
+      ? deps.sleep
+      : async (ms) =>
+          await new Promise((resolve) => {
+            setTimeout(resolve, ms);
+          });
 
   let activeDockerCliPrefix = [];
 
@@ -247,30 +266,47 @@ export async function setupTelegramBasic({ panelConfig, botToken, deps = {} }) {
 
   const steps = [];
   for (const definition of stepDefs) {
-    const { dockerCliPrefix: resolvedDockerCliPrefix, ...result } = await runOpenClawCli({
-      panelConfig,
-      openclawArgs: definition.openclawArgs,
-      dockerCliPrefix: activeDockerCliPrefix,
-      redactOpenclawArgIndices: definition.redactOpenclawArgIndices || [],
-      secrets: definition.secrets || [],
-      deps
-    });
-    if (Array.isArray(resolvedDockerCliPrefix) && resolvedDockerCliPrefix.length > 0) {
-      activeDockerCliPrefix = [...resolvedDockerCliPrefix];
+    let accepted = false;
+    for (let attempt = 1; attempt <= setupRetryAttempts; attempt += 1) {
+      const { dockerCliPrefix: resolvedDockerCliPrefix, ...result } = await runOpenClawCli({
+        panelConfig,
+        openclawArgs: definition.openclawArgs,
+        dockerCliPrefix: activeDockerCliPrefix,
+        redactOpenclawArgIndices: definition.redactOpenclawArgIndices || [],
+        secrets: definition.secrets || [],
+        deps
+      });
+      if (Array.isArray(resolvedDockerCliPrefix) && resolvedDockerCliPrefix.length > 0) {
+        activeDockerCliPrefix = [...resolvedDockerCliPrefix];
+      }
+      accepted =
+        Boolean(result.ok) || (definition.allowAlreadyEnabled === true && isAlreadyEnabledOutput(result.output));
+      const retryWaitMs = setupRetryDelayMs * attempt;
+      const needsRetryHint = !accepted && attempt < setupRetryAttempts;
+      const output = needsRetryHint
+        ? [result.output, `步骤失败，${retryWaitMs}ms 后自动重试`].filter(Boolean).join("\n")
+        : result.output;
+      const step = {
+        ...result,
+        ok: accepted,
+        label: setupRetryAttempts > 1 ? `${definition.label}（尝试 ${attempt}/${setupRetryAttempts}）` : definition.label,
+        output
+      };
+      steps.push(step);
+
+      if (accepted) {
+        break;
+      }
+      if (needsRetryHint) {
+        await wait(retryWaitMs);
+      }
     }
-    const accepted = result.ok || (definition.allowAlreadyEnabled && isAlreadyEnabledOutput(result.output));
-    const step = {
-      ...result,
-      ok: accepted,
-      label: definition.label
-    };
-    steps.push(step);
 
     if (!accepted) {
       return {
         ok: false,
         failedStep: definition.label,
-        message: `${definition.label}失败`,
+        message: `${definition.label}失败（已重试 ${setupRetryAttempts} 次）`,
         steps
       };
     }
