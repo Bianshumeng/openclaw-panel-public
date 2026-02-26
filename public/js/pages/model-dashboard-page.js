@@ -900,9 +900,21 @@ function renderDashboardModelCards(modelSettings) {
 
 let dashboardGatewayTokenSyncPending = false;
 let dashboardGatewayTokenLoadPending = false;
+let dashboardGatewayPairingApprovePending = false;
+let dashboardGatewayRestartPending = false;
 
 function setDashboardGatewayTokenStatus(message, type = "info") {
   const statusEl = document.querySelector("#dashboard_gateway_token_status");
+  if (!statusEl) {
+    return;
+  }
+  statusEl.textContent = String(message || "").trim();
+  statusEl.classList.toggle("is-done", type === "ok");
+  statusEl.classList.toggle("is-fail", type === "error");
+}
+
+function setDashboardGatewayPairingStatus(message, type = "info") {
+  const statusEl = document.querySelector("#dashboard_gateway_pairing_status");
   if (!statusEl) {
     return;
   }
@@ -1076,6 +1088,102 @@ async function syncDashboardGatewayToken() {
   }
 }
 
+async function approveDashboardPendingPairings() {
+  if (dashboardGatewayPairingApprovePending) {
+    setMessage("待处理配对审批正在执行，请稍候", "info");
+    return;
+  }
+
+  const triggerButton = document.querySelector("#dashboard_gateway_pairing_approve");
+  dashboardGatewayPairingApprovePending = true;
+  if (triggerButton instanceof HTMLButtonElement) {
+    triggerButton.disabled = true;
+    triggerButton.setAttribute("aria-busy", "true");
+  }
+  setDashboardGatewayPairingStatus("正在读取并批准待处理配对请求...", "info");
+
+  try {
+    const result = await api("/api/gateway/pairing/approve-pending", {
+      method: "POST",
+      allowBusinessError: true
+    });
+    const payload = result?.result || {};
+    if (!result.ok) {
+      throw new Error(payload.message || result.message || "待处理配对审批失败");
+    }
+
+    const pendingCount = Number(payload.pendingCount || 0);
+    const approvedCount = Number(payload.approvedCount || 0);
+    const failedCount = Number(payload.failedCount || 0);
+    if (pendingCount === 0) {
+      setDashboardGatewayPairingStatus("当前没有待处理配对请求，无需审批。", "ok");
+      setMessage("当前没有待处理配对请求", "ok");
+      return;
+    }
+    if (failedCount > 0) {
+      const detail = String(payload.message || "存在审批失败项").trim();
+      setDashboardGatewayPairingStatus(`审批部分失败：成功 ${approvedCount} / 失败 ${failedCount}`, "error");
+      setMessage(`待处理配对审批失败：${detail}`, "error");
+      return;
+    }
+
+    setDashboardGatewayPairingStatus(`已批准 ${approvedCount} 个待处理配对请求`, "ok");
+    setMessage(`待处理配对审批完成：${approvedCount} 个`, "ok");
+  } catch (error) {
+    const detail = error.message || String(error);
+    setDashboardGatewayPairingStatus(`审批失败：${detail}`, "error");
+    setMessage(`待处理配对审批失败：${detail}`, "error");
+  } finally {
+    dashboardGatewayPairingApprovePending = false;
+    if (triggerButton instanceof HTMLButtonElement) {
+      triggerButton.disabled = false;
+      triggerButton.setAttribute("aria-busy", "false");
+    }
+  }
+}
+
+async function restartDashboardGatewayService() {
+  if (dashboardGatewayRestartPending) {
+    setMessage("网关重启正在执行，请稍候", "info");
+    return;
+  }
+
+  const triggerButton = document.querySelector("#dashboard_gateway_restart");
+  dashboardGatewayRestartPending = true;
+  if (triggerButton instanceof HTMLButtonElement) {
+    triggerButton.disabled = true;
+    triggerButton.setAttribute("aria-busy", "true");
+  }
+  setDashboardGatewayPairingStatus("正在重启网关服务...", "info");
+
+  try {
+    const result = await api("/api/service/restart", {
+      method: "POST",
+      allowBusinessError: true
+    });
+    const payload = result?.result || {};
+    const actionOk = payload?.ok !== false;
+    if (!result.ok || !actionOk) {
+      const failureDetail = String(payload.output || payload.message || result.message || "网关重启失败").trim();
+      throw new Error(failureDetail);
+    }
+    const detail = String(payload.message || payload.output || "执行成功").trim();
+    const detailText = truncateText(detail);
+    setDashboardGatewayPairingStatus(`网关重启完成：${detailText}`, "ok");
+    setMessage(`网关重启完成：${detailText}`, "ok");
+  } catch (error) {
+    const detail = error.message || String(error);
+    setDashboardGatewayPairingStatus(`网关重启失败：${detail}`, "error");
+    setMessage(`网关重启失败：${detail}`, "error");
+  } finally {
+    dashboardGatewayRestartPending = false;
+    if (triggerButton instanceof HTMLButtonElement) {
+      triggerButton.disabled = false;
+      triggerButton.setAttribute("aria-busy", "false");
+    }
+  }
+}
+
 function setupDashboard() {
   if (modelEditorState.dashboardBound) {
     return;
@@ -1173,6 +1281,22 @@ function setupDashboard() {
     copyDashboardGatewayToken().catch((error) => {
       const detail = error.message || String(error);
       setMessage(`Gateway Token 复制失败：${detail}`, "error");
+    });
+  });
+
+  document.querySelector("#dashboard_gateway_pairing_approve")?.addEventListener("click", () => {
+    approveDashboardPendingPairings().catch((error) => {
+      const detail = error.message || String(error);
+      setDashboardGatewayPairingStatus(`审批失败：${detail}`, "error");
+      setMessage(`待处理配对审批失败：${detail}`, "error");
+    });
+  });
+
+  document.querySelector("#dashboard_gateway_restart")?.addEventListener("click", () => {
+    restartDashboardGatewayService().catch((error) => {
+      const detail = error.message || String(error);
+      setDashboardGatewayPairingStatus(`网关重启失败：${detail}`, "error");
+      setMessage(`网关重启失败：${detail}`, "error");
     });
   });
 

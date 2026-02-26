@@ -4,9 +4,9 @@ const DOCKER_STATUS_PROBE_DELAY_MS = 1100;
 const DOCKER_ACTION_VERIFY_DELAY_MS = 1800;
 const DOCKER_STOP_VERIFY_DELAY_MS = 500;
 
-function run(command, args) {
+function run(command, args, exec = execFile) {
   return new Promise((resolve) => {
-    execFile(command, args, { timeout: 15000 }, (error, stdout, stderr) => {
+    exec(command, args, { timeout: 15000 }, (error, stdout, stderr) => {
       resolve({
         ok: !error,
         code: error?.code ?? 0,
@@ -24,37 +24,124 @@ function sleep(ms) {
   });
 }
 
-async function runSystemdAction(action, serviceName) {
-  if (process.platform !== "linux") {
+function isMissingExecutableResult(result, executableName) {
+  const executable = String(executableName || "").trim().toLowerCase();
+  if (!executable) {
+    return false;
+  }
+  if (result?.code === "ENOENT") {
+    return true;
+  }
+  const text = [result?.stdout, result?.stderr, result?.message].filter(Boolean).join("\n").toLowerCase();
+  if (!text) {
+    return false;
+  }
+  const hasExecName = text.includes(`exec: "${executable}"`) || text.includes(`exec: ${executable}`);
+  if (!hasExecName) {
+    return false;
+  }
+  return text.includes("not found") || text.includes("no such file") || text.includes("executable file not found");
+}
+
+function buildMissingCliHint(platform) {
+  if (platform === "win32") {
+    return "未找到 openclaw CLI。请在 Windows 安装 OpenClaw CLI，或在 WSL2/网关主机运行面板后再重试。";
+  }
+  if (platform === "darwin") {
+    return "未找到 openclaw CLI。请先安装 OpenClaw CLI 后再重试。";
+  }
+  return "未找到 openclaw CLI。请先安装 OpenClaw CLI 后再重试。";
+}
+
+async function runGatewayCliAction(action, { execFile: execOverride, platform, serviceName } = {}) {
+  const exec = execOverride || execFile;
+  const resolvedPlatform = platform || process.platform;
+  const resolvedServiceName = serviceName || "openclaw-gateway";
+  const runWith = async (binary) => {
+    const result = await run(binary, ["gateway", action], exec);
+    const output = [result.stdout, result.stderr, result.message].filter(Boolean).join("\n").trim();
+    return { binary, result, output };
+  };
+
+  const primary = await runWith("openclaw");
+  const missingPrimary = !primary.result.ok && isMissingExecutableResult(primary.result, "openclaw");
+  if (missingPrimary && resolvedPlatform === "win32") {
+    const fallback = await runWith("openclaw.cmd");
+    const missingFallback = !fallback.result.ok && isMissingExecutableResult(fallback.result, "openclaw.cmd");
+    if (!missingFallback) {
+      return {
+        ok: fallback.result.ok,
+        action,
+        runtimeMode: "cli",
+        serviceName: resolvedServiceName,
+        active: action === "status" ? fallback.result.ok : undefined,
+        output: fallback.output,
+        message: fallback.output
+      };
+    }
+  }
+  if (missingPrimary) {
+    const hint = buildMissingCliHint(resolvedPlatform);
+    return {
+      ok: false,
+      action,
+      runtimeMode: "cli",
+      serviceName: resolvedServiceName,
+      active: false,
+      missingExecutable: true,
+      output: [hint, primary.output].filter(Boolean).join("\n"),
+      message: hint
+    };
+  }
+  return {
+    ok: primary.result.ok,
+    action,
+    runtimeMode: "cli",
+    serviceName: resolvedServiceName,
+    active: action === "status" ? primary.result.ok : undefined,
+    output: primary.output,
+    message: primary.output
+  };
+}
+
+async function runSystemdAction(action, serviceName, deps = {}) {
+  const platform = deps.platform || process.platform;
+  const exec = deps.execFile || execFile;
+  if (platform !== "linux") {
     return {
       ok: false,
       action,
       runtimeMode: "systemd",
       serviceName,
-      output: "仅 Linux + systemd 环境支持服务控制。"
+      output: "仅 Linux + systemd 环境支持服务控制。",
+      message: "仅 Linux + systemd 环境支持服务控制。"
     };
   }
 
   if (action === "status") {
-    const active = await run("systemctl", ["is-active", serviceName]);
-    const details = await run("systemctl", ["status", serviceName, "--no-pager", "-n", "30"]);
+    const active = await run("systemctl", ["is-active", serviceName], exec);
+    const details = await run("systemctl", ["status", serviceName, "--no-pager", "-n", "30"], exec);
+    const output = [active.stdout, details.stdout, details.stderr].filter(Boolean).join("\n");
     return {
       ok: active.ok,
       action,
       runtimeMode: "systemd",
       serviceName,
       active: active.stdout === "active",
-      output: [active.stdout, details.stdout, details.stderr].filter(Boolean).join("\n")
+      output,
+      message: output
     };
   }
 
-  const result = await run("systemctl", [action, serviceName]);
+  const result = await run("systemctl", [action, serviceName], exec);
+  const output = [result.stdout, result.stderr, result.message].filter(Boolean).join("\n");
   return {
     ok: result.ok,
     action,
     runtimeMode: "systemd",
     serviceName,
-    output: [result.stdout, result.stderr, result.message].filter(Boolean).join("\n")
+    output,
+    message: output
   };
 }
 
@@ -74,8 +161,9 @@ function parseDockerInspectResult(stdout) {
   }
 }
 
-async function inspectDockerState(containerName) {
-  const inspect = await run("docker", ["inspect", containerName]);
+async function inspectDockerState(containerName, deps = {}) {
+  const exec = deps.execFile || execFile;
+  const inspect = await run("docker", ["inspect", containerName], exec);
   if (!inspect.ok) {
     return {
       ok: false,
@@ -135,10 +223,12 @@ function buildDockerStateLines(snapshot) {
 
 async function runDockerStatus(
   containerName,
-  { includeFailureLogs = true, probeRestartLoop = true } = {}
+  { includeFailureLogs = true, probeRestartLoop = true } = {},
+  deps = {}
 ) {
-  const detail = await run("docker", ["ps", "-a", "--filter", `name=^/${containerName}$`]);
-  const firstSnapshot = await inspectDockerState(containerName);
+  const exec = deps.execFile || execFile;
+  const detail = await run("docker", ["ps", "-a", "--filter", `name=^/${containerName}$`], exec);
+  const firstSnapshot = await inspectDockerState(containerName, { execFile: exec });
   if (!firstSnapshot.ok) {
     const outputParts = [firstSnapshot.message];
     if (detail.stdout) {
@@ -159,7 +249,7 @@ async function runDockerStatus(
   let instabilityReason = "";
   if (probeRestartLoop && firstSnapshot.status === "running") {
     await sleep(DOCKER_STATUS_PROBE_DELAY_MS);
-    const secondSnapshot = await inspectDockerState(containerName);
+    const secondSnapshot = await inspectDockerState(containerName, { execFile: exec });
     if (secondSnapshot.ok) {
       snapshot = secondSnapshot;
       if (secondSnapshot.status === "restarting") {
@@ -181,7 +271,7 @@ async function runDockerStatus(
   }
 
   if (!active && includeFailureLogs) {
-    const logs = await run("docker", ["logs", "--tail", "60", containerName]);
+    const logs = await run("docker", ["logs", "--tail", "60", containerName], exec);
     const combinedLogs = [logs.stdout, logs.stderr].filter(Boolean).join("\n").trim();
     if (combinedLogs) {
       outputParts.push("---- recent logs ----");
@@ -205,12 +295,13 @@ async function runDockerStatus(
   };
 }
 
-async function runDockerAction(action, containerName) {
+async function runDockerAction(action, containerName, deps = {}) {
+  const exec = deps.execFile || execFile;
   if (action === "status") {
-    return runDockerStatus(containerName);
+    return runDockerStatus(containerName, {}, { execFile: exec });
   }
 
-  const result = await run("docker", [action, containerName]);
+  const result = await run("docker", [action, containerName], exec);
   if (!result.ok) {
     return {
       ok: false,
@@ -223,10 +314,14 @@ async function runDockerAction(action, containerName) {
 
   if (action === "start" || action === "restart" || action === "stop") {
     await sleep(action === "stop" ? DOCKER_STOP_VERIFY_DELAY_MS : DOCKER_ACTION_VERIFY_DELAY_MS);
-    const statusResult = await runDockerStatus(containerName, {
+    const statusResult = await runDockerStatus(
+      containerName,
+      {
       includeFailureLogs: action !== "stop",
       probeRestartLoop: action !== "stop"
-    });
+      },
+      { execFile: exec }
+    );
     const shouldBeActive = action !== "stop";
     const stateMatchesExpectation = shouldBeActive ? statusResult.active : !statusResult.active;
     if (!stateMatchesExpectation) {
@@ -274,11 +369,24 @@ async function runDockerAction(action, containerName) {
   };
 }
 
-export async function runServiceAction(action, panelConfig) {
+export async function runServiceAction(action, panelConfig, deps = {}) {
   const runtimeMode = panelConfig?.runtime?.mode || "systemd";
   if (runtimeMode === "docker") {
     const containerName = composeContainerName(panelConfig);
-    return runDockerAction(action, containerName);
+    return runDockerAction(action, containerName, deps);
   }
-  return runSystemdAction(action, panelConfig?.openclaw?.service_name || "openclaw-gateway");
+  const serviceName = panelConfig?.openclaw?.service_name || "openclaw-gateway";
+  const cliResult = await runGatewayCliAction(action, {
+    execFile: deps.execFile,
+    platform: deps.platform,
+    serviceName
+  });
+  if (!cliResult.missingExecutable) {
+    return cliResult;
+  }
+  const platform = deps.platform || process.platform;
+  if (platform === "linux") {
+    return runSystemdAction(action, serviceName, deps);
+  }
+  return cliResult;
 }
