@@ -1056,7 +1056,7 @@ async function syncDashboardGatewayToken() {
     triggerButton.disabled = true;
     triggerButton.setAttribute("aria-busy", "true");
   }
-  setDashboardGatewayTokenStatus("正在自动读取并写入 Gateway Token...", "info");
+  setDashboardGatewayTokenStatus("正在生成新的 Gateway Token 并写入真实配置...", "info");
 
   try {
     const result = await api("/api/gateway/token/sync", {
@@ -1073,8 +1073,11 @@ async function syncDashboardGatewayToken() {
     }
     const tokenMasked = String(payload.tokenMasked || "").trim() || "已写入";
     const sourceLabel = String(payload.source || "runtime").trim();
-    setDashboardGatewayTokenStatus(`配置完成：${tokenMasked}（来源：${sourceLabel}）`, "ok");
-    setMessage(`Gateway Token 自动配置完成：${payload.path || "-"}`, "ok");
+    setDashboardGatewayTokenStatus(
+      `配置完成：${tokenMasked}（来源：${sourceLabel}）。请把新 Token 粘贴到 Control UI 后重新连接。`,
+      "ok"
+    );
+    setMessage(`Gateway Token 已重置：${payload.path || "-"}。请在 Control UI 更新新 Token。`, "ok");
   } catch (error) {
     const detail = error.message || String(error);
     setDashboardGatewayTokenStatus(`自动配置失败：${detail}`, "error");

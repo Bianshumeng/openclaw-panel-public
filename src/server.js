@@ -1,7 +1,6 @@
 import path from "node:path";
 import fs from "node:fs/promises";
 import { execFile } from "node:child_process";
-import { randomBytes } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import Fastify from "fastify";
 import fastifyStatic from "@fastify/static";
@@ -43,6 +42,7 @@ import {
   sendChatMessage,
   stageChatAttachment
 } from "./chat-service.js";
+import { rotateGatewayTokenConfig } from "./gateway-token.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -234,97 +234,6 @@ function runCommand(command, args, timeout = 15000, options = {}) {
   });
 }
 
-const OPENCLAW_CLI_CANDIDATES = ["/usr/bin/openclaw", "/usr/local/bin/openclaw", "openclaw"];
-const OPENCLAW_CMD_NOT_FOUND_PATTERNS = [
-  /ENOENT/i,
-  /not found/i,
-  /executable file not found/i,
-  /is not recognized as an internal or external command/i,
-  /无法将.*识别为 cmdlet/i
-];
-const TOKEN_MISSING_ERROR = "openclaw 配置中未发现 gateway.auth.token";
-
-function isCommandMissingError(detail) {
-  const text = trimText(detail);
-  if (!text) {
-    return false;
-  }
-  return OPENCLAW_CMD_NOT_FOUND_PATTERNS.some((pattern) => pattern.test(text));
-}
-
-function buildOpenClawCommandCandidates() {
-  const preferred = trimText(process.env.OPENCLAW_BIN);
-  const result = [];
-  const seen = new Set();
-  for (const item of [preferred, ...OPENCLAW_CLI_CANDIDATES]) {
-    const command = trimText(item);
-    if (!command || seen.has(command)) {
-      continue;
-    }
-    seen.add(command);
-    result.push(command);
-  }
-  return result;
-}
-
-async function readGatewayTokenFromOpenClawCli(openclawConfigPath) {
-  const cliEnv = openclawConfigPath
-    ? {
-        OPENCLAW_CONFIG_PATH: expandHome(openclawConfigPath)
-      }
-    : {};
-  const candidates = buildOpenClawCommandCandidates();
-  let lastError = "";
-  let allMissing = true;
-  let tokenMissing = false;
-
-  for (const command of candidates) {
-    const cliResult = await runCommand(command, ["config", "get", "gateway.auth.token"], 15000, {
-      env: cliEnv
-    });
-
-    if (cliResult.ok) {
-      const token = trimText(cliResult.stdout);
-      if (token) {
-        return {
-          ok: true,
-          token,
-          command
-        };
-      }
-      allMissing = false;
-      tokenMissing = true;
-      lastError = lastError || TOKEN_MISSING_ERROR;
-      continue;
-    }
-
-    const detail = trimText(cliResult.stderr || cliResult.message);
-    if (detail) {
-      lastError = detail;
-    }
-    if (isCommandMissingError(detail)) {
-      continue;
-    }
-    allMissing = false;
-    return {
-      ok: false,
-      allMissing: false,
-      error: detail || "openclaw 命令执行失败"
-    };
-  }
-
-  return {
-    ok: false,
-    allMissing,
-    tokenMissing,
-    error: lastError
-  };
-}
-
-function generateGatewayToken() {
-  return randomBytes(32).toString("hex");
-}
-
 function maskToken(value) {
   const token = trimText(value);
   if (!token) {
@@ -338,48 +247,6 @@ function maskToken(value) {
 
 function readGatewayTokenFromConfig(openclawConfig) {
   return trimText(openclawConfig?.gateway?.auth?.token);
-}
-
-async function resolveGatewayTokenForSync(panelConfig) {
-  const fromPanelEnv = trimText(process.env.OPENCLAW_GATEWAY_TOKEN);
-  if (fromPanelEnv) {
-    return {
-      token: fromPanelEnv,
-      source: "panel-env"
-    };
-  }
-
-  const currentConfig = await loadOpenClawConfig(panelConfig.openclaw.config_path);
-  const tokenFromConfig = readGatewayTokenFromConfig(currentConfig);
-  if (tokenFromConfig) {
-    return {
-      token: tokenFromConfig,
-      source: "openclaw-config-file"
-    };
-  }
-
-  const openclawConfigPath = trimText(panelConfig?.openclaw?.config_path);
-  const cliResult = await readGatewayTokenFromOpenClawCli(openclawConfigPath);
-  if (cliResult.ok) {
-    return {
-      token: cliResult.token,
-      source: "openclaw-cli-config"
-    };
-  }
-
-  if (cliResult.allMissing || cliResult.tokenMissing) {
-    return {
-      token: generateGatewayToken(),
-      source: "generated-local"
-    };
-  }
-
-  const cliError = trimText(cliResult.error);
-  throw new Error(
-    cliError
-      ? `未能读取 Gateway Token：${cliError}`
-      : `未能读取 Gateway Token：${TOKEN_MISSING_ERROR}`
-  );
 }
 
 function resolveUpdateTarget(panelConfig, target = "bot") {
@@ -583,38 +450,17 @@ app.post("/api/gateway/token/sync", async (request, reply) => {
   try {
     const { config: panelConfig } = await loadPanelConfig();
     const currentConfig = await loadOpenClawConfig(panelConfig.openclaw.config_path);
-    const tokenResult = await resolveGatewayTokenForSync(panelConfig);
-
-    const prevMode = trimText(currentConfig?.gateway?.auth?.mode);
-    const prevToken = trimText(currentConfig?.gateway?.auth?.token);
-
-    const nextGateway =
-      currentConfig?.gateway && typeof currentConfig.gateway === "object" && !Array.isArray(currentConfig.gateway)
-        ? { ...currentConfig.gateway }
-        : {};
-    const nextAuth =
-      nextGateway?.auth && typeof nextGateway.auth === "object" && !Array.isArray(nextGateway.auth)
-        ? { ...nextGateway.auth }
-        : {};
-    nextAuth.mode = "token";
-    nextAuth.token = tokenResult.token;
-    nextGateway.auth = nextAuth;
-
-    const nextConfig = {
-      ...currentConfig,
-      gateway: nextGateway
-    };
-    const saved = await saveOpenClawConfig(panelConfig.openclaw.config_path, nextConfig);
-    const changed = prevMode !== "token" || prevToken !== tokenResult.token;
+    const tokenResult = rotateGatewayTokenConfig(currentConfig);
+    const saved = await saveOpenClawConfig(panelConfig.openclaw.config_path, tokenResult.nextConfig);
 
     return {
       ok: true,
       result: {
-        changed,
+        changed: tokenResult.changed,
         source: tokenResult.source,
         token: tokenResult.token,
         tokenMasked: maskToken(tokenResult.token),
-        message: changed ? "Gateway Token 已自动同步到真实配置文件" : "Gateway Token 已是最新，无需改动",
+        message: "Gateway Token 已重新生成并写入真实配置文件",
         path: saved.path,
         backupPath: saved.backupPath
       }

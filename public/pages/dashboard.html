@@ -123,7 +123,7 @@
             <div class="dashboard-gateway-token-box">
               <div class="dashboard-gateway-token-main">
                 <h3>Gateway Token 自动配置</h3>
-                <p class="muted-line">模板机克隆后如果提示要填 Token，点一次按钮即可自动获取并写入真实配置文件。</p>
+                <p class="muted-line">模板机克隆后如果提示 Token 不匹配，点一次按钮会重新生成全新 Token 并写入真实配置文件。</p>
                 <p id="dashboard_gateway_token_status" class="muted-line dashboard-gateway-token-status">
                   尚未执行自动配置。
                 </p>
@@ -136,13 +136,13 @@
                     class="dashboard-gateway-token-input"
                     type="text"
                     readonly
-                    placeholder="点击右侧按钮后自动显示，支持一键复制"
+                    placeholder="点击右侧按钮后自动显示最新 Token，支持一键复制"
                   />
                   <button id="dashboard_gateway_token_copy" class="btn-soft" type="button" disabled>复制 Gateway Token</button>
                 </div>
               </div>
               <div class="dashboard-gateway-token-actions">
-                <button id="dashboard_gateway_token_sync" class="btn-soft" type="button">一键自动配置 Gateway Token</button>
+                <button id="dashboard_gateway_token_sync" class="btn-soft" type="button">一键重置 Gateway Token</button>
                 <button id="dashboard_gateway_pairing_approve" class="btn-soft" type="button">一键批准待处理配对</button>
                 <button id="dashboard_gateway_restart" class="btn-soft" type="button">一键重启网关服务</button>
               </div>

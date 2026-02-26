@@ -72,6 +72,18 @@
 - 当 面板运行在 Windows 或非 systemd 环境
 - 那么 系统必须优先调用 `openclaw gateway restart`，若 CLI 缺失需给出可执行提示
 
+### 需求：Gateway Token 强制轮换
+
+面板必须在仪表盘提供“一键重置 Gateway Token”入口，点击后始终生成新的 Token 并写回 `gateway.auth.token`，避免复用失效令牌。
+
+#### 场景：点击重置后必须生成新 Token
+- 当 用户在仪表盘点击“一键重置 Gateway Token”
+- 那么 系统必须生成与当前值不同的新 Token，并写入真实配置文件
+
+#### 场景：重置后需提示更新 Control UI
+- 当 Gateway Token 重置成功
+- 那么 系统必须返回可复制的新 Token，并提示用户在 Control UI 更新后重新连接
+
 ### 需求：日志可观测
 
 面板必须提供实时日志查看与错误定位能力。
