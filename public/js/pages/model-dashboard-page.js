@@ -902,6 +902,9 @@ let dashboardGatewayTokenSyncPending = false;
 let dashboardGatewayTokenLoadPending = false;
 let dashboardGatewayPairingApprovePending = false;
 let dashboardGatewayRestartPending = false;
+let dashboardGatewayPairingWatchPending = false;
+const DASHBOARD_PAIRING_WATCH_DURATION_MS = 2 * 60 * 1000;
+const DASHBOARD_PAIRING_WATCH_INTERVAL_MS = 3 * 1000;
 
 function setDashboardGatewayTokenStatus(message, type = "info") {
   const statusEl = document.querySelector("#dashboard_gateway_token_status");
@@ -921,6 +924,117 @@ function setDashboardGatewayPairingStatus(message, type = "info") {
   statusEl.textContent = String(message || "").trim();
   statusEl.classList.toggle("is-done", type === "ok");
   statusEl.classList.toggle("is-fail", type === "error");
+}
+
+function parseDashboardPairingApprovePayload(payload = {}) {
+  const pendingCount = Number(payload.pendingCount || 0);
+  const approvedCount = Number(payload.approvedCount || 0);
+  const failedCount = Number(payload.failedCount || 0);
+  const ok = payload?.ok !== false;
+  const message = String(payload.message || "").trim();
+
+  if (pendingCount === 0) {
+    return {
+      state: "empty",
+      pendingCount,
+      approvedCount,
+      failedCount,
+      message
+    };
+  }
+
+  if (!ok || failedCount > 0) {
+    return {
+      state: "failed",
+      pendingCount,
+      approvedCount,
+      failedCount,
+      message: message || "存在审批失败项"
+    };
+  }
+
+  return {
+    state: "approved",
+    pendingCount,
+    approvedCount,
+    failedCount,
+    message: message || `已批准 ${approvedCount} 个待处理配对请求`
+  };
+}
+
+async function delay(ms) {
+  const duration = Math.max(0, Number(ms) || 0);
+  await new Promise((resolve) => {
+    window.setTimeout(resolve, duration);
+  });
+}
+
+async function watchDashboardPendingPairingsAfterReset({
+  durationMs = DASHBOARD_PAIRING_WATCH_DURATION_MS,
+  intervalMs = DASHBOARD_PAIRING_WATCH_INTERVAL_MS
+} = {}) {
+  if (dashboardGatewayPairingWatchPending) {
+    return;
+  }
+
+  dashboardGatewayPairingWatchPending = true;
+  const startedAt = Date.now();
+  let round = 0;
+
+  try {
+    while (Date.now() - startedAt < durationMs) {
+      round += 1;
+      const remainingSec = Math.max(0, Math.ceil((durationMs - (Date.now() - startedAt)) / 1000));
+      if (round === 1 || round % 4 === 0) {
+        setDashboardGatewayPairingStatus(
+          `自动监听待处理配对中（剩余约 ${remainingSec} 秒），你可以直接去 Control UI 点连接。`,
+          "info"
+        );
+      }
+
+      if (dashboardGatewayPairingApprovePending) {
+        await delay(Math.min(1000, intervalMs));
+        continue;
+      }
+
+      const result = await api("/api/gateway/pairing/approve-pending", {
+        method: "POST",
+        allowBusinessError: true
+      });
+      const payload = result?.result || {};
+      if (!result.ok) {
+        const detail = String(payload.message || result.message || "自动监听审批失败").trim();
+        setDashboardGatewayPairingStatus(`自动监听审批失败：${detail}`, "error");
+        setMessage(`自动监听审批失败：${detail}`, "error");
+        return;
+      }
+
+      const parsed = parseDashboardPairingApprovePayload(payload);
+      if (parsed.state === "approved") {
+        setDashboardGatewayPairingStatus(`自动监听审批成功：已批准 ${parsed.approvedCount} 个待处理配对`, "ok");
+        setMessage(`已自动批准 ${parsed.approvedCount} 个待处理配对，请在 Control UI 重试连接。`, "ok");
+        return;
+      }
+      if (parsed.state === "failed") {
+        setDashboardGatewayPairingStatus(
+          `自动监听审批部分失败：成功 ${parsed.approvedCount} / 失败 ${parsed.failedCount}`,
+          "error"
+        );
+        setMessage(`自动监听审批失败：${parsed.message}`, "error");
+        return;
+      }
+
+      await delay(intervalMs);
+    }
+
+    setDashboardGatewayPairingStatus("自动监听结束：2 分钟内未检测到新的待处理配对，可手动点击“批准待处理配对”。", "info");
+  } catch (error) {
+    const detail = error.message || String(error);
+    setDashboardGatewayPairingStatus(`自动监听审批失败：${detail}`, "error");
+    setMessage(`自动监听审批失败：${detail}`, "error");
+  } finally {
+    dashboardGatewayPairingWatchPending = false;
+  }
 }
 
 function setDashboardGatewayTokenValue(token = "") {
@@ -1057,6 +1171,7 @@ async function syncDashboardGatewayToken() {
     triggerButton.setAttribute("aria-busy", "true");
   }
   setDashboardGatewayTokenStatus("正在生成新的 Gateway Token 并写入真实配置...", "info");
+  setDashboardGatewayPairingStatus("重置完成后会自动监听 2 分钟并批准新出现的待处理配对。", "info");
 
   try {
     const result = await api("/api/gateway/token/sync", {
@@ -1080,35 +1195,38 @@ async function syncDashboardGatewayToken() {
 
     const autoApprove = payload?.autoApprove && typeof payload.autoApprove === "object" ? payload.autoApprove : null;
     if (!autoApprove) {
-      setDashboardGatewayPairingStatus("未返回自动审批结果，请手动点击“批准待处理配对”。", "info");
-      setMessage(`Gateway Token 已重置：${payload.path || "-"}。请在 Control UI 更新新 Token。`, "ok");
+      setDashboardGatewayPairingStatus("未返回首轮自动审批结果，已切换到 2 分钟自动监听模式。", "info");
+      setMessage(`Gateway Token 已重置：${payload.path || "-"}。请在 Control UI 更新新 Token 后直接连接。`, "ok");
+      watchDashboardPendingPairingsAfterReset().catch(() => {});
       return;
     }
 
-    const pendingCount = Number(autoApprove.pendingCount || 0);
-    const approvedCount = Number(autoApprove.approvedCount || 0);
-    const failedCount = Number(autoApprove.failedCount || 0);
-    if (pendingCount === 0) {
-      setDashboardGatewayPairingStatus("自动审批完成：当前没有待处理配对请求。", "ok");
+    const parsed = parseDashboardPairingApprovePayload(autoApprove);
+    if (parsed.state === "empty") {
+      setDashboardGatewayPairingStatus("首轮自动审批完成：当前没有待处理配对请求，已进入 2 分钟自动监听。", "ok");
       setMessage(
-        `Gateway Token 已重置：${payload.path || "-"}。当前无待处理配对，请在 Control UI 粘贴新 Token 后重连。`,
+        `Gateway Token 已重置：${payload.path || "-"}。当前无待处理配对，请在 Control UI 粘贴新 Token 并连接。`,
         "ok"
       );
+      watchDashboardPendingPairingsAfterReset().catch(() => {});
       return;
     }
 
-    if (failedCount > 0 || autoApprove.ok === false) {
-      const detail = String(autoApprove.message || "存在自动审批失败项").trim();
-      setDashboardGatewayPairingStatus(`自动审批部分失败：成功 ${approvedCount} / 失败 ${failedCount}`, "error");
-      setMessage(`Gateway Token 已重置，但自动审批失败：${detail}`, "error");
+    if (parsed.state === "failed") {
+      setDashboardGatewayPairingStatus(`自动审批部分失败：成功 ${parsed.approvedCount} / 失败 ${parsed.failedCount}`, "error");
+      setMessage(`Gateway Token 已重置，但自动审批失败：${parsed.message}`, "error");
       return;
     }
 
-    setDashboardGatewayPairingStatus(`自动审批成功：已批准 ${approvedCount} 个待处理配对`, "ok");
-    setMessage(
-      `Gateway Token 已重置并自动批准 ${approvedCount} 个待处理配对。请在 Control UI 粘贴新 Token 后重连。`,
+    setDashboardGatewayPairingStatus(
+      `首轮自动审批成功：已批准 ${parsed.approvedCount} 个待处理配对，已进入 2 分钟自动监听。`,
       "ok"
     );
+    setMessage(
+      `Gateway Token 已重置并自动批准 ${parsed.approvedCount} 个待处理配对。请在 Control UI 粘贴新 Token 后重连。`,
+      "ok"
+    );
+    watchDashboardPendingPairingsAfterReset().catch(() => {});
   } catch (error) {
     const detail = error.message || String(error);
     setDashboardGatewayTokenStatus(`自动配置失败：${detail}`, "error");
