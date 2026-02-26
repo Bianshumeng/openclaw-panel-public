@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { approveTelegramPairing, setupTelegramBasic } from "../../src/channel-onboarding.js";
+import { approvePendingGatewayPairings, approveTelegramPairing, setupTelegramBasic } from "../../src/channel-onboarding.js";
 
 test("setupTelegramBasic executes enable + config steps in order", async () => {
   const calls = [];
@@ -267,4 +267,151 @@ test("approveTelegramPairing validates code and executes command", async () => {
   assert.equal(calls.length, 1);
   assert.deepEqual(calls[0].args, ["exec", "openclaw-gateway", "openclaw", "pairing", "approve", "telegram", "ABC-123"]);
   assert.match(result.step.command, /\*\*\*/);
+});
+
+test("approvePendingGatewayPairings approves all pending requests", async () => {
+  const calls = [];
+  const runCommand = async (_command, args) => {
+    calls.push(args);
+    const line = args.join(" ");
+    if (line === "devices list --json") {
+      return {
+        ok: true,
+        code: 0,
+        stdout: JSON.stringify({
+          pending: [{ requestId: "req-1", deviceId: "device-1", role: "operator" }]
+        }),
+        stderr: "",
+        message: ""
+      };
+    }
+    if (line === "devices approve req-1") {
+      return {
+        ok: true,
+        code: 0,
+        stdout: "approved",
+        stderr: "",
+        message: ""
+      };
+    }
+    return {
+      ok: false,
+      code: 1,
+      stdout: "",
+      stderr: "unexpected call",
+      message: ""
+    };
+  };
+
+  const result = await approvePendingGatewayPairings({
+    panelConfig: {
+      runtime: {
+        mode: "systemd"
+      }
+    },
+    deps: {
+      runCommand
+    }
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(result.pendingCount, 1);
+  assert.equal(result.approvedCount, 1);
+  assert.equal(result.failedCount, 0);
+  assert.equal(result.pending[0].requestId, "req-1");
+  assert.equal(result.steps.length, 2);
+  assert.equal(calls.length, 2);
+});
+
+test("approvePendingGatewayPairings returns ok when no pending request exists", async () => {
+  const runCommand = async () => {
+    return {
+      ok: true,
+      code: 0,
+      stdout: JSON.stringify({
+        pending: []
+      }),
+      stderr: "",
+      message: ""
+    };
+  };
+
+  const result = await approvePendingGatewayPairings({
+    panelConfig: {
+      runtime: {
+        mode: "systemd"
+      }
+    },
+    deps: {
+      runCommand
+    }
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(result.pendingCount, 0);
+  assert.equal(result.approvedCount, 0);
+  assert.equal(result.failedCount, 0);
+  assert.match(result.message, /没有待批准/);
+});
+
+test("approvePendingGatewayPairings reports partial failure details", async () => {
+  const runCommand = async (_command, args) => {
+    const line = args.join(" ");
+    if (line === "devices list --json") {
+      return {
+        ok: true,
+        code: 0,
+        stdout: JSON.stringify({
+          pending: [
+            { requestId: "req-ok", deviceId: "device-ok", role: "operator" },
+            { requestId: "req-fail", deviceId: "device-fail", role: "operator" }
+          ]
+        }),
+        stderr: "",
+        message: ""
+      };
+    }
+    if (line === "devices approve req-ok") {
+      return {
+        ok: true,
+        code: 0,
+        stdout: "approved",
+        stderr: "",
+        message: ""
+      };
+    }
+    if (line === "devices approve req-fail") {
+      return {
+        ok: false,
+        code: 1,
+        stdout: "",
+        stderr: "approve failed",
+        message: "approve failed"
+      };
+    }
+    return {
+      ok: false,
+      code: 1,
+      stdout: "",
+      stderr: "unexpected call",
+      message: ""
+    };
+  };
+
+  const result = await approvePendingGatewayPairings({
+    panelConfig: {
+      runtime: {
+        mode: "systemd"
+      }
+    },
+    deps: {
+      runCommand
+    }
+  });
+
+  assert.equal(result.ok, false);
+  assert.equal(result.pendingCount, 2);
+  assert.equal(result.approvedCount, 1);
+  assert.equal(result.failedCount, 1);
+  assert.match(result.message, /失败 1 个/);
 });

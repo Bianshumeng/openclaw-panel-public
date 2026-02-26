@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OpenClaw 龙虾控制台</title>
+        <script>
+      (function initThemeEarly() {
+        var theme = "light";
+        try {
+          var saved = window.localStorage.getItem("openclaw-panel-theme");
+          theme = saved === "dark" ? "dark" : "light";
+        } catch (_error) {
+          theme = "light";
+        }
+        var root = document.documentElement;
+        root.dataset.theme = theme;
+        root.classList.toggle("sl-theme-dark", theme === "dark");
+        root.classList.toggle("sl-theme-light", theme !== "dark");
+      })();
+    </script>    <link rel="stylesheet" href="/shoelace/themes/light.css" />
+    <link rel="stylesheet" href="/shoelace/themes/dark.css" />
+    <link rel="stylesheet" href="/styles.css" />
+    <script type="module" src="/shoelace/shoelace-autoloader.js"></script>
+  </head>
+  <body data-theme="light">
+    <div class="layout">
+      <aside class="sidebar">
+        <div class="brand">
+          <p class="eyebrow">OpenClaw</p>
+          <h1>龙虾控制台</h1>
+          <p class="sub">管理你的 AI 助手：模型、渠道、技能，一站搞定。</p>
+        </div>
+
+                <nav class="tabs sidebar-tabs">
+          <a class="tab" data-tab-target="panel-dashboard" href="/dashboard">仪表盘</a>
+          <a class="tab" data-tab-target="panel-model" href="/model">模型配置</a>
+          <a class="tab" data-tab-target="panel-chat-console" href="/chat-console">智能对话</a>
+          <a class="tab" data-tab-target="panel-skills" href="/skills">技能管理</a>
+          <a class="tab" data-tab-target="panel-config-generator" href="/config-generator">配置生成器</a>
+          <a class="tab" data-tab-target="panel-channel" href="/channels">平台接入</a>
+          <a class="tab is-active" data-tab-target="panel-update" href="/update">版本更新</a>
+          <a class="tab" data-tab-target="panel-service" href="/service">服务控制</a>
+          <a class="tab" data-tab-target="panel-logs" href="/logs">运行日志</a>
+        </nav>
+      </aside>
+
+      <main class="content">
+        <header class="page-header">
+          <div>
+            <h2 class="page-title">龙虾控制台</h2>
+            <p class="page-subtitle">你的 AI 助手管理中心</p>
+          </div>
+          <button id="theme_toggle" class="btn-soft" type="button">切换到深夜模式</button>
+        </header>
+
+<section class="panel is-visible" data-panel="panel-update">
+          <article class="card">
+            <h2>龙虾 Bot 直装更新</h2>
+            <p class="muted-line">使用官方直装更新命令执行升级/回滚，完成后自动执行 doctor、gateway restart、health。</p>
+            <div class="update-status-card">
+              <div class="status-row">
+                <span class="pill" id="bot_update_state" style="font-size:1.05rem;padding:0.45rem 1.4rem;">还没检查</span>
+              </div>
+              <p class="muted-line update-status-hint" id="bot_update_hint">页面打开后会自动检查，你也可以手动再检查一次</p>
+            </div>
+
+            <div id="bot_update_progress_wrap" class="update-progress-card" aria-live="polite">
+              <div class="update-progress-head">
+                <span>操作进度</span>
+                <span id="bot_update_progress_text">等待操作（0%）</span>
+              </div>
+              <progress id="bot_update_progress" max="100" value="0"></progress>
+            </div>
+
+            <div class="grid update-version-card" style="grid-template-columns:1fr 1fr;gap:0.75rem 1.2rem;">
+              <label>
+                当前版本
+                <input id="bot_update_current_tag" type="text" readonly />
+              </label>
+              <label>
+                最新版本
+                <input id="bot_update_latest_tag" type="text" readonly />
+              </label>
+            </div>
+
+            <div class="actions" style="margin-top:1rem;">
+              <button id="bot_check_update">检查新版本</button>
+              <button id="bot_upgrade_update">升级</button>
+            </div>
+
+            <details style="margin-top:1.2rem;">
+              <summary class="muted-line" style="cursor:pointer;user-select:none;">高级选项（指定版本 / 回滚）</summary>
+              <div class="update-advanced-card">
+                <label>
+                  要升级/回滚到的版本
+                  <input id="bot_update_target_tag" type="text" placeholder="留空则升级到最新版" />
+                </label>
+                <div class="actions" style="margin-top:0.75rem;">
+                  <button id="bot_rollback_update" class="btn-soft">回滚（遇到问题时用）</button>
+                </div>
+              </div>
+            </details>
+          </article>
+
+          <article class="card" style="margin-top:1rem;">
+            <h2>龙虾控制台版本更新（公开仓库发版）</h2>
+            <p class="muted-line">更新包来自公开仓库 release。先准备版本包，再点击“应用更新并重启”生效。</p>
+            <div class="update-status-card">
+              <div class="status-row">
+                <span class="pill" id="panel_update_state" style="font-size:1.05rem;padding:0.45rem 1.4rem;">还没检查</span>
+              </div>
+              <p class="muted-line update-status-hint" id="panel_update_hint">页面打开后会自动检查，你也可以手动再检查一次</p>
+            </div>
+
+            <div id="panel_update_progress_wrap" class="update-progress-card" aria-live="polite">
+              <div class="update-progress-head">
+                <span>操作进度</span>
+                <span id="panel_update_progress_text">等待操作（0%）</span>
+              </div>
+              <progress id="panel_update_progress" max="100" value="0"></progress>
+            </div>
+
+            <div class="grid update-version-card" style="grid-template-columns:1fr 1fr;gap:0.75rem 1.2rem;">
+              <label>
+                当前版本
+                <input id="panel_update_current_tag" type="text" readonly />
+              </label>
+              <label>
+                最新版本
+                <input id="panel_update_latest_tag" type="text" readonly />
+              </label>
+            </div>
+
+            <div class="actions" style="margin-top:1rem;">
+              <button id="panel_check_update">检查新版本</button>
+              <button id="panel_upgrade_update">准备更新包</button>
+              <button id="panel_apply_update" class="btn-soft">应用更新并重启</button>
+            </div>
+
+            <details style="margin-top:1.2rem;">
+              <summary class="muted-line" style="cursor:pointer;user-select:none;">高级选项（指定版本 / 回滚）</summary>
+              <div class="update-advanced-card">
+                <label>
+                  要准备的目标版本
+                  <input id="panel_update_target_tag" type="text" placeholder="留空则准备最新版" />
+                </label>
+                <div class="actions" style="margin-top:0.75rem;">
+                  <button id="panel_rollback_update" class="btn-soft">准备回滚包</button>
+                </div>
+              </div>
+            </details>
+          </article>
+        </section>
+
+        <section class="card">
+          <h2>操作记录</h2>
+          <p class="muted-line">每次操作的结果都会记录在这里，方便你定位问题。</p>
+          <pre id="messages" class="output"></pre>
+        </section>
+      </main>
+    </div>
+
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>
+
+
+
+

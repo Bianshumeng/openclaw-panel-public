@@ -32,7 +32,7 @@ import {
 } from "./direct-update.js";
 import { buildDashboardSummary } from "./dashboard-service.js";
 import { getSkillConfig, listSkillsStatus, prepareSkillConfigUpdate, setSkillEnabled } from "./skills-service.js";
-import { approveTelegramPairing, setupTelegramBasic } from "./channel-onboarding.js";
+import { approvePendingGatewayPairings, approveTelegramPairing, setupTelegramBasic } from "./channel-onboarding.js";
 import {
   abortChatRun,
   createChatSession,
@@ -643,6 +643,25 @@ app.get("/api/gateway/token/current", async (request, reply) => {
         token,
         tokenMasked: maskToken(token)
       }
+    };
+  } catch (error) {
+    reply.code(400);
+    return {
+      ok: false,
+      message: error.message
+    };
+  }
+});
+
+app.post("/api/gateway/pairing/approve-pending", async (request, reply) => {
+  try {
+    const { config: panelConfig } = await loadPanelConfig();
+    const result = await approvePendingGatewayPairings({
+      panelConfig
+    });
+    return {
+      ok: result.ok,
+      result
     };
   } catch (error) {
     reply.code(400);

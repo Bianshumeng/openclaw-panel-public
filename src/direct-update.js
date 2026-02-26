@@ -348,7 +348,6 @@ async function readPanelCurrentVersion(appDir) {
 
 async function downloadTarball(tarballUrl, destinationPath, { fetchImpl = fetch, githubToken = "" } = {}) {
   const headers = {
-    accept: "application/octet-stream",
     "user-agent": "openclaw-panel-updater"
   };
   const token = trimText(githubToken);

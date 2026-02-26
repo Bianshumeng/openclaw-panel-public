@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OpenClaw 龙虾控制台</title>
+    <script>
+      (function initThemeEarly() {
+        var theme = "light";
+        try {
+          var saved = window.localStorage.getItem("openclaw-panel-theme");
+          theme = saved === "dark" ? "dark" : "light";
+        } catch (_error) {
+          theme = "light";
+        }
+        var root = document.documentElement;
+        root.dataset.theme = theme;
+        root.classList.toggle("sl-theme-dark", theme === "dark");
+        root.classList.toggle("sl-theme-light", theme !== "dark");
+      })();
+    </script>
+    <link rel="stylesheet" href="/shoelace/themes/light.css" />
+    <link rel="stylesheet" href="/shoelace/themes/dark.css" />
+    <link rel="stylesheet" href="/styles.css" />
+    <script type="module" src="/shoelace/shoelace-autoloader.js"></script>
+    <style>
+      .channel-access-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 14px;
+        margin-top: 12px;
+      }
+
+      .channel-access-card {
+        border: 1px solid var(--nested-card-border);
+        border-radius: 12px;
+        padding: 14px;
+        background: var(--nested-card-bg);
+        text-decoration: none;
+        color: inherit;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+        display: grid;
+        gap: 10px;
+      }
+
+      .channel-access-card:hover {
+        border-color: var(--primary);
+        transform: translateY(-1px);
+      }
+
+      .channel-access-card.is-disabled {
+        cursor: not-allowed;
+        opacity: 0.74;
+        border-style: dashed;
+      }
+
+      .channel-access-card.is-disabled:hover {
+        border-color: var(--border);
+        transform: none;
+        box-shadow: none;
+      }
+
+      .channel-access-card.is-ready {
+        border-color: color-mix(in srgb, var(--primary) 32%, var(--border));
+        box-shadow: 0 0 0 1px color-mix(in srgb, var(--primary) 15%, transparent);
+      }
+
+      .channel-access-card.is-partial {
+        border-color: color-mix(in srgb, #f59e0b 45%, var(--border));
+      }
+
+      .channel-access-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .channel-access-head h3 {
+        margin: 0;
+        font-size: 16px;
+      }
+
+      .channel-access-arrow {
+        color: var(--muted);
+        font-size: 16px;
+      }
+
+      .channel-access-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .channel-summary {
+        margin: 0;
+        color: var(--muted);
+        font-size: 12px;
+      }
+    </style>
+  </head>
+  <body data-theme="light">
+    <div class="layout">
+      <aside class="sidebar">
+        <div class="brand">
+          <p class="eyebrow">OpenClaw</p>
+          <h1>龙虾控制台</h1>
+          <p class="sub">管理你的 AI 助手：模型、渠道、技能，一站搞定。</p>
+        </div>
+
+        <nav class="tabs sidebar-tabs">
+          <a class="tab" data-tab-target="panel-dashboard" href="/dashboard">仪表盘</a>
+          <a class="tab" data-tab-target="panel-model" href="/model">模型配置</a>
+          <a class="tab" data-tab-target="panel-chat-console" href="/chat-console">智能对话</a>
+          <a class="tab" data-tab-target="panel-skills" href="/skills">技能管理</a>
+          <a class="tab" data-tab-target="panel-config-generator" href="/config-generator">配置生成器</a>
+          <a class="tab is-active" data-tab-target="panel-channel" href="/channels">平台接入</a>
+          <a class="tab" data-tab-target="panel-update" href="/update">版本更新</a>
+          <a class="tab" data-tab-target="panel-service" href="/service">服务控制</a>
+          <a class="tab" data-tab-target="panel-logs" href="/logs">运行日志</a>
+        </nav>
+      </aside>
+
+      <main class="content">
+        <header class="page-header">
+          <div>
+            <h2 class="page-title">龙虾控制台</h2>
+            <p class="page-subtitle">你的 AI 助手管理中心</p>
+          </div>
+          <button id="theme_toggle" class="btn-soft" type="button">切换到深夜模式</button>
+        </header>
+
+        <section class="panel is-visible" data-panel="panel-channel">
+          <article class="card">
+            <h2>平台接入</h2>
+            <p class="muted-line">先看状态，再点进对应平台补配置。你只需要关心“是否已配置”和“是否已启用”。</p>
+            <div class="channel-access-grid">
+              <a class="channel-access-card" data-channel-card="telegram" href="/channels/telegram">
+                <div class="channel-access-head">
+                  <h3>Telegram</h3>
+                  <span class="channel-access-arrow">进入 →</span>
+                </div>
+                <div class="channel-access-tags">
+                  <sl-tag id="channel_status_telegram_enabled" size="small" pill>未启用</sl-tag>
+                  <sl-tag id="channel_status_telegram_configured" size="small" pill variant="warning">未配置</sl-tag>
+                </div>
+                <p class="channel-summary" id="channel_status_telegram_summary">点击进入配置页面</p>
+              </a>
+
+              <div class="channel-access-card is-disabled" data-channel-card="feishu" data-channel-disabled="true" aria-disabled="true">
+                <div class="channel-access-head">
+                  <h3>飞书</h3>
+                  <span class="channel-access-arrow">暂未开放</span>
+                </div>
+                <div class="channel-access-tags">
+                  <sl-tag id="channel_status_feishu_enabled" size="small" pill>未启用</sl-tag>
+                  <sl-tag id="channel_status_feishu_configured" size="small" pill variant="warning">未配置</sl-tag>
+                </div>
+                <p class="channel-summary" id="channel_status_feishu_summary">功能开发中，暂不支持进入配置页。</p>
+              </div>
+
+              <div class="channel-access-card is-disabled" data-channel-card="discord" data-channel-disabled="true" aria-disabled="true">
+                <div class="channel-access-head">
+                  <h3>Discord</h3>
+                  <span class="channel-access-arrow">暂未开放</span>
+                </div>
+                <div class="channel-access-tags">
+                  <sl-tag id="channel_status_discord_enabled" size="small" pill>未启用</sl-tag>
+                  <sl-tag id="channel_status_discord_configured" size="small" pill variant="warning">未配置</sl-tag>
+                </div>
+                <p class="channel-summary" id="channel_status_discord_summary">功能开发中，暂不支持进入配置页。</p>
+              </div>
+
+              <div class="channel-access-card is-disabled" data-channel-card="slack" data-channel-disabled="true" aria-disabled="true">
+                <div class="channel-access-head">
+                  <h3>Slack</h3>
+                  <span class="channel-access-arrow">暂未开放</span>
+                </div>
+                <div class="channel-access-tags">
+                  <sl-tag id="channel_status_slack_enabled" size="small" pill>未启用</sl-tag>
+                  <sl-tag id="channel_status_slack_configured" size="small" pill variant="warning">未配置</sl-tag>
+                </div>
+                <p class="channel-summary" id="channel_status_slack_summary">功能开发中，暂不支持进入配置页。</p>
+              </div>
+            </div>
+          </article>
+        </section>
+
+        <section class="card">
+          <h2>操作记录</h2>
+          <p class="muted-line">每次点击后的结果都会记录在这里，方便你定位问题。</p>
+          <pre id="messages" class="output"></pre>
+        </section>
+      </main>
+    </div>
+
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>
+

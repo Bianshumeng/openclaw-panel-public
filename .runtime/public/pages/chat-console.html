@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OpenClaw 龙虾控制台</title>
+        <script>
+      (function initThemeEarly() {
+        var theme = "light";
+        try {
+          var saved = window.localStorage.getItem("openclaw-panel-theme");
+          theme = saved === "dark" ? "dark" : "light";
+        } catch (_error) {
+          theme = "light";
+        }
+        var root = document.documentElement;
+        root.dataset.theme = theme;
+        root.classList.toggle("sl-theme-dark", theme === "dark");
+        root.classList.toggle("sl-theme-light", theme !== "dark");
+      })();
+    </script>    <link rel="stylesheet" href="/shoelace/themes/light.css" />
+    <link rel="stylesheet" href="/shoelace/themes/dark.css" />
+    <link rel="stylesheet" href="/styles.css" />
+    <script type="module" src="/shoelace/shoelace-autoloader.js"></script>
+  </head>
+  <body data-theme="light">
+    <div class="layout">
+      <aside class="sidebar">
+        <div class="brand">
+          <p class="eyebrow">OpenClaw</p>
+          <h1>龙虾控制台</h1>
+          <p class="sub">管理你的 AI 助手：模型、渠道、技能，一站搞定。</p>
+        </div>
+
+                <nav class="tabs sidebar-tabs">
+          <a class="tab" data-tab-target="panel-dashboard" href="/dashboard">仪表盘</a>
+          <a class="tab" data-tab-target="panel-model" href="/model">模型配置</a>
+          <a class="tab is-active" data-tab-target="panel-chat-console" href="/chat-console">智能对话</a>
+          <a class="tab" data-tab-target="panel-skills" href="/skills">技能管理</a>
+          <a class="tab" data-tab-target="panel-config-generator" href="/config-generator">配置生成器</a>
+          <a class="tab" data-tab-target="panel-channel" href="/channels">平台接入</a>
+          <a class="tab" data-tab-target="panel-update" href="/update">版本更新</a>
+          <a class="tab" data-tab-target="panel-service" href="/service">服务控制</a>
+          <a class="tab" data-tab-target="panel-logs" href="/logs">运行日志</a>
+        </nav>
+      </aside>
+
+      <main class="content">
+        <header class="page-header">
+          <div>
+            <h2 class="page-title">龙虾控制台</h2>
+            <p class="page-subtitle">你的 AI 助手管理中心</p>
+          </div>
+          <button id="theme_toggle" class="btn-soft" type="button">切换到深夜模式</button>
+        </header>
+
+<section class="panel is-visible" data-panel="panel-chat-console">
+          <article class="card">
+            <h2>智能对话</h2>
+            <p class="muted-line">和 AI 助手对话</p>
+
+            <div class="chat-workspace">
+              <!-- 顶栏：会话选择 + 新建（最高频操作） -->
+              <div class="chat-topbar">
+                <div class="actions" style="flex:1;min-width:0">
+                  <label style="flex:1;min-width:160px;margin:0">
+                    当前会话
+                    <select id="chat_session_select"></select>
+                  </label>
+                  <button id="chat_new_session" type="button">新建会话</button>
+                  <button id="chat_refresh_sessions" class="btn-soft" type="button">刷新会话</button>
+                </div>
+              </div>
+
+              <!-- sr-only 隐藏字段（保留 DOM ID） -->
+              <div class="sr-only">
+                <label>
+                  最近任务 ID
+                  <input id="chat_last_run_id" type="text" readonly />
+                </label>
+                <label>
+                  实时通道状态
+                  <input id="chat_stream_status" type="text" readonly />
+                </label>
+              </div>
+
+              <!-- 消息区域（视觉焦点） -->
+              <div id="chat_messages" class="chat-messages">
+                <div class="chat-empty">选择或新建会话，开始对话</div>
+              </div>
+
+              <!-- 输入区域 -->
+              <label>
+                输入消息
+                <textarea id="chat_message_input" rows="3" placeholder="输入消息后按 Enter 发送，Shift+Enter 换行"></textarea>
+              </label>
+
+              <!-- 附件区域（紧凑） -->
+              <div class="actions">
+                <button id="chat_pick_files" class="btn-soft" type="button">添加附件</button>
+                <input id="chat_file_input" type="file" multiple hidden />
+                <span id="chat_attachment_hint" class="muted-line" style="margin:0">支持上传、粘贴或拖拽</span>
+              </div>
+              <div id="chat_attachment_list" class="chat-attachment-list">
+              </div>
+
+              <!-- 主操作栏：发送最醒目 -->
+              <div class="actions">
+                <button id="chat_send_message" type="button">发送消息</button>
+                <button id="chat_abort_run" class="btn-soft" type="button">停止回复</button>
+                <button id="chat_reset_session" class="btn-soft" type="button">清空对话</button>
+              </div>
+              <p id="chat_inline_hint" class="muted-line chat-inline-hint"></p>
+
+              <!-- 思考模式设置（次要，折叠） -->
+              <details class="chat-debug">
+                <summary>思考模式设置</summary>
+                <div class="actions" style="margin-top:8px">
+                  <label class="inline-check">
+                    显示思考过程
+                    <input id="chat_show_thinking" type="checkbox" checked />
+                  </label>
+                  <label style="min-width:120px">
+                    回答深度
+                    <select id="chat_thinking_level">
+                      <option value="">自动</option>
+                      <option value="minimal">简略</option>
+                      <option value="low">较少</option>
+                      <option value="medium">适中</option>
+                      <option value="high">深入</option>
+                    </select>
+                  </label>
+                </div>
+              </details>
+
+              <!-- 排障工具（低频，折叠） -->
+              <details class="chat-debug">
+                <summary>遇到问题？点这里排查</summary>
+                <div class="grid">
+                  <label class="sr-only">
+                    幂等键（可选）
+                    <input id="chat_idempotency_key" type="text" placeholder="留空自动生成" />
+                  </label>
+                </div>
+                <div class="actions">
+                  <button id="chat_load_history" class="btn-soft" type="button">刷新历史</button>
+                  <button id="chat_reconnect_stream" class="btn-soft" type="button">重新连接</button>
+                </div>
+                <label>
+                  对话历史（原始）
+                  <pre id="chat_history_output" class="output">请选择会话后加载历史</pre>
+                </label>
+                <label>
+                  实时数据流（原始）
+                  <pre id="chat_stream_output" class="output">等待流式事件...</pre>
+                </label>
+              </details>
+            </div>
+          </article>
+        </section>
+
+        <section class="card">
+          <h2>操作记录</h2>
+          <p class="muted-line">每次操作的结果都会记录在这里，方便排查问题。</p>
+          <pre id="messages" class="output"></pre>
+        </section>
+      </main>
+    </div>
+
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>
+
+
+

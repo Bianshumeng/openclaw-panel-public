@@ -1,0 +1,637 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OpenClaw 龙虾控制台</title>
+    <script>
+      (function initThemeEarly() {
+        var theme = "light";
+        try {
+          var saved = window.localStorage.getItem("openclaw-panel-theme");
+          theme = saved === "dark" ? "dark" : "light";
+        } catch (_error) {
+          theme = "light";
+        }
+        var root = document.documentElement;
+        root.dataset.theme = theme;
+        root.classList.toggle("sl-theme-dark", theme === "dark");
+        root.classList.toggle("sl-theme-light", theme !== "dark");
+      })();
+    </script>
+    <link rel="stylesheet" href="/shoelace/themes/light.css" />
+    <link rel="stylesheet" href="/shoelace/themes/dark.css" />
+    <link rel="stylesheet" href="/styles.css" />
+    <script type="module" src="/shoelace/shoelace-autoloader.js"></script>
+    <style>
+      .channel-page-status {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin: 10px 0 4px;
+      }
+
+      .channel-page-summary {
+        margin: 0;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .channel-page-header-left {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .channel-back-link {
+        width: 34px;
+        height: 34px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid var(--border);
+        border-radius: 9px;
+        background: var(--soft-button);
+        color: var(--text);
+        text-decoration: none;
+        font-size: 18px;
+        line-height: 1;
+      }
+
+      .channel-back-link:hover {
+        background: var(--soft-button-hover);
+      }
+
+      .tg-intro-list {
+        margin: 8px 0 0;
+        padding-left: 18px;
+        color: var(--muted);
+        display: grid;
+        gap: 5px;
+        font-size: 13px;
+      }
+
+      .tg-flow {
+        display: grid;
+        gap: 10px;
+      }
+
+      .tg-flow-step {
+        border: 1px solid var(--border-strong);
+        border-radius: 10px;
+        padding: 12px;
+        background: var(--inner-card-bg);
+        display: grid;
+        gap: 10px;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+      }
+
+      .tg-flow-step h3 {
+        margin: 0;
+        font-size: 16px;
+      }
+
+      .tg-flow-step p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .tg-flow-step input,
+      .tg-flow-step select,
+      .tg-flow-step textarea {
+        background: #ffffff;
+        border-color: #c6d2e4;
+      }
+
+      .tg-flow-step input:focus,
+      .tg-flow-step select:focus,
+      .tg-flow-step textarea:focus {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 2px rgba(36, 87, 214, 0.18);
+      }
+
+      :root[data-theme="light"] .tg-flow-step {
+        background: #e8eef8;
+      }
+
+      :root[data-theme="dark"] .tg-flow-step {
+        box-shadow: none;
+      }
+
+      :root[data-theme="dark"] .tg-flow-step input,
+      :root[data-theme="dark"] .tg-flow-step select,
+      :root[data-theme="dark"] .tg-flow-step textarea {
+        background: #141922;
+        border-color: #384558;
+      }
+
+      .tg-flow-arrow {
+        justify-self: center;
+        color: var(--primary);
+        font-size: 40px;
+        font-weight: 900;
+        line-height: 1;
+        letter-spacing: 0;
+        text-shadow: 0 1px 0 rgba(36, 87, 214, 0.55);
+        text-shadow: 0 1px 0 color-mix(in srgb, var(--primary) 55%, transparent);
+      }
+
+      .tg-step-result {
+        margin-top: 8px;
+        padding: 10px;
+        border: 1px dashed var(--border);
+        border-radius: 8px;
+        background: var(--code-bg);
+        font-family: "JetBrains Mono", "Cascadia Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 12px;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+
+      .tg-advanced-grid {
+        display: grid;
+        gap: 12px;
+        margin-top: 12px;
+      }
+
+      .tg-advanced-section {
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 12px;
+        background: var(--surface-muted);
+        display: grid;
+        gap: 10px;
+      }
+
+      .tg-advanced-section h3 {
+        margin: 0;
+        font-size: 15px;
+      }
+
+      .tg-advanced-section > p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .tg-help {
+        display: block;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.4;
+        margin-top: 2px;
+      }
+
+      .tg-check-field {
+        display: grid;
+        gap: 6px;
+      }
+
+      .tg-check-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        color: var(--muted);
+        font-size: 13px;
+      }
+    </style>
+  </head>
+  <body data-theme="light">
+    <div class="layout">
+      <aside class="sidebar">
+        <div class="brand">
+          <p class="eyebrow">OpenClaw</p>
+          <h1>龙虾控制台</h1>
+          <p class="sub">管理你的 AI 助手：模型、渠道、技能，一站搞定。</p>
+        </div>
+
+        <nav class="tabs sidebar-tabs">
+          <a class="tab" data-tab-target="panel-dashboard" href="/dashboard">仪表盘</a>
+          <a class="tab" data-tab-target="panel-model" href="/model">模型配置</a>
+          <a class="tab" data-tab-target="panel-chat-console" href="/chat-console">智能对话</a>
+          <a class="tab" data-tab-target="panel-skills" href="/skills">技能管理</a>
+          <a class="tab" data-tab-target="panel-config-generator" href="/config-generator">配置生成器</a>
+          <a class="tab is-active" data-tab-target="panel-channel" href="/channels">平台接入</a>
+          <a class="tab" data-tab-target="panel-update" href="/update">版本更新</a>
+          <a class="tab" data-tab-target="panel-service" href="/service">服务控制</a>
+          <a class="tab" data-tab-target="panel-logs" href="/logs">运行日志</a>
+        </nav>
+      </aside>
+
+      <main class="content">
+        <header class="page-header">
+          <div class="channel-page-header-left">
+            <a class="channel-back-link" href="/channels" aria-label="返回平台列表" title="返回平台列表">←</a>
+            <div>
+              <h2 class="page-title">龙虾控制台</h2>
+              <p class="page-subtitle">你的 AI 助手管理中心</p>
+            </div>
+          </div>
+          <button id="theme_toggle" class="btn-soft" type="button">切换到深夜模式</button>
+        </header>
+
+        <section class="panel is-visible" data-panel="panel-channel">
+          <article class="card">
+            <h2>Telegram（纸飞机）接入配置</h2>
+            <p class="muted-line">Telegram 页面简单、机器人体验好、斜杠命令灵活。这里按 1 → 2 → 3 → 4 引导你完成最小可用接入。</p>
+            <ul class="tg-intro-list">
+              <li>完成基础配置后，你可以直接在 Telegram 给 Bot 发消息。</li>
+              <li>系统会自动在后台执行 `openclaw plugins enable telegram` 等命令。</li>
+              <li>如果命令执行失败，操作记录会告诉你具体卡在哪一步。</li>
+            </ul>
+            <div class="channel-page-status">
+              <sl-tag id="channel_status_telegram_enabled" size="small" pill>未启用</sl-tag>
+              <sl-tag id="channel_status_telegram_configured" size="small" pill variant="warning">未配置</sl-tag>
+            </div>
+            <p class="channel-page-summary" id="channel_status_telegram_summary">完成基础配置后会自动刷新状态。</p>
+          </article>
+
+          <article class="card">
+            <h2>基础配置（按顺序完成）</h2>
+            <div class="tg-flow">
+              <section class="tg-flow-step">
+                <h3>第 1 步：获取 Bot Token</h3>
+                <p>在 Telegram 搜索 <b>@BotFather</b>，发送 <b>/newbot</b>，按提示创建机器人并拿到 Token。</p>
+                <label>
+                  Bot Token（示例：123456789:ABCdefGHIjklMNOpqrsTUVwxyz）
+                  <input id="tg_bot_token" type="text" autocomplete="off" />
+                </label>
+              </section>
+
+              <div class="tg-flow-arrow" aria-hidden="true">⬇</div>
+
+              <section class="tg-flow-step">
+                <h3>第 2 步：保存并启用</h3>
+                <p>点击后会自动执行启用 Telegram 插件、开启频道并写入 Bot Token。</p>
+                <div class="actions">
+                  <button id="tg_setup_basic" type="button">保存并启用</button>
+                </div>
+                <p id="tg_setup_result" class="muted-line">还没执行过</p>
+                <pre id="tg_setup_trace" class="tg-step-result">暂无执行记录</pre>
+              </section>
+
+              <div class="tg-flow-arrow" aria-hidden="true">⬇</div>
+
+              <section class="tg-flow-step">
+                <h3>第 3 步：在 Telegram 里给 Bot 发任意消息</h3>
+                <p>Bot 会返回验证码，把验证码填在下一步。</p>
+              </section>
+
+              <div class="tg-flow-arrow" aria-hidden="true">⬇</div>
+
+              <section class="tg-flow-step">
+                <h3>第 4 步：输入验证码并验证</h3>
+                <p>系统会执行 `openclaw pairing approve telegram 你的验证码` 完成配对。</p>
+                <div class="grid">
+                  <label>
+                    验证码
+                    <input id="tg_pairing_code" type="text" placeholder="请输入 Telegram 给你的验证码" />
+                  </label>
+                </div>
+                <div class="actions">
+                  <button id="tg_pairing_approve" type="button">验证并完成配对</button>
+                </div>
+                <p id="tg_pairing_result" class="muted-line">还没验证过</p>
+                <pre id="tg_pairing_trace" class="tg-step-result">暂无执行记录</pre>
+              </section>
+            </div>
+          </article>
+
+          <article class="card">
+            <h2>高级设置（可选）</h2>
+            <p class="muted-line">
+              这里覆盖
+              <a href="https://docs.openclaw.ai/zh-CN/channels/telegram" target="_blank" rel="noreferrer">OpenClaw 官方 Telegram 文档</a>
+              的高级配置项。每个功能下面都有一句作用说明，不懂就先保持默认值。
+            </p>
+            <sl-details summary="展开高级设置（按需）">
+              <div class="tg-advanced-grid">
+                <section class="tg-advanced-section">
+                  <h3>访问控制与会话</h3>
+                  <p>控制谁能用、在哪些群里可用、历史保留多少轮。</p>
+                  <div class="grid">
+                    <label class="tg-check-field">
+                      <span class="tg-check-row">
+                        启用 Telegram 渠道
+                        <input id="tg_enabled" type="checkbox" />
+                      </span>
+                      <small class="tg-help">关闭后 Telegram 渠道不会启动。</small>
+                    </label>
+                    <label>
+                      私聊权限（dmPolicy）
+                      <select id="tg_dm_policy">
+                        <option value="pairing">pairing：配对后可用（推荐）</option>
+                        <option value="allowlist">allowlist：仅白名单</option>
+                        <option value="open">open：所有私聊用户</option>
+                        <option value="disabled">disabled：禁用私聊</option>
+                      </select>
+                      <small class="tg-help">决定私聊消息是否被接受。</small>
+                    </label>
+                    <label>
+                      群组权限（groupPolicy）
+                      <select id="tg_group_policy">
+                        <option value="allowlist">allowlist：仅白名单用户</option>
+                        <option value="open">open：群内任何人都可用</option>
+                        <option value="disabled">disabled：禁用群组消息</option>
+                      </select>
+                      <small class="tg-help">决定群组里哪些发送者能触发机器人。</small>
+                    </label>
+                    <label class="tg-check-field">
+                      <span class="tg-check-row">
+                        群里必须 @ 机器人才回复
+                        <input id="tg_require_mention" type="checkbox" />
+                      </span>
+                      <small class="tg-help">适合活跃群，避免机器人抢答。</small>
+                    </label>
+                    <label>
+                      私聊允许列表（allowFrom，每行一个）
+                      <textarea id="tg_allow_from" rows="4"></textarea>
+                      <small class="tg-help">支持用户 ID 或 @username。用于 allowlist/open 策略。</small>
+                    </label>
+                    <label>
+                      群组发送者允许列表（groupAllowFrom，每行一个）
+                      <textarea id="tg_group_allow_from" rows="4"></textarea>
+                      <small class="tg-help">配合 groupPolicy=allowlist 使用。</small>
+                    </label>
+                    <label>
+                      私聊历史上限（dmHistoryLimit）
+                      <input id="tg_dm_history_limit" type="number" min="0" step="1" placeholder="留空使用默认" />
+                      <small class="tg-help">按用户轮次限制历史；0 表示禁用历史。</small>
+                    </label>
+                    <label>
+                      群组历史上限（historyLimit）
+                      <input id="tg_history_limit" type="number" min="0" step="1" placeholder="留空使用默认" />
+                      <small class="tg-help">群组上下文轮次；0 表示禁用。</small>
+                    </label>
+                  </div>
+                </section>
+
+                <section class="tg-advanced-section">
+                  <h3>消息与回复行为</h3>
+                  <p>控制流式回复、分块、链接预览、回复关联等体验项。</p>
+                  <div class="grid">
+                    <label>
+                      流式回复模式（streamMode）
+                      <select id="tg_stream_mode">
+                        <option value="partial">partial：边生成边更新草稿</option>
+                        <option value="block">block：分块草稿更新</option>
+                        <option value="off">off：关闭流式草稿</option>
+                      </select>
+                      <small class="tg-help">适合想“更实时”还是“更稳定”的场景。</small>
+                    </label>
+                    <label class="tg-check-field">
+                      <span class="tg-check-row">
+                        启用分块流式消息（blockStreaming）
+                        <input id="tg_block_streaming" type="checkbox" />
+                      </span>
+                      <small class="tg-help">开启后会更早发出消息块，而不是只更新草稿。</small>
+                    </label>
+                    <label>
+                      文本分块模式（chunkMode）
+                      <select id="tg_chunk_mode">
+                        <option value="length">length：按长度切分</option>
+                        <option value="newline">newline：优先按段落切分</option>
+                      </select>
+                      <small class="tg-help">newline 更自然，length 更稳定。</small>
+                    </label>
+                    <label>
+                      文本分块长度（textChunkLimit）
+                      <input id="tg_text_chunk_limit" type="number" min="1" step="1" placeholder="留空使用默认 4000" />
+                      <small class="tg-help">过小会碎片化，过大可能触发 Telegram 长度限制。</small>
+                    </label>
+                    <label>
+                      回复关联模式（replyToMode）
+                      <select id="tg_reply_to_mode">
+                        <option value="off">off：不引用</option>
+                        <option value="first">first：首条回复引用</option>
+                        <option value="all">all：每条都引用</option>
+                      </select>
+                      <small class="tg-help">帮助用户知道机器人在回复哪条消息。</small>
+                    </label>
+                    <label class="tg-check-field">
+                      <span class="tg-check-row">
+                        开启链接预览（linkPreview）
+                        <input id="tg_link_preview" type="checkbox" />
+                      </span>
+                      <small class="tg-help">关闭后消息更紧凑，适合命令型对话。</small>
+                    </label>
+                    <label>
+                      媒体大小上限 MB（mediaMaxMb）
+                      <input id="tg_media_max_mb" type="number" min="1" step="1" placeholder="留空使用默认 5" />
+                      <small class="tg-help">限制上传/下载媒体大小，防止资源占用过高。</small>
+                    </label>
+                    <label>
+                      API 超时秒数（timeoutSeconds）
+                      <input id="tg_timeout_seconds" type="number" min="1" step="1" placeholder="留空使用默认 500" />
+                      <small class="tg-help">网络差时可适当调大，卡顿时可调小。</small>
+                    </label>
+                  </div>
+                </section>
+
+                <section class="tg-advanced-section">
+                  <h3>Webhook 与网络</h3>
+                  <p>默认长轮询即可用；只有你明确需要公网回调时才配 Webhook。</p>
+                  <div class="grid">
+                    <label>
+                      Token 文件路径（tokenFile）
+                      <input id="tg_token_file" type="text" placeholder="例如 /run/secrets/tg_token" />
+                      <small class="tg-help">你用文件挂载密钥时填写；否则留空即可。</small>
+                    </label>
+                    <label>
+                      代理地址（proxy）
+                      <input id="tg_proxy" type="text" placeholder="例如 socks5://127.0.0.1:1080" />
+                      <small class="tg-help">网络受限时可用代理访问 Telegram API。</small>
+                    </label>
+                    <label>
+                      Webhook URL（webhookUrl）
+                      <input id="tg_webhook_url" type="text" placeholder="例如 https://公网IP:端口/telegram-webhook" />
+                      <small class="tg-help">填写后切到 Webhook 模式。</small>
+                    </label>
+                    <label>
+                      Webhook Secret（webhookSecret）
+                      <input id="tg_webhook_secret" type="password" autocomplete="off" />
+                      <small class="tg-help">Webhook 模式建议必须设置，用于校验来源。</small>
+                    </label>
+                    <label>
+                      Webhook Path（webhookPath）
+                      <input id="tg_webhook_path" type="text" placeholder="/telegram-webhook" />
+                      <small class="tg-help">本地监听路径，默认 `/telegram-webhook`。</small>
+                    </label>
+                    <label>
+                      网络家族自动选择（network.autoSelectFamily）
+                      <select id="tg_network_auto_select_family">
+                        <option value="default">default：使用系统默认</option>
+                        <option value="true">true：启用自动选择</option>
+                        <option value="false">false：禁用自动选择</option>
+                      </select>
+                      <small class="tg-help">主要用于 Node 22+ 的 IPv4/IPv6 网络兼容调优。</small>
+                    </label>
+                    <label class="tg-check-field">
+                      <span class="tg-check-row">
+                        允许渠道写回配置（configWrites）
+                        <input id="tg_config_writes" type="checkbox" />
+                      </span>
+                      <small class="tg-help">关闭后，/config 与群组迁移不会自动写配置文件。</small>
+                    </label>
+                  </div>
+                </section>
+
+                <section class="tg-advanced-section">
+                  <h3>按钮、反应与动作权限</h3>
+                  <p>控制智能体能不能发按钮、加反应、发消息、删消息、发贴纸。</p>
+                  <div class="grid">
+                    <label>
+                      内联按钮范围（capabilities.inlineButtons）
+                      <select id="tg_inline_buttons">
+                        <option value="allowlist">allowlist：仅白名单可用</option>
+                        <option value="all">all：私聊+群组都可用</option>
+                        <option value="group">group：仅群组</option>
+                        <option value="dm">dm：仅私聊</option>
+                        <option value="off">off：禁用</option>
+                      </select>
+                      <small class="tg-help">决定按钮功能可在哪些场景使用。</small>
+                    </label>
+                    <label>
+                      反应强度（reactionLevel）
+                      <select id="tg_reaction_level">
+                        <option value="off">off：不允许反应</option>
+                        <option value="ack">ack：仅确认反应</option>
+                        <option value="minimal">minimal：少量反应</option>
+                        <option value="extensive">extensive：自由反应</option>
+                      </select>
+                      <small class="tg-help">越高越“活泼”，也越可能打扰用户。</small>
+                    </label>
+                    <label>
+                      反应通知范围（reactionNotifications）
+                      <select id="tg_reaction_notifications">
+                        <option value="own">own：只通知机器人相关反应</option>
+                        <option value="all">all：通知所有反应</option>
+                        <option value="off">off：关闭反应通知</option>
+                      </select>
+                      <small class="tg-help">决定反应事件是否进入智能体上下文。</small>
+                    </label>
+                    <label>
+                      命令菜单注册策略（commands.native）
+                      <select id="tg_commands_native">
+                        <option value="default">default：跟随全局配置</option>
+                        <option value="auto">auto：按渠道自动决定</option>
+                        <option value="true">true：强制启用原生命令</option>
+                        <option value="false">false：禁用原生命令</option>
+                      </select>
+                      <small class="tg-help">控制 Telegram 机器人菜单是否注册原生命令（/status 等）。</small>
+                    </label>
+                    <label class="tg-check-field">
+                      <span class="tg-check-row">
+                        允许 sendMessage 动作
+                        <input id="tg_action_send_message" type="checkbox" />
+                      </span>
+                      <small class="tg-help">关掉后智能体工具不能主动发 Telegram 消息。</small>
+                    </label>
+                    <label class="tg-check-field">
+                      <span class="tg-check-row">
+                        允许 reactions 动作
+                        <input id="tg_action_reactions" type="checkbox" />
+                      </span>
+                      <small class="tg-help">关掉后智能体不能主动给消息加 emoji 反应。</small>
+                    </label>
+                    <label class="tg-check-field">
+                      <span class="tg-check-row">
+                        允许 deleteMessage 动作
+                        <input id="tg_action_delete_message" type="checkbox" />
+                      </span>
+                      <small class="tg-help">关掉后智能体不能删除 Telegram 消息。</small>
+                    </label>
+                    <label class="tg-check-field">
+                      <span class="tg-check-row">
+                        允许 sticker / sticker-search 动作
+                        <input id="tg_action_sticker" type="checkbox" />
+                      </span>
+                      <small class="tg-help">开启后可发贴纸和检索贴纸缓存。</small>
+                    </label>
+                  </div>
+                </section>
+
+                <section class="tg-advanced-section">
+                  <h3>扩展 JSON（覆盖官方高级结构）</h3>
+                  <p>这些字段用于承载文档里更复杂的结构（群组/话题、多账号、自定义命令、草稿分块策略）。</p>
+                  <div class="grid">
+                    <label>
+                      groups JSON（groups + topics）
+                      <textarea id="tg_groups_json" rows="8" placeholder='例如 { "*": { "requireMention": true } }'></textarea>
+                      <small class="tg-help">可配置每群组/每话题覆盖，如 requireMention、skills、systemPrompt 等。</small>
+                    </label>
+                    <label>
+                      accounts JSON（多账号）
+                      <textarea id="tg_accounts_json" rows="8" placeholder='例如 { "main": { "botToken": "..." } }'></textarea>
+                      <small class="tg-help">多 Bot 账号场景使用；留空表示不覆盖。</small>
+                    </label>
+                    <label>
+                      customCommands JSON（自定义命令）
+                      <textarea
+                        id="tg_custom_commands_json"
+                        rows="8"
+                        placeholder='例如 [{ "command": "backup", "description": "Git 备份" }]'
+                      ></textarea>
+                      <small class="tg-help">配置 Telegram 菜单中的自定义命令条目。</small>
+                    </label>
+                    <label>
+                      draftChunk JSON（草稿分块策略）
+                      <textarea
+                        id="tg_draft_chunk_json"
+                        rows="8"
+                        placeholder='例如 { "minChars": 200, "maxChars": 800, "breakPreference": "paragraph" }'
+                      ></textarea>
+                      <small class="tg-help">细调草稿流式更新的分块行为。</small>
+                    </label>
+                  </div>
+                </section>
+
+                <section class="tg-advanced-section">
+                  <h3>重试策略（retry）</h3>
+                  <p>网络不稳定时建议保留重试，避免偶发失败直接掉消息。</p>
+                  <div class="grid">
+                    <label>
+                      重试次数（attempts）
+                      <input id="tg_retry_attempts" type="number" min="1" step="1" placeholder="留空使用默认" />
+                      <small class="tg-help">越大越稳，但失败恢复会更慢。</small>
+                    </label>
+                    <label>
+                      最小重试间隔 ms（minDelayMs）
+                      <input id="tg_retry_min_delay_ms" type="number" min="1" step="1" placeholder="留空使用默认" />
+                      <small class="tg-help">建议 200~1000 区间。</small>
+                    </label>
+                    <label>
+                      最大重试间隔 ms（maxDelayMs）
+                      <input id="tg_retry_max_delay_ms" type="number" min="1" step="1" placeholder="留空使用默认" />
+                      <small class="tg-help">建议大于最小间隔。</small>
+                    </label>
+                    <label>
+                      抖动系数（jitter，0~1）
+                      <input id="tg_retry_jitter" type="number" min="0" max="1" step="0.01" placeholder="留空使用默认" />
+                      <small class="tg-help">分散重试峰值，建议 0.1~0.3。</small>
+                    </label>
+                  </div>
+                </section>
+              </div>
+              <div class="actions" style="margin-top: 14px">
+                <button id="tg_save_advanced" class="btn-soft" type="button">保存高级设置</button>
+                <button id="tg_reset_advanced" class="btn-soft" type="button">重置高级配置</button>
+              </div>
+            </sl-details>
+          </article>
+        </section>
+
+        <section class="card">
+          <h2>操作记录</h2>
+          <p class="muted-line">每次点击后的结果都会记录在这里，方便你定位问题。</p>
+          <pre id="messages" class="output"></pre>
+        </section>
+      </main>
+    </div>
+
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>
+

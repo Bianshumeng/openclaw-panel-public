@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OpenClaw 龙虾控制台</title>
+    <script>
+      (function initThemeEarly() {
+        var theme = "light";
+        try {
+          var saved = window.localStorage.getItem("openclaw-panel-theme");
+          theme = saved === "dark" ? "dark" : "light";
+        } catch (_error) {
+          theme = "light";
+        }
+        var root = document.documentElement;
+        root.dataset.theme = theme;
+        root.classList.toggle("sl-theme-dark", theme === "dark");
+        root.classList.toggle("sl-theme-light", theme !== "dark");
+      })();
+    </script>
+    <link rel="stylesheet" href="/shoelace/themes/light.css" />
+    <link rel="stylesheet" href="/shoelace/themes/dark.css" />
+    <link rel="stylesheet" href="/styles.css" />
+    <script type="module" src="/shoelace/shoelace-autoloader.js"></script>
+    <style>
+      .channel-page-status {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin: 10px 0 4px;
+      }
+
+      .channel-page-summary {
+        margin: 0;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .channel-page-header-left {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .channel-back-link {
+        width: 34px;
+        height: 34px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid var(--border);
+        border-radius: 9px;
+        background: var(--soft-button);
+        color: var(--text);
+        text-decoration: none;
+        font-size: 18px;
+        line-height: 1;
+      }
+
+      .channel-back-link:hover {
+        background: var(--soft-button-hover);
+      }
+    </style>
+  </head>
+  <body data-theme="light">
+    <div class="layout">
+      <aside class="sidebar">
+        <div class="brand">
+          <p class="eyebrow">OpenClaw</p>
+          <h1>龙虾控制台</h1>
+          <p class="sub">管理你的 AI 助手：模型、渠道、技能，一站搞定。</p>
+        </div>
+
+        <nav class="tabs sidebar-tabs">
+          <a class="tab" data-tab-target="panel-dashboard" href="/dashboard">仪表盘</a>
+          <a class="tab" data-tab-target="panel-model" href="/model">模型配置</a>
+          <a class="tab" data-tab-target="panel-chat-console" href="/chat-console">智能对话</a>
+          <a class="tab" data-tab-target="panel-skills" href="/skills">技能管理</a>
+          <a class="tab" data-tab-target="panel-config-generator" href="/config-generator">配置生成器</a>
+          <a class="tab is-active" data-tab-target="panel-channel" href="/channels">平台接入</a>
+          <a class="tab" data-tab-target="panel-update" href="/update">版本更新</a>
+          <a class="tab" data-tab-target="panel-service" href="/service">服务控制</a>
+          <a class="tab" data-tab-target="panel-logs" href="/logs">运行日志</a>
+        </nav>
+      </aside>
+
+      <main class="content">
+        <header class="page-header">
+          <div class="channel-page-header-left">
+            <a class="channel-back-link" href="/channels" aria-label="返回平台列表" title="返回平台列表">←</a>
+            <div>
+              <h2 class="page-title">龙虾控制台</h2>
+              <p class="page-subtitle">你的 AI 助手管理中心</p>
+            </div>
+          </div>
+          <button id="theme_toggle" class="btn-soft" type="button">切换到深夜模式</button>
+        </header>
+
+        <section class="panel is-visible" data-panel="panel-channel">
+          <article class="card">
+            <h2>Slack 接入配置</h2>
+            <p class="muted-line">填写 Slack 凭证并选择连接模式，保存后就能在 Slack 使用龙虾 Bot。</p>
+            <div class="channel-page-status">
+              <sl-tag id="channel_status_slack_enabled" size="small" pill>未启用</sl-tag>
+              <sl-tag id="channel_status_slack_configured" size="small" pill variant="warning">未配置</sl-tag>
+            </div>
+            <p class="channel-page-summary" id="channel_status_slack_summary">点击保存后会刷新状态。</p>
+            <div class="actions" style="margin-top: 12px">
+              <button id="save_settings" type="button">保存配置</button>
+              <button id="test_slack" class="btn-soft" type="button">测试连接</button>
+            </div>
+          </article>
+
+          <article class="card">
+            <h2>Slack</h2>
+            <label class="inline-check" style="margin-bottom: 12px">
+              启用 Slack
+              <input id="sl_enabled" type="checkbox" />
+            </label>
+            <div class="grid">
+              <label>
+                连接模式
+                <select id="sl_mode">
+                  <option value="socket">Socket</option>
+                  <option value="http">HTTP</option>
+                </select>
+              </label>
+              <label>
+                Bot Token（xoxb- 开头）
+                <input id="sl_bot_token" type="password" autocomplete="off" />
+              </label>
+              <label>
+                App Token（xapp- 开头）
+                <input id="sl_app_token" type="password" autocomplete="off" />
+              </label>
+              <label>
+                Signing Secret（Webhook 模式必填）
+                <input id="sl_signing_secret" type="password" autocomplete="off" />
+              </label>
+            </div>
+            <div class="grid" style="margin-top: 12px">
+              <label>
+                谁能私聊机器人
+                <select id="sl_dm_policy">
+                  <option value="pairing">需要验证身份（推荐）</option>
+                  <option value="allowlist">仅指定用户</option>
+                  <option value="open">所有人都能用</option>
+                  <option value="disabled">禁止</option>
+                </select>
+              </label>
+              <label>
+                谁能在群里用机器人
+                <select id="sl_group_policy">
+                  <option value="allowlist">仅指定用户</option>
+                  <option value="open">所有人都能用</option>
+                  <option value="disabled">禁止</option>
+                </select>
+              </label>
+              <label class="inline-check">
+                允许其他 Bot 触发
+                <input id="sl_allow_bots" type="checkbox" />
+              </label>
+              <label class="inline-check">
+                群里必须 @ 才回复
+                <input id="sl_require_mention" type="checkbox" />
+              </label>
+            </div>
+            <sl-details summary="允许使用的用户 ID" style="margin-top: 12px">
+              <div class="grid">
+                <label>
+                  允许使用的用户 ID（每行一个）
+                  <textarea id="sl_allow_from" rows="4"></textarea>
+                </label>
+              </div>
+            </sl-details>
+            <p id="sl_test_result" class="muted-line">还没测试过</p>
+          </article>
+        </section>
+
+        <section class="card">
+          <h2>操作记录</h2>
+          <p class="muted-line">每次点击后的结果都会记录在这里，方便你定位问题。</p>
+          <pre id="messages" class="output"></pre>
+        </section>
+      </main>
+    </div>
+
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>
+
+
