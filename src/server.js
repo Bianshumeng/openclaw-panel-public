@@ -42,7 +42,7 @@ import {
   sendChatMessage,
   stageChatAttachment
 } from "./chat-service.js";
-import { rotateGatewayTokenConfig } from "./gateway-token.js";
+import { rotateGatewayTokenAndApprovePairings } from "./gateway-token.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -450,8 +450,14 @@ app.post("/api/gateway/token/sync", async (request, reply) => {
   try {
     const { config: panelConfig } = await loadPanelConfig();
     const currentConfig = await loadOpenClawConfig(panelConfig.openclaw.config_path);
-    const tokenResult = rotateGatewayTokenConfig(currentConfig);
-    const saved = await saveOpenClawConfig(panelConfig.openclaw.config_path, tokenResult.nextConfig);
+    const syncResult = await rotateGatewayTokenAndApprovePairings({
+      openclawConfig: currentConfig,
+      panelConfig,
+      configPath: panelConfig.openclaw.config_path,
+      saveConfig: saveOpenClawConfig,
+      approvePendingPairings: approvePendingGatewayPairings
+    });
+    const { tokenResult, saved, autoApprove } = syncResult;
 
     return {
       ok: true,
@@ -460,7 +466,8 @@ app.post("/api/gateway/token/sync", async (request, reply) => {
         source: tokenResult.source,
         token: tokenResult.token,
         tokenMasked: maskToken(tokenResult.token),
-        message: "Gateway Token 已重新生成并写入真实配置文件",
+        message: "Gateway Token 已重新生成并写入真实配置文件，已自动尝试批准待处理配对",
+        autoApprove,
         path: saved.path,
         backupPath: saved.backupPath
       }

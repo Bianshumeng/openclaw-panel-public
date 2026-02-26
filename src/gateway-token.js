@@ -48,3 +48,44 @@ export function rotateGatewayTokenConfig(openclawConfig, tokenGenerator = genera
     changed: prevMode !== "token" || prevToken !== token
   };
 }
+
+function normalizeAutoApproveFailure(error) {
+  const detail = trimText(error?.message || error);
+  const message = detail ? `自动批准待处理配对失败：${detail}` : "自动批准待处理配对失败";
+  return {
+    ok: false,
+    message,
+    pendingCount: 0,
+    approvedCount: 0,
+    failedCount: 0,
+    pending: [],
+    approvals: [],
+    steps: []
+  };
+}
+
+export async function rotateGatewayTokenAndApprovePairings({
+  openclawConfig,
+  panelConfig,
+  configPath,
+  saveConfig,
+  approvePendingPairings
+}) {
+  const tokenResult = rotateGatewayTokenConfig(openclawConfig);
+  const saved = await saveConfig(configPath, tokenResult.nextConfig);
+
+  let autoApprove;
+  try {
+    autoApprove = await approvePendingPairings({
+      panelConfig
+    });
+  } catch (error) {
+    autoApprove = normalizeAutoApproveFailure(error);
+  }
+
+  return {
+    tokenResult,
+    saved,
+    autoApprove
+  };
+}

@@ -1077,7 +1077,38 @@ async function syncDashboardGatewayToken() {
       `配置完成：${tokenMasked}（来源：${sourceLabel}）。请把新 Token 粘贴到 Control UI 后重新连接。`,
       "ok"
     );
-    setMessage(`Gateway Token 已重置：${payload.path || "-"}。请在 Control UI 更新新 Token。`, "ok");
+
+    const autoApprove = payload?.autoApprove && typeof payload.autoApprove === "object" ? payload.autoApprove : null;
+    if (!autoApprove) {
+      setDashboardGatewayPairingStatus("未返回自动审批结果，请手动点击“批准待处理配对”。", "info");
+      setMessage(`Gateway Token 已重置：${payload.path || "-"}。请在 Control UI 更新新 Token。`, "ok");
+      return;
+    }
+
+    const pendingCount = Number(autoApprove.pendingCount || 0);
+    const approvedCount = Number(autoApprove.approvedCount || 0);
+    const failedCount = Number(autoApprove.failedCount || 0);
+    if (pendingCount === 0) {
+      setDashboardGatewayPairingStatus("自动审批完成：当前没有待处理配对请求。", "ok");
+      setMessage(
+        `Gateway Token 已重置：${payload.path || "-"}。当前无待处理配对，请在 Control UI 粘贴新 Token 后重连。`,
+        "ok"
+      );
+      return;
+    }
+
+    if (failedCount > 0 || autoApprove.ok === false) {
+      const detail = String(autoApprove.message || "存在自动审批失败项").trim();
+      setDashboardGatewayPairingStatus(`自动审批部分失败：成功 ${approvedCount} / 失败 ${failedCount}`, "error");
+      setMessage(`Gateway Token 已重置，但自动审批失败：${detail}`, "error");
+      return;
+    }
+
+    setDashboardGatewayPairingStatus(`自动审批成功：已批准 ${approvedCount} 个待处理配对`, "ok");
+    setMessage(
+      `Gateway Token 已重置并自动批准 ${approvedCount} 个待处理配对。请在 Control UI 粘贴新 Token 后重连。`,
+      "ok"
+    );
   } catch (error) {
     const detail = error.message || String(error);
     setDashboardGatewayTokenStatus(`自动配置失败：${detail}`, "error");
