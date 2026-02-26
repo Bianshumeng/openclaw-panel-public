@@ -823,7 +823,7 @@ async function mutateVersion(action, { target = "bot" } = {}) {
       if (targetKey === "panel" && action !== "apply") {
         const successText = action === "upgrade" ? "更新包已准备" : "回滚包已准备";
         setUpdateState(successText, "success", targetKey);
-        setUpdateHint(payload.message || "版本包已准备完成，请点击“应用更新并重启”生效", targetKey);
+        setUpdateHint(payload.message || "更新包来自公开仓库 release。先准备版本包，再点击“应用更新并重启”生效。", targetKey);
         // stage-only flow: keep current tag as running version until apply step restarts the panel service
         setInput(targetConfig.currentTagId, oldImageTag || "");
         if (targetImageTag) {

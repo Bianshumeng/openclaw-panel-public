@@ -7,10 +7,8 @@ import {
   setSaveModelSettingsHandler
 } from "./js/pages/model-dashboard-page.js";
 import { loadSkillsStatus, setupSkillsPage } from "./js/pages/skills-page.js";
-import { loadChatSessions, setupChatConsole } from "./js/pages/chat-page.js";
 import {
   approveTelegramPairingFlow,
-  checkAllUpdates,
   checkUpdate,
   loadErrorSummary,
   loadInitialData,
@@ -42,9 +40,6 @@ if (hasPanel("panel-dashboard")) {
 }
 if (hasPanel("panel-skills")) {
   setupSkillsPage();
-}
-if (hasPanel("panel-chat-console")) {
-  setupChatConsole();
 }
 if (hasPanel("panel-model") || hasPanel("panel-model-add")) {
   setupModelEditor();
@@ -107,15 +102,6 @@ bindChannelTestButton("#test_telegram", testTelegram, "tg_test_result", "Telegra
 bindChannelTestButton("#test_feishu", testFeishu, "fs_test_result", "Feishu");
 bindChannelTestButton("#test_discord", testDiscord, "dc_test_result", "Discord");
 bindChannelTestButton("#test_slack", testSlack, "sl_test_result", "Slack");
-document.querySelector("#bot_check_update")?.addEventListener("click", () => {
-  checkUpdate({ target: "bot" }).catch((error) => setMessage(error.message, "error"));
-});
-document.querySelector("#bot_upgrade_update")?.addEventListener("click", () => {
-  mutateVersion("upgrade", { target: "bot" }).catch((error) => setMessage(error.message, "error"));
-});
-document.querySelector("#bot_rollback_update")?.addEventListener("click", () => {
-  mutateVersion("rollback", { target: "bot" }).catch((error) => setMessage(error.message, "error"));
-});
 document.querySelector("#panel_check_update")?.addEventListener("click", () => {
   checkUpdate({ target: "panel" }).catch((error) => setMessage(error.message, "error"));
 });
@@ -152,11 +138,8 @@ loadInitialData()
     if (hasPanel("panel-skills")) {
       loadSkillsStatus({ silent: true }).catch((error) => setMessage(`Skills 页面加载失败：${error.message}`, "error"));
     }
-    if (hasPanel("panel-chat-console")) {
-      loadChatSessions({ silent: true }).catch((error) => setMessage(`智能对话页加载失败：${error.message}`, "error"));
-    }
     if (isUpdatePage) {
-      checkAllUpdates({ silent: true }).catch((error) => setMessage(`版本信息加载失败：${error.message}`, "error"));
+      checkUpdate({ silent: true, target: "panel" }).catch((error) => setMessage(`版本信息加载失败：${error.message}`, "error"));
     }
   })
   .catch((error) => {

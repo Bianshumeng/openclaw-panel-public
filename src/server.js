@@ -1502,7 +1502,6 @@ const PAGE_FILE_BY_PATH = {
   "/dashboard": "pages/dashboard.html",
   "/status-overview": "pages/dashboard.html",
   "/skills": "pages/skills.html",
-  "/chat-console": "pages/chat-console.html",
   "/model": "pages/model.html",
   "/model/add": "pages/model-add.html",
   "/config-generator": "pages/config-generator.html",
