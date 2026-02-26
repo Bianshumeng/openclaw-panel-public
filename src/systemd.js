@@ -376,15 +376,23 @@ export async function runServiceAction(action, panelConfig, deps = {}) {
     return runDockerAction(action, containerName, deps);
   }
   const serviceName = panelConfig?.openclaw?.service_name || "openclaw-gateway";
+  const platform = deps.platform || process.platform;
+
+  if (platform === "linux") {
+    const systemdResult = await runSystemdAction(action, serviceName, deps);
+    if (systemdResult.ok) {
+      return systemdResult;
+    }
+  }
+
   const cliResult = await runGatewayCliAction(action, {
     execFile: deps.execFile,
-    platform: deps.platform,
+    platform,
     serviceName
   });
   if (!cliResult.missingExecutable) {
     return cliResult;
   }
-  const platform = deps.platform || process.platform;
   if (platform === "linux") {
     return runSystemdAction(action, serviceName, deps);
   }

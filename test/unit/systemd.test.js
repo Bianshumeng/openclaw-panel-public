@@ -35,11 +35,8 @@ test("runServiceAction 优先使用 openclaw CLI", async () => {
   assert.equal(execStub.calls[0].command, "openclaw");
 });
 
-test("Linux 环境 CLI 缺失时回退 systemctl", async () => {
-  const enoent = new Error("spawn openclaw ENOENT");
-  enoent.code = "ENOENT";
+test("Linux 环境优先使用 systemctl", async () => {
   const execStub = createExecStub({
-    "openclaw gateway restart": { error: enoent },
     "systemctl restart openclaw-gateway": { stdout: "done" }
   });
   const result = await runServiceAction("restart", basePanelConfig, {
@@ -47,7 +44,25 @@ test("Linux 环境 CLI 缺失时回退 systemctl", async () => {
     platform: "linux"
   });
   assert.equal(result.ok, true);
-  assert.equal(execStub.calls.some((call) => call.command === "systemctl"), true);
+  assert.equal(execStub.calls.length, 1);
+  assert.equal(execStub.calls[0].command, "systemctl");
+});
+
+test("Linux 环境 systemctl 失败时回退 openclaw CLI", async () => {
+  const systemdError = new Error("systemctl failed");
+  systemdError.code = 1;
+  const execStub = createExecStub({
+    "systemctl restart openclaw-gateway": { error: systemdError, stderr: "failed to restart" },
+    "openclaw gateway restart": { stdout: "ok" }
+  });
+  const result = await runServiceAction("restart", basePanelConfig, {
+    execFile: execStub,
+    platform: "linux"
+  });
+  assert.equal(result.ok, true);
+  assert.equal(execStub.calls.length, 2);
+  assert.equal(execStub.calls[0].command, "systemctl");
+  assert.equal(execStub.calls[1].command, "openclaw");
 });
 
 test("Windows 环境 CLI 缺失时给出提示", async () => {
