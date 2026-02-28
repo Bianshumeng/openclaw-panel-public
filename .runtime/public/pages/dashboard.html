@@ -35,7 +35,6 @@
                 <nav class="tabs sidebar-tabs">
           <a class="tab is-active" data-tab-target="panel-dashboard" href="/dashboard">仪表盘</a>
           <a class="tab" data-tab-target="panel-model" href="/model">模型配置</a>
-          <a class="tab" data-tab-target="panel-chat-console" href="/chat-console">智能对话</a>
           <a class="tab" data-tab-target="panel-skills" href="/skills">技能管理</a>
           <a class="tab" data-tab-target="panel-config-generator" href="/config-generator">配置生成器</a>
           <a class="tab" data-tab-target="panel-channel" href="/channels">平台接入</a>
@@ -85,45 +84,17 @@
                 <span id="dashboard_summary_model" class="dashboard-stat-value">-</span>
                 <span id="dashboard_summary_model_meta" class="sr-only">等待刷新</span>
               </div>
-              <div class="dashboard-stat">
-                <span class="dashboard-stat-label">渠道</span>
-                <span id="dashboard_summary_channels" class="dashboard-stat-value">-</span>
-                <span id="dashboard_summary_channels_meta" class="sr-only">等待刷新</span>
-              </div>
-              <div class="dashboard-stat">
-                <span class="dashboard-stat-label">技能</span>
-                <span id="dashboard_summary_skills" class="dashboard-stat-value">-</span>
-                <span id="dashboard_summary_skills_meta" class="sr-only">等待刷新</span>
-              </div>
-              <div class="dashboard-stat dashboard-stat-error">
-                <span class="dashboard-stat-label">错误</span>
-                <span id="dashboard_summary_errors" class="dashboard-stat-value">-</span>
-                <span id="dashboard_summary_errors_meta" class="sr-only">等待刷新</span>
-              </div>
-              <div class="dashboard-stat">
-                <span class="dashboard-stat-label">版本</span>
-                <span id="dashboard_summary_version" class="dashboard-stat-value">-</span>
-                <span id="dashboard_summary_version_meta" class="sr-only">等待刷新</span>
-              </div>
             </div>
             <p id="dashboard_summary_hint" class="muted-line">点击"刷新总览"后显示最新状态。</p>
           </article>
 
-          <!-- ② 快捷操作（提升到第 2 位） -->
+          <!-- ② 网关运维 -->
           <article class="card dashboard-surface-card">
-            <h2>我想要...</h2>
-            <div class="dashboard-quick-grid">
-              <button class="btn-soft dashboard-quick-btn" data-dashboard-jump="panel-chat-console" type="button">打开智能对话</button>
-              <button class="btn-soft dashboard-quick-btn" data-dashboard-jump="panel-model" type="button">配置模型</button>
-              <button class="btn-soft dashboard-quick-btn" data-dashboard-jump="panel-channel" type="button">配置平台接入</button>
-              <button class="btn-soft dashboard-quick-btn" data-dashboard-jump="panel-skills" type="button">管理技能</button>
-              <button class="btn-soft dashboard-quick-btn" data-dashboard-jump="panel-update" type="button">检查版本更新</button>
-              <button class="btn-soft dashboard-quick-btn" data-dashboard-jump="panel-service" type="button">服务控制</button>
-            </div>
+            <h2>网关运维</h2>
             <div class="dashboard-gateway-token-box">
               <div class="dashboard-gateway-token-main">
                 <h3>Gateway Token 自动配置</h3>
-                <p class="muted-line">模板机克隆后如果提示要填 Token，点一次按钮即可自动获取并写入真实配置文件。</p>
+                <p class="muted-line">模板机克隆后如果提示 Token 不匹配，点一次按钮会重置 Token，先执行首轮审批，再持续 2 分钟自动监听并批准新出现的待处理配对。</p>
                 <p id="dashboard_gateway_token_status" class="muted-line dashboard-gateway-token-status">
                   尚未执行自动配置。
                 </p>
@@ -136,13 +107,13 @@
                     class="dashboard-gateway-token-input"
                     type="text"
                     readonly
-                    placeholder="点击右侧按钮后自动显示，支持一键复制"
+                    placeholder="点击右侧按钮后自动显示最新 Token，支持一键复制"
                   />
                   <button id="dashboard_gateway_token_copy" class="btn-soft" type="button" disabled>复制 Gateway Token</button>
                 </div>
               </div>
               <div class="dashboard-gateway-token-actions">
-                <button id="dashboard_gateway_token_sync" class="btn-soft" type="button">一键自动配置 Gateway Token</button>
+                <button id="dashboard_gateway_token_sync" class="btn-soft" type="button">一键重置 Token 并开启 2 分钟自动审批</button>
                 <button id="dashboard_gateway_pairing_approve" class="btn-soft" type="button">一键批准待处理配对</button>
                 <button id="dashboard_gateway_restart" class="btn-soft" type="button">一键重启网关服务</button>
               </div>
@@ -171,56 +142,6 @@
             <p class="muted-line">从长上下文模型切到短上下文模型时，请确保当前会话已用上下文不超过目标模型上限，否则会报错。</p>
             <p id="dashboard_quick_switch_hint" class="muted-line">选择目标模型后点击切换。</p>
           </article>
-
-          <!-- ④ 地址与接入配置（折叠，默认收起） -->
-          <article class="card dashboard-surface-card">
-            <sl-details summary="地址与接入配置（初次部署时需要）">
-              <div class="grid">
-                <label>
-                  本地地址
-                  <input id="dashboard_panel_local_url" type="text" readonly />
-                </label>
-                <label>
-                  公网地址
-                  <input id="dashboard_panel_public_url" type="text" readonly />
-                </label>
-                <label>
-                  网关地址
-                  <input id="dashboard_gateway_public_url" type="text" readonly />
-                </label>
-                <label>
-                  Webhook 地址
-                  <input id="dashboard_webhook_base_url" type="text" readonly />
-                </label>
-              </div>
-              <p id="dashboard_public_hint" class="muted-line">
-                若为空，请在 <code>data/panel/panel.config.json</code> 的 <code>reverse_proxy</code> 中填写公网 IP 与端口。
-              </p>
-            </sl-details>
-          </article>
-
-          <!-- ⑤ 运行态明细（技能列表折叠/过滤） -->
-          <article class="card dashboard-surface-card">
-            <h2>运行态明细</h2>
-            <p class="muted-line">当前在跑什么一目了然。</p>
-            <div class="dashboard-runtime-grid">
-              <article class="dashboard-runtime-card">
-                <div class="dashboard-runtime-head">
-                  <h3>渠道运行态</h3>
-                  <span class="muted-line">最近检查与错误</span>
-                </div>
-                <div id="dashboard_channel_runtime_list" class="stack-list dashboard-channel-runtime-list"></div>
-              </article>
-              <article class="dashboard-runtime-card">
-                <div class="dashboard-runtime-head">
-                  <h3>技能运行态</h3>
-                  <span id="dashboard_skills_summary_text" class="muted-line">按技能展示状态</span>
-                </div>
-                <div id="dashboard_skills_runtime_list" class="stack-list dashboard-skills-runtime-list"></div>
-                <button id="dashboard_skills_toggle_all" class="btn-soft dashboard-skills-toggle-btn" type="button" style="display:none;">显示全部</button>
-              </article>
-            </div>
-          </article>
         </section>
 
         <section class="card">
@@ -234,6 +155,7 @@
     <script type="module" src="/app.js"></script>
   </body>
 </html>
+
 
 
 

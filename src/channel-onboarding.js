@@ -1,4 +1,8 @@
 import { execFile } from "node:child_process";
+import fs from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
+import { expandHome, readJsonFile, writeJsonFileAtomic } from "./utils.js";
 
 const DEFAULT_TIMEOUT_MS = 30_000;
 const DEFAULT_DOCKER_CLI_PREFIXES = [
@@ -94,9 +98,9 @@ function formatCommand(invocation, redactOpenclawArgIndices = []) {
   return [invocation.command, ...renderedArgs].join(" ");
 }
 
-async function runCommand(command, args, timeoutMs, exec = execFile) {
+async function runCommand(command, args, timeoutMs, spawnOptions = {}, exec = execFile) {
   return await new Promise((resolve) => {
-    exec(command, args, { timeout: timeoutMs, maxBuffer: 10 * 1024 * 1024 }, (error, stdout, stderr) => {
+    exec(command, args, { ...spawnOptions, timeout: timeoutMs, maxBuffer: 10 * 1024 * 1024 }, (error, stdout, stderr) => {
       resolve({
         ok: !error,
         code: error?.code ?? 0,
@@ -168,8 +172,84 @@ function parseJsonOutput(text, label = "命令") {
   try {
     return JSON.parse(raw);
   } catch (error) {
+    const lines = raw.split(/\r?\n/).map((line) => trimText(line));
+    for (let index = 0; index < lines.length; index += 1) {
+      const candidate = lines.slice(index).join("\n").trim();
+      if (!candidate || (!candidate.startsWith("{") && !candidate.startsWith("["))) {
+        continue;
+      }
+      try {
+        return JSON.parse(candidate);
+      } catch {
+        // continue scanning
+      }
+    }
     throw new Error(`${label} 返回非 JSON：${error.message || String(error)}`);
   }
+}
+
+function parseJsonFromCommandResult(result, label) {
+  const candidates = [result?.stdout, result?.output];
+  let lastError = null;
+  for (const candidate of candidates) {
+    const raw = trimText(candidate);
+    if (!raw) {
+      continue;
+    }
+    try {
+      return parseJsonOutput(raw, label);
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  if (lastError) {
+    throw lastError;
+  }
+  throw new Error(`${label} 返回为空，无法解析 JSON`);
+}
+
+function hasPairingRequiredSignal(result) {
+  const text = [result?.stdout, result?.stderr, result?.message, result?.output]
+    .map((item) => trimText(item))
+    .filter(Boolean)
+    .join("\n")
+    .toLowerCase();
+  return text.includes("pairing required");
+}
+
+function buildGatewayLocalFallbackConfig(baseConfig = {}) {
+  const cloned = JSON.parse(JSON.stringify(baseConfig && typeof baseConfig === "object" ? baseConfig : {}));
+  const gateway =
+    cloned.gateway && typeof cloned.gateway === "object" && !Array.isArray(cloned.gateway) ? { ...cloned.gateway } : {};
+  gateway.mode = "local";
+  gateway.remote = {};
+  cloned.gateway = gateway;
+  return cloned;
+}
+
+async function createTemporaryGatewayLocalConfig(panelConfig, deps = {}) {
+  const readConfig = deps.readJsonFile || readJsonFile;
+  const writeConfig = deps.writeJsonFileAtomic || writeJsonFileAtomic;
+  const makeTempDir = deps.makeTempDir || fs.mkdtemp;
+  const removeDir = deps.removeDir || fs.rm;
+  const configuredPath = trimText(panelConfig?.openclaw?.config_path || "~/.openclaw/openclaw.json");
+  const sourceConfigPath = expandHome(configuredPath);
+  const sourceConfig = await readConfig(sourceConfigPath, {});
+  const fallbackConfig = buildGatewayLocalFallbackConfig(sourceConfig);
+  const tempBase = trimText(deps.tempBaseDir) || os.tmpdir();
+  const tempDir = await makeTempDir(path.join(tempBase, "openclaw-panel-gateway-local-"));
+  const tempConfigPath = path.join(tempDir, "openclaw.json");
+  await writeConfig(tempConfigPath, fallbackConfig, 0o600);
+  return {
+    tempConfigPath,
+    cleanup: async () => {
+      try {
+        await removeDir(tempDir, { recursive: true, force: true });
+      } catch {
+        // ignore cleanup failure
+      }
+    }
+  };
 }
 
 function pickRequestId(pendingItem = {}) {
@@ -198,6 +278,7 @@ export async function runOpenClawCli({
   openclawArgs,
   dockerCliPrefix = [],
   timeoutMs = DEFAULT_TIMEOUT_MS,
+  commandEnv = null,
   redactOpenclawArgIndices = [],
   secrets = [],
   deps = {}
@@ -208,10 +289,15 @@ export async function runOpenClawCli({
   }
 
   const runFn = deps.runCommand || runCommand;
+  const envEntries =
+    commandEnv && typeof commandEnv === "object"
+      ? Object.entries(commandEnv).filter(([key, value]) => trimText(key) && value !== undefined && value !== null)
+      : [];
+  const runOptions = envEntries.length > 0 ? { env: { ...process.env, ...Object.fromEntries(envEntries) } } : {};
   const runtimeMode = trimText(panelConfig?.runtime?.mode) || "systemd";
   if (runtimeMode !== "docker") {
     const invocation = buildInvocation(panelConfig, normalizedArgs, dockerCliPrefix);
-    const raw = await runFn(invocation.command, invocation.args, timeoutMs);
+    const raw = await runFn(invocation.command, invocation.args, timeoutMs, runOptions);
     const normalized = normalizeCommandResult(raw, invocation, {
       secrets,
       redactOpenclawArgIndices
@@ -229,7 +315,7 @@ export async function runOpenClawCli({
   for (let index = 0; index < dockerCliCandidates.length; index += 1) {
     const currentPrefix = dockerCliCandidates[index];
     const invocation = buildInvocation(panelConfig, normalizedArgs, currentPrefix);
-    const raw = await runFn(invocation.command, invocation.args, timeoutMs);
+    const raw = await runFn(invocation.command, invocation.args, timeoutMs, runOptions);
     const normalized = normalizeCommandResult(raw, invocation, {
       secrets,
       redactOpenclawArgIndices
@@ -390,7 +476,7 @@ export async function approveTelegramPairing({ panelConfig, code, deps = {} }) {
 export async function approvePendingGatewayPairings({ panelConfig, deps = {} }) {
   const steps = [];
 
-  const { dockerCliPrefix: resolvedDockerCliPrefix, ...listResult } = await runOpenClawCli({
+  const { dockerCliPrefix: resolvedDockerCliPrefix, ...initialListResult } = await runOpenClawCli({
     panelConfig,
     openclawArgs: ["devices", "list", "--json"],
     deps
@@ -398,133 +484,186 @@ export async function approvePendingGatewayPairings({ panelConfig, deps = {} }) 
   const activeDockerCliPrefix =
     Array.isArray(resolvedDockerCliPrefix) && resolvedDockerCliPrefix.length > 0 ? [...resolvedDockerCliPrefix] : [];
   steps.push({
-    ...listResult,
+    ...initialListResult,
     label: "读取待处理设备配对列表"
   });
 
-  if (!listResult.ok) {
-    return {
-      ok: false,
-      message: "读取待处理设备配对列表失败",
-      pendingCount: 0,
-      approvedCount: 0,
-      failedCount: 0,
-      pending: [],
-      approvals: [],
-      steps
-    };
-  }
-
-  let pendingList;
-  try {
-    const payload = parseJsonOutput(listResult.stdout, "openclaw devices list --json");
-    const pendingRaw = Array.isArray(payload?.pending) ? payload.pending : [];
-    pendingList = pendingRaw.map((item) => normalizePendingEntry(item));
-  } catch (error) {
-    const detail = error.message || String(error);
-    steps.push({
-      ok: false,
-      code: 1,
-      runtimeMode: listResult.runtimeMode,
-      containerName: listResult.containerName,
-      command: listResult.command,
-      stdout: "",
-      stderr: "",
-      message: detail,
-      output: detail,
-      label: "解析待处理设备配对列表"
-    });
-    return {
-      ok: false,
-      message: detail,
-      pendingCount: 0,
-      approvedCount: 0,
-      failedCount: 0,
-      pending: [],
-      approvals: [],
-      steps
-    };
-  }
-
-  if (pendingList.length === 0) {
-    return {
-      ok: true,
-      message: "当前没有待批准的设备配对请求",
-      pendingCount: 0,
-      approvedCount: 0,
-      failedCount: 0,
-      pending: [],
-      approvals: [],
-      steps
-    };
-  }
-
-  const approvals = [];
+  const runtimeMode = trimText(panelConfig?.runtime?.mode) || "systemd";
+  let listResult = initialListResult;
+  let cleanupTemporaryConfig = null;
+  let commandEnvForPairing = null;
   let dockerCliPrefixForApprove = activeDockerCliPrefix;
-  for (const pending of pendingList) {
-    const requestId = trimText(pending.requestId);
-    if (!requestId) {
-      const detail = "待处理项缺少 requestId，无法批准";
-      const failedStep = {
+
+  try {
+    const canUseLocalFallback = runtimeMode !== "docker" && !listResult.ok && hasPairingRequiredSignal(listResult);
+    if (canUseLocalFallback) {
+      try {
+        const temporaryConfig = await createTemporaryGatewayLocalConfig(panelConfig, deps);
+        cleanupTemporaryConfig = temporaryConfig.cleanup;
+        commandEnvForPairing = { OPENCLAW_CONFIG_PATH: temporaryConfig.tempConfigPath };
+
+        const { dockerCliPrefix: fallbackDockerCliPrefix, ...fallbackListResult } = await runOpenClawCli({
+          panelConfig,
+          openclawArgs: ["devices", "list", "--json"],
+          dockerCliPrefix: dockerCliPrefixForApprove,
+          commandEnv: commandEnvForPairing,
+          deps
+        });
+        if (Array.isArray(fallbackDockerCliPrefix) && fallbackDockerCliPrefix.length > 0) {
+          dockerCliPrefixForApprove = [...fallbackDockerCliPrefix];
+        }
+        steps.push({
+          ...fallbackListResult,
+          label: "读取待处理设备配对列表（本地模式回退）"
+        });
+        if (fallbackListResult.ok) {
+          listResult = fallbackListResult;
+        }
+      } catch (error) {
+        const detail = error?.message || String(error);
+        steps.push({
+          ok: false,
+          code: 1,
+          runtimeMode,
+          containerName: "",
+          command: "prepare temporary local gateway config",
+          stdout: "",
+          stderr: "",
+          message: detail,
+          output: detail,
+          label: "准备本地模式回退配置"
+        });
+      }
+    }
+
+    if (!listResult.ok) {
+      return {
+        ok: false,
+        message: "读取待处理设备配对列表失败",
+        pendingCount: 0,
+        approvedCount: 0,
+        failedCount: 0,
+        pending: [],
+        approvals: [],
+        steps
+      };
+    }
+
+    let pendingList;
+    try {
+      const payload = parseJsonFromCommandResult(listResult, "openclaw devices list --json");
+      const pendingRaw = Array.isArray(payload?.pending) ? payload.pending : [];
+      pendingList = pendingRaw.map((item) => normalizePendingEntry(item));
+    } catch (error) {
+      const detail = error.message || String(error);
+      steps.push({
         ok: false,
         code: 1,
         runtimeMode: listResult.runtimeMode,
         containerName: listResult.containerName,
-        command: "openclaw devices approve <missing-requestId>",
+        command: listResult.command,
         stdout: "",
         stderr: "",
         message: detail,
         output: detail,
-        label: "批准待处理设备配对"
+        label: "解析待处理设备配对列表"
+      });
+      return {
+        ok: false,
+        message: detail,
+        pendingCount: 0,
+        approvedCount: 0,
+        failedCount: 0,
+        pending: [],
+        approvals: [],
+        steps
       };
+    }
+
+    if (pendingList.length === 0) {
+      return {
+        ok: true,
+        message: "当前没有待批准的设备配对请求",
+        pendingCount: 0,
+        approvedCount: 0,
+        failedCount: 0,
+        pending: [],
+        approvals: [],
+        steps
+      };
+    }
+
+    const approvals = [];
+    for (const pending of pendingList) {
+      const requestId = trimText(pending.requestId);
+      if (!requestId) {
+        const detail = "待处理项缺少 requestId，无法批准";
+        const failedStep = {
+          ok: false,
+          code: 1,
+          runtimeMode: listResult.runtimeMode,
+          containerName: listResult.containerName,
+          command: "openclaw devices approve <missing-requestId>",
+          stdout: "",
+          stderr: "",
+          message: detail,
+          output: detail,
+          label: "批准待处理设备配对"
+        };
+        approvals.push({
+          requestId: "",
+          deviceId: pending.deviceId,
+          role: pending.role,
+          ok: false,
+          output: detail
+        });
+        steps.push(failedStep);
+        continue;
+      }
+
+      const { dockerCliPrefix: nextDockerCliPrefix, ...approveResult } = await runOpenClawCli({
+        panelConfig,
+        openclawArgs: ["devices", "approve", requestId],
+        dockerCliPrefix: dockerCliPrefixForApprove,
+        commandEnv: commandEnvForPairing,
+        deps
+      });
+      if (Array.isArray(nextDockerCliPrefix) && nextDockerCliPrefix.length > 0) {
+        dockerCliPrefixForApprove = [...nextDockerCliPrefix];
+      }
+
       approvals.push({
-        requestId: "",
+        requestId,
         deviceId: pending.deviceId,
         role: pending.role,
-        ok: false,
-        output: detail
+        ok: approveResult.ok,
+        output: approveResult.output
       });
-      steps.push(failedStep);
-      continue;
+      steps.push({
+        ...approveResult,
+        label: `批准待处理设备配对 ${requestId}`
+      });
     }
 
-    const { dockerCliPrefix: nextDockerCliPrefix, ...approveResult } = await runOpenClawCli({
-      panelConfig,
-      openclawArgs: ["devices", "approve", requestId],
-      dockerCliPrefix: dockerCliPrefixForApprove,
-      deps
-    });
-    if (Array.isArray(nextDockerCliPrefix) && nextDockerCliPrefix.length > 0) {
-      dockerCliPrefixForApprove = [...nextDockerCliPrefix];
-    }
+    const approvedCount = approvals.filter((item) => item.ok).length;
+    const failedCount = approvals.length - approvedCount;
+    const allSucceeded = failedCount === 0;
 
-    approvals.push({
-      requestId,
-      deviceId: pending.deviceId,
-      role: pending.role,
-      ok: approveResult.ok,
-      output: approveResult.output
-    });
-    steps.push({
-      ...approveResult,
-      label: `批准待处理设备配对 ${requestId}`
-    });
+    return {
+      ok: allSucceeded,
+      message: allSucceeded
+        ? `已批准 ${approvedCount} 个待处理设备配对请求`
+        : `待处理设备配对共 ${pendingList.length} 个，成功 ${approvedCount} 个，失败 ${failedCount} 个`,
+      pendingCount: pendingList.length,
+      approvedCount,
+      failedCount,
+      pending: pendingList,
+      approvals,
+      steps
+    };
+  } finally {
+    if (typeof cleanupTemporaryConfig === "function") {
+      await cleanupTemporaryConfig();
+    }
   }
-
-  const approvedCount = approvals.filter((item) => item.ok).length;
-  const failedCount = approvals.length - approvedCount;
-  const allSucceeded = failedCount === 0;
-
-  return {
-    ok: allSucceeded,
-    message: allSucceeded
-      ? `已批准 ${approvedCount} 个待处理设备配对请求`
-      : `待处理设备配对共 ${pendingList.length} 个，成功 ${approvedCount} 个，失败 ${failedCount} 个`,
-    pendingCount: pendingList.length,
-    approvedCount,
-    failedCount,
-    pending: pendingList,
-    approvals,
-    steps
-  };
 }

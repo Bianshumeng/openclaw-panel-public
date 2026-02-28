@@ -35,7 +35,6 @@
         <nav class="tabs sidebar-tabs">
           <a class="tab" data-tab-target="panel-dashboard" href="/dashboard">仪表盘</a>
           <a class="tab is-active" data-tab-target="panel-model" href="/model">模型配置</a>
-          <a class="tab" data-tab-target="panel-chat-console" href="/chat-console">智能对话</a>
           <a class="tab" data-tab-target="panel-skills" href="/skills">技能管理</a>
           <a class="tab" data-tab-target="panel-config-generator" href="/config-generator">配置生成器</a>
           <a class="tab" data-tab-target="panel-channel" href="/channels">平台接入</a>
@@ -85,44 +84,11 @@
                 <span id="dashboard_summary_model" class="dashboard-stat-value">-</span>
                 <span id="dashboard_summary_model_meta" class="sr-only">等待刷新</span>
               </div>
-              <div class="dashboard-stat">
-                <span class="dashboard-stat-label">渠道</span>
-                <span id="dashboard_summary_channels" class="dashboard-stat-value">-</span>
-                <span id="dashboard_summary_channels_meta" class="sr-only">等待刷新</span>
-              </div>
-              <div class="dashboard-stat">
-                <span class="dashboard-stat-label">技能</span>
-                <span id="dashboard_summary_skills" class="dashboard-stat-value">-</span>
-                <span id="dashboard_summary_skills_meta" class="sr-only">等待刷新</span>
-              </div>
-              <div class="dashboard-stat dashboard-stat-error">
-                <span class="dashboard-stat-label">错误</span>
-                <span id="dashboard_summary_errors" class="dashboard-stat-value">-</span>
-                <span id="dashboard_summary_errors_meta" class="sr-only">等待刷新</span>
-              </div>
-              <div class="dashboard-stat">
-                <span class="dashboard-stat-label">版本</span>
-                <span id="dashboard_summary_version" class="dashboard-stat-value">-</span>
-                <span id="dashboard_summary_version_meta" class="sr-only">等待刷新</span>
-              </div>
             </div>
             <p id="dashboard_summary_hint" class="muted-line">点击"刷新总览"后显示最新状态。</p>
           </article>
 
-          <!-- ② 快捷操作（提升到第 2 位） -->
-          <article class="card dashboard-surface-card">
-            <h2>我想要...</h2>
-            <div class="dashboard-quick-grid">
-              <button class="btn-soft dashboard-quick-btn" data-dashboard-jump="panel-chat-console" type="button">打开智能对话</button>
-              <button class="btn-soft dashboard-quick-btn" data-dashboard-jump="panel-model" type="button">配置模型</button>
-              <button class="btn-soft dashboard-quick-btn" data-dashboard-jump="panel-channel" type="button">配置平台接入</button>
-              <button class="btn-soft dashboard-quick-btn" data-dashboard-jump="panel-skills" type="button">管理技能</button>
-              <button class="btn-soft dashboard-quick-btn" data-dashboard-jump="panel-update" type="button">检查版本更新</button>
-              <button class="btn-soft dashboard-quick-btn" data-dashboard-jump="panel-service" type="button">服务控制</button>
-            </div>
-          </article>
-
-          <!-- ③ 切换 AI 模型（精简版） -->
+          <!-- ② 切换 AI 模型（精简版） -->
           <article class="card dashboard-surface-card">
             <h2>切换 AI 模型</h2>
             <p class="muted-line">当前模型：<strong id="dashboard_model_display">-</strong></p>
@@ -143,56 +109,6 @@
             </div>
             <p class="muted-line">从长上下文模型切到短上下文模型时，请确保当前会话已用上下文不超过目标模型上限，否则会报错。</p>
             <p id="dashboard_quick_switch_hint" class="muted-line">选择目标模型后点击切换。</p>
-          </article>
-
-          <!-- ④ 地址与接入配置（折叠，默认收起） -->
-          <article class="card dashboard-surface-card">
-            <sl-details summary="地址与接入配置（初次部署时需要）">
-              <div class="grid">
-                <label>
-                  本地地址
-                  <input id="dashboard_panel_local_url" type="text" readonly />
-                </label>
-                <label>
-                  公网地址
-                  <input id="dashboard_panel_public_url" type="text" readonly />
-                </label>
-                <label>
-                  网关地址
-                  <input id="dashboard_gateway_public_url" type="text" readonly />
-                </label>
-                <label>
-                  Webhook 地址
-                  <input id="dashboard_webhook_base_url" type="text" readonly />
-                </label>
-              </div>
-              <p id="dashboard_public_hint" class="muted-line">
-                若为空，请在 <code>data/panel/panel.config.json</code> 的 <code>reverse_proxy</code> 中填写公网 IP 与端口。
-              </p>
-            </sl-details>
-          </article>
-
-          <!-- ⑤ 运行态明细（技能列表折叠/过滤） -->
-          <article class="card dashboard-surface-card">
-            <h2>运行态明细</h2>
-            <p class="muted-line">当前在跑什么一目了然。</p>
-            <div class="dashboard-runtime-grid">
-              <article class="dashboard-runtime-card">
-                <div class="dashboard-runtime-head">
-                  <h3>渠道运行态</h3>
-                  <span class="muted-line">最近检查与错误</span>
-                </div>
-                <div id="dashboard_channel_runtime_list" class="stack-list dashboard-channel-runtime-list"></div>
-              </article>
-              <article class="dashboard-runtime-card">
-                <div class="dashboard-runtime-head">
-                  <h3>技能运行态</h3>
-                  <span id="dashboard_skills_summary_text" class="muted-line">按技能展示状态</span>
-                </div>
-                <div id="dashboard_skills_runtime_list" class="stack-list dashboard-skills-runtime-list"></div>
-                <button id="dashboard_skills_toggle_all" class="btn-soft dashboard-skills-toggle-btn" type="button" style="display:none;">显示全部</button>
-              </article>
-            </div>
           </article>
         </section>
 
@@ -263,99 +179,6 @@
               <button id="skills_save_config" type="button">保存设置</button>
             </div>
             <p id="skills_save_result" class="muted-line">请选择技能后再进行修改。</p>
-          </article>
-        </section>
-
-        <section class="panel" data-panel="panel-chat-console">
-          <article class="card">
-            <h2>智能对话</h2>
-            <p class="muted-line">面向小白用户的聊天工作台：选会话、发消息、看实时回复，必要时再展开高级调试信息。</p>
-
-            <div class="chat-workspace">
-              <div class="chat-topbar">
-                <div class="actions">
-                  <button id="chat_new_session" type="button">新建会话</button>
-                  <button id="chat_refresh_sessions" class="btn-soft" type="button">刷新会话</button>
-                </div>
-                <div class="actions">
-                  <label class="inline-check">
-                    显示思考状态
-                    <input id="chat_show_thinking" type="checkbox" checked />
-                  </label>
-                  <label>
-                    思考深度
-                    <select id="chat_thinking_level">
-                      <option value="">自动</option>
-                      <option value="minimal">简略</option>
-                      <option value="low">较少</option>
-                      <option value="medium">适中</option>
-                      <option value="high">深入</option>
-                    </select>
-                  </label>
-                </div>
-              </div>
-
-              <div class="grid">
-                <label>
-                  当前会话
-                  <select id="chat_session_select"></select>
-                </label>
-                <label class="sr-only">
-                  最近任务 ID
-                  <input id="chat_last_run_id" type="text" readonly />
-                </label>
-                <label class="sr-only">
-                  实时通道状态
-                  <input id="chat_stream_status" type="text" readonly />
-                </label>
-              </div>
-
-              <div id="chat_messages" class="chat-messages">
-                <div class="chat-empty">请选择会话后开始对话</div>
-              </div>
-
-              <label>
-                输入消息
-                <textarea id="chat_message_input" rows="4" placeholder="输入后按 Enter 发送，Shift+Enter 换行"></textarea>
-              </label>
-              <div class="actions">
-                <button id="chat_pick_files" class="btn-soft" type="button">添加附件</button>
-                <input id="chat_file_input" type="file" multiple hidden />
-                <span id="chat_attachment_hint" class="muted-line">支持点击上传、粘贴或拖拽文件（图片会显示预览）</span>
-              </div>
-              <div id="chat_attachment_list" class="chat-attachment-list">
-                <div class="chat-empty">当前没有附件</div>
-              </div>
-
-              <div class="actions">
-                <button id="chat_send_message" type="button">发送消息</button>
-                <button id="chat_abort_run" class="btn-soft" type="button">停止回复</button>
-                <button id="chat_reset_session" class="btn-soft" type="button">清空当前会话</button>
-              </div>
-              <p id="chat_inline_hint" class="muted-line chat-inline-hint"></p>
-
-              <details class="chat-debug">
-                <summary>排障工具（遇到问题时展开）</summary>
-                <div class="grid">
-                  <label class="sr-only">
-                    幂等键（可选）
-                    <input id="chat_idempotency_key" type="text" placeholder="留空自动生成" />
-                  </label>
-                </div>
-                <div class="actions">
-                  <button id="chat_load_history" class="btn-soft" type="button">刷新历史</button>
-                  <button id="chat_reconnect_stream" class="btn-soft" type="button">重新连接</button>
-                </div>
-                <label>
-                  历史记录（原始数据）
-                  <pre id="chat_history_output" class="output">请选择会话后加载历史</pre>
-                </label>
-                <label>
-                  实时事件（原始数据）
-                  <pre id="chat_stream_output" class="output">等待流式事件...</pre>
-                </label>
-              </details>
-            </div>
           </article>
         </section>
 
@@ -1009,6 +832,7 @@
     <script type="module" src="/app.js"></script>
   </body>
 </html>
+
 
 
 

@@ -1,5 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import fs from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
 import { approvePendingGatewayPairings, approveTelegramPairing, setupTelegramBasic } from "../../src/channel-onboarding.js";
 
 test("setupTelegramBasic executes enable + config steps in order", async () => {
@@ -352,6 +355,151 @@ test("approvePendingGatewayPairings returns ok when no pending request exists", 
   assert.equal(result.approvedCount, 0);
   assert.equal(result.failedCount, 0);
   assert.match(result.message, /没有待批准/);
+});
+
+test("approvePendingGatewayPairings falls back to local gateway mode when remote mode reports pairing required", async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-panel-test-"));
+  const configPath = path.join(tempDir, "openclaw.json");
+  await fs.writeFile(
+    configPath,
+    `${JSON.stringify(
+      {
+        gateway: {
+          mode: "remote",
+          remote: {
+            url: "ws://127.0.0.1:28789"
+          },
+          auth: {
+            mode: "token",
+            token: "token-value"
+          }
+        }
+      },
+      null,
+      2
+    )}\n`,
+    "utf8"
+  );
+
+  const calls = [];
+  const runCommand = async (_command, args, _timeoutMs, options = {}) => {
+    const line = args.join(" ");
+    calls.push({ line, options });
+    const configOverride = options?.env?.OPENCLAW_CONFIG_PATH;
+    if (line === "devices list --json" && !configOverride) {
+      return {
+        ok: false,
+        code: 1,
+        stdout: "",
+        stderr: "gateway connect failed: Error: pairing required",
+        message: "pairing required"
+      };
+    }
+    if (line === "devices list --json" && configOverride) {
+      return {
+        ok: true,
+        code: 0,
+        stdout: `gateway connect failed: Error: pairing required\n${JSON.stringify({
+          pending: [{ requestId: "req-2", deviceId: "device-2", role: "operator" }]
+        })}`,
+        stderr: "",
+        message: ""
+      };
+    }
+    if (line === "devices approve req-2" && configOverride) {
+      return {
+        ok: true,
+        code: 0,
+        stdout: "approved",
+        stderr: "",
+        message: ""
+      };
+    }
+    return {
+      ok: false,
+      code: 1,
+      stdout: "",
+      stderr: "unexpected call",
+      message: ""
+    };
+  };
+
+  try {
+    const result = await approvePendingGatewayPairings({
+      panelConfig: {
+        runtime: {
+          mode: "systemd"
+        },
+        openclaw: {
+          config_path: configPath
+        }
+      },
+      deps: {
+        runCommand
+      }
+    });
+
+    assert.equal(result.ok, true);
+    assert.equal(result.pendingCount, 1);
+    assert.equal(result.approvedCount, 1);
+    assert.equal(result.failedCount, 0);
+    assert.equal(calls.length, 3);
+    assert.equal(Boolean(calls[0].options?.env?.OPENCLAW_CONFIG_PATH), false);
+    assert.equal(Boolean(calls[1].options?.env?.OPENCLAW_CONFIG_PATH), true);
+    assert.equal(Boolean(calls[2].options?.env?.OPENCLAW_CONFIG_PATH), true);
+    assert.match(result.steps[1].label, /本地模式回退/);
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
+});
+
+test("approvePendingGatewayPairings parses warning-prefixed JSON payload", async () => {
+  const runCommand = async (_command, args) => {
+    const line = args.join(" ");
+    if (line === "devices list --json") {
+      return {
+        ok: true,
+        code: 0,
+        stdout: `gateway connect failed: Error: pairing required\n${JSON.stringify({
+          pending: [{ requestId: "req-3", deviceId: "device-3", role: "operator" }]
+        })}`,
+        stderr: "",
+        message: ""
+      };
+    }
+    if (line === "devices approve req-3") {
+      return {
+        ok: true,
+        code: 0,
+        stdout: "approved",
+        stderr: "",
+        message: ""
+      };
+    }
+    return {
+      ok: false,
+      code: 1,
+      stdout: "",
+      stderr: "unexpected call",
+      message: ""
+    };
+  };
+
+  const result = await approvePendingGatewayPairings({
+    panelConfig: {
+      runtime: {
+        mode: "systemd"
+      }
+    },
+    deps: {
+      runCommand
+    }
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(result.pendingCount, 1);
+  assert.equal(result.approvedCount, 1);
+  assert.equal(result.failedCount, 0);
 });
 
 test("approvePendingGatewayPairings reports partial failure details", async () => {
