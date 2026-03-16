@@ -563,3 +563,73 @@ test("approvePendingGatewayPairings reports partial failure details", async () =
   assert.equal(result.failedCount, 1);
   assert.match(result.message, /失败 1 个/);
 });
+
+test("approvePendingGatewayPairings retries transient local loopback close before failing", async () => {
+  let listAttempts = 0;
+  const sleepCalls = [];
+  const runCommand = async (_command, args) => {
+    const line = args.join(" ");
+    if (line === "devices list --json") {
+      listAttempts += 1;
+      if (listAttempts < 3) {
+        return {
+          ok: false,
+          code: 1,
+          stdout: "",
+          stderr: "gateway connect failed: Error: gateway closed (1000):\nSource: local loopback\nBind: loopback",
+          message: "gateway closed (1000)"
+        };
+      }
+      return {
+        ok: true,
+        code: 0,
+        stdout: JSON.stringify({
+          pending: [{ requestId: "req-retry", deviceId: "device-retry", role: "operator" }]
+        }),
+        stderr: "",
+        message: ""
+      };
+    }
+    if (line === "devices approve req-retry") {
+      return {
+        ok: true,
+        code: 0,
+        stdout: "approved",
+        stderr: "",
+        message: ""
+      };
+    }
+    return {
+      ok: false,
+      code: 1,
+      stdout: "",
+      stderr: "unexpected call",
+      message: ""
+    };
+  };
+
+  const result = await approvePendingGatewayPairings({
+    panelConfig: {
+      runtime: {
+        mode: "systemd"
+      }
+    },
+    deps: {
+      runCommand,
+      sleep: async (ms) => {
+        sleepCalls.push(ms);
+      },
+      gatewayPairingRetryAttempts: 3,
+      gatewayPairingRetryDelayMs: 25
+    }
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(listAttempts, 3);
+  assert.equal(result.pendingCount, 1);
+  assert.equal(result.approvedCount, 1);
+  assert.equal(result.steps.length, 4);
+  assert.deepEqual(sleepCalls, [25, 25]);
+  assert.match(result.steps[0].label, /尝试 1\/3/);
+  assert.match(result.steps[1].output, /自动重试/);
+});

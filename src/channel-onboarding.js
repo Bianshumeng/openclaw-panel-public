@@ -11,6 +11,8 @@ const DEFAULT_DOCKER_CLI_PREFIXES = [
 ];
 const DEFAULT_SETUP_STEP_RETRY_ATTEMPTS = 3;
 const DEFAULT_SETUP_STEP_RETRY_DELAY_MS = 400;
+const DEFAULT_GATEWAY_PAIRING_RETRY_ATTEMPTS = 4;
+const DEFAULT_GATEWAY_PAIRING_RETRY_DELAY_MS = 350;
 
 function trimText(value) {
   return String(value || "").trim();
@@ -217,6 +219,24 @@ function hasPairingRequiredSignal(result) {
   return text.includes("pairing required");
 }
 
+function hasTransientGatewayLoopbackSignal(result) {
+  const text = [result?.stdout, result?.stderr, result?.message, result?.output]
+    .map((item) => trimText(item))
+    .filter(Boolean)
+    .join("\n")
+    .toLowerCase();
+  if (!text.includes("gateway connect failed")) {
+    return false;
+  }
+  const localLoopback = text.includes("source: local loopback") || text.includes("bind: loopback");
+  const normalClose =
+    text.includes("gateway closed (1000)") ||
+    text.includes("normal closure") ||
+    text.includes("closed before connect") ||
+    text.includes("handshake timeout");
+  return localLoopback && normalClose;
+}
+
 function buildGatewayLocalFallbackConfig(baseConfig = {}) {
   const cloned = JSON.parse(JSON.stringify(baseConfig && typeof baseConfig === "object" ? baseConfig : {}));
   const gateway =
@@ -249,6 +269,78 @@ async function createTemporaryGatewayLocalConfig(panelConfig, deps = {}) {
         // ignore cleanup failure
       }
     }
+  };
+}
+
+async function runOpenClawCliForPairing({
+  panelConfig,
+  openclawArgs,
+  label,
+  dockerCliPrefix = [],
+  commandEnv = null,
+  deps = {}
+}) {
+  const retryAttempts = toPositiveInt(deps.gatewayPairingRetryAttempts, DEFAULT_GATEWAY_PAIRING_RETRY_ATTEMPTS);
+  const retryDelayMs = toPositiveInt(deps.gatewayPairingRetryDelayMs, DEFAULT_GATEWAY_PAIRING_RETRY_DELAY_MS);
+  const wait =
+    typeof deps.sleep === "function"
+      ? deps.sleep
+      : async (ms) =>
+          await new Promise((resolve) => {
+            setTimeout(resolve, ms);
+          });
+
+  let activeDockerCliPrefix = normalizeDockerCliPrefix(dockerCliPrefix);
+  const steps = [];
+
+  for (let attempt = 1; attempt <= retryAttempts; attempt += 1) {
+    const { dockerCliPrefix: resolvedDockerCliPrefix, ...result } = await runOpenClawCli({
+      panelConfig,
+      openclawArgs,
+      dockerCliPrefix: activeDockerCliPrefix,
+      commandEnv,
+      deps
+    });
+    if (Array.isArray(resolvedDockerCliPrefix) && resolvedDockerCliPrefix.length > 0) {
+      activeDockerCliPrefix = [...resolvedDockerCliPrefix];
+    }
+
+    const shouldRetry =
+      attempt < retryAttempts && !result.ok && hasTransientGatewayLoopbackSignal(result);
+    const output = shouldRetry
+      ? [result.output, `检测到本地 Gateway 握手被提前关闭，${retryDelayMs}ms 后自动重试`].filter(Boolean).join("\n")
+      : result.output;
+    steps.push({
+      ...result,
+      output,
+      label: retryAttempts > 1 ? `${label}（尝试 ${attempt}/${retryAttempts}）` : label
+    });
+
+    if (!shouldRetry) {
+      return {
+        dockerCliPrefix: activeDockerCliPrefix,
+        result,
+        steps
+      };
+    }
+
+    await wait(retryDelayMs);
+  }
+
+  return {
+    dockerCliPrefix: activeDockerCliPrefix,
+    result: {
+      ok: false,
+      code: 1,
+      runtimeMode: trimText(panelConfig?.runtime?.mode) || "systemd",
+      containerName: "",
+      command: ["openclaw", ...openclawArgs].join(" "),
+      stdout: "",
+      stderr: "",
+      message: "读取 Gateway 配对状态失败",
+      output: "读取 Gateway 配对状态失败"
+    },
+    steps
   };
 }
 
@@ -476,17 +568,19 @@ export async function approveTelegramPairing({ panelConfig, code, deps = {} }) {
 export async function approvePendingGatewayPairings({ panelConfig, deps = {} }) {
   const steps = [];
 
-  const { dockerCliPrefix: resolvedDockerCliPrefix, ...initialListResult } = await runOpenClawCli({
+  const {
+    dockerCliPrefix: resolvedDockerCliPrefix,
+    result: initialListResult,
+    steps: initialListSteps
+  } = await runOpenClawCliForPairing({
     panelConfig,
     openclawArgs: ["devices", "list", "--json"],
+    label: "读取待处理设备配对列表",
     deps
   });
   const activeDockerCliPrefix =
     Array.isArray(resolvedDockerCliPrefix) && resolvedDockerCliPrefix.length > 0 ? [...resolvedDockerCliPrefix] : [];
-  steps.push({
-    ...initialListResult,
-    label: "读取待处理设备配对列表"
-  });
+  steps.push(...initialListSteps);
 
   const runtimeMode = trimText(panelConfig?.runtime?.mode) || "systemd";
   let listResult = initialListResult;
@@ -502,20 +596,22 @@ export async function approvePendingGatewayPairings({ panelConfig, deps = {} }) 
         cleanupTemporaryConfig = temporaryConfig.cleanup;
         commandEnvForPairing = { OPENCLAW_CONFIG_PATH: temporaryConfig.tempConfigPath };
 
-        const { dockerCliPrefix: fallbackDockerCliPrefix, ...fallbackListResult } = await runOpenClawCli({
+        const {
+          dockerCliPrefix: fallbackDockerCliPrefix,
+          result: fallbackListResult,
+          steps: fallbackListSteps
+        } = await runOpenClawCliForPairing({
           panelConfig,
           openclawArgs: ["devices", "list", "--json"],
-          dockerCliPrefix: dockerCliPrefixForApprove,
+          label: "读取待处理设备配对列表（本地模式回退）",
           commandEnv: commandEnvForPairing,
+          dockerCliPrefix: dockerCliPrefixForApprove,
           deps
         });
         if (Array.isArray(fallbackDockerCliPrefix) && fallbackDockerCliPrefix.length > 0) {
           dockerCliPrefixForApprove = [...fallbackDockerCliPrefix];
         }
-        steps.push({
-          ...fallbackListResult,
-          label: "读取待处理设备配对列表（本地模式回退）"
-        });
+        steps.push(...fallbackListSteps);
         if (fallbackListResult.ok) {
           listResult = fallbackListResult;
         }
@@ -621,9 +717,14 @@ export async function approvePendingGatewayPairings({ panelConfig, deps = {} }) 
         continue;
       }
 
-      const { dockerCliPrefix: nextDockerCliPrefix, ...approveResult } = await runOpenClawCli({
+      const {
+        dockerCliPrefix: nextDockerCliPrefix,
+        result: approveResult,
+        steps: approveSteps
+      } = await runOpenClawCliForPairing({
         panelConfig,
         openclawArgs: ["devices", "approve", requestId],
+        label: `批准待处理设备配对 ${requestId}`,
         dockerCliPrefix: dockerCliPrefixForApprove,
         commandEnv: commandEnvForPairing,
         deps
@@ -639,10 +740,7 @@ export async function approvePendingGatewayPairings({ panelConfig, deps = {} }) 
         ok: approveResult.ok,
         output: approveResult.output
       });
-      steps.push({
-        ...approveResult,
-        label: `批准待处理设备配对 ${requestId}`
-      });
+      steps.push(...approveSteps);
     }
 
     const approvedCount = approvals.filter((item) => item.ok).length;

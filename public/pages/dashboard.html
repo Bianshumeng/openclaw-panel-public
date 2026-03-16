@@ -101,6 +101,10 @@
                 <p id="dashboard_gateway_pairing_status" class="muted-line dashboard-gateway-token-status">
                   尚未执行网关运维动作。
                 </p>
+                <p class="muted-line">
+                  如果你是通过 SSH 本地隧道打开原生 UI，且出现 `origin not allowed`、`pairing required` 或 `disconnected (1006)`，
+                  先把原生 UI 地址填在下面，再点“一键修复原生 UI 连接”。
+                </p>
                 <div class="dashboard-gateway-token-row">
                   <input
                     id="dashboard_gateway_token_value"
@@ -110,6 +114,16 @@
                     placeholder="点击右侧按钮后自动显示最新 Token，支持一键复制"
                   />
                   <button id="dashboard_gateway_token_copy" class="btn-soft" type="button" disabled>复制 Gateway Token</button>
+                </div>
+                <div class="dashboard-gateway-token-row">
+                  <input
+                    id="dashboard_gateway_control_ui_url"
+                    class="dashboard-gateway-token-input"
+                    type="text"
+                    value="ws://127.0.0.1:19002"
+                    placeholder="填写客户当前打开原生 UI 的本地地址，例如 ws://127.0.0.1:19002"
+                  />
+                  <button id="dashboard_gateway_control_ui_heal" class="btn-soft" type="button">一键修复原生 UI 连接</button>
                 </div>
               </div>
               <div class="dashboard-gateway-token-actions">

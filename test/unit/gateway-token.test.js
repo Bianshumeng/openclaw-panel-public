@@ -45,6 +45,24 @@ test("rotateGatewayTokenConfig creates gateway auth block when missing", () => {
   assert.equal(result.nextConfig.gateway.auth.token, "fresh-token");
 });
 
+test("rotateGatewayTokenConfig preserves none mode when gateway already runs without auth", () => {
+  const result = rotateGatewayTokenConfig(
+    {
+      gateway: {
+        auth: {
+          mode: "none",
+          token: "old-token"
+        }
+      }
+    },
+    () => "fresh-token"
+  );
+
+  assert.equal(result.nextConfig.gateway.auth.mode, "none");
+  assert.equal(result.nextConfig.gateway.auth.token, "fresh-token");
+  assert.equal(result.changed, true);
+});
+
 test("rotateGatewayTokenConfig throws when generator cannot produce usable token", () => {
   assert.throws(
     () => rotateGatewayTokenConfig({ gateway: { auth: { token: "same" } } }, () => "same"),

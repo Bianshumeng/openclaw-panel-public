@@ -43,6 +43,7 @@ import {
   stageChatAttachment
 } from "./chat-service.js";
 import { rotateGatewayTokenAndApprovePairings } from "./gateway-token.js";
+import { buildControlUiSelfHealConfig } from "./gateway-control-ui-recovery.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -70,6 +71,9 @@ const updateCheckQuerySchema = z.object({
 const tagPayloadSchema = z.object({
   tag: z.string().optional().default(""),
   target: updateTargetSchema.optional().default("bot")
+});
+const gatewayControlUiSelfHealPayloadSchema = z.object({
+  controlUiUrl: z.string().optional().default("")
 });
 const skillEnabledPayloadSchema = z.object({
   enabled: z.boolean()
@@ -470,6 +474,82 @@ app.post("/api/gateway/token/sync", async (request, reply) => {
         autoApprove,
         path: saved.path,
         backupPath: saved.backupPath
+      }
+    };
+  } catch (error) {
+    reply.code(400);
+    return {
+      ok: false,
+      message: error.message
+    };
+  }
+});
+
+app.post("/api/gateway/control-ui/self-heal", async (request, reply) => {
+  try {
+    const payload = gatewayControlUiSelfHealPayloadSchema.parse(request.body || {});
+    const { config: panelConfig } = await loadPanelConfig();
+    const currentConfig = await loadOpenClawConfig(panelConfig.openclaw.config_path);
+    const repairResult = buildControlUiSelfHealConfig(currentConfig, {
+      controlUiUrl: payload.controlUiUrl
+    });
+    const saved = await saveOpenClawConfig(panelConfig.openclaw.config_path, repairResult.nextConfig);
+    const restartResult = await runServiceAction("restart", panelConfig);
+    const statusResult = await runServiceAction("status", panelConfig);
+
+    if (!restartResult.ok || !statusResult.ok || statusResult.active === false) {
+      const rollback = await rollbackOpenClawConfig(saved.path, saved.backupPath);
+      const rollbackRestart = await runServiceAction("restart", panelConfig);
+      const detail = [restartResult.output, statusResult.output].filter(Boolean).join("\n").trim() || "网关重启失败";
+      throw new Error(
+        [
+          `原生 UI 自愈后网关重启失败：${detail}`,
+          `配置已${rollback.ok ? "" : "尝试但未"}自动回滚`,
+          rollback.message,
+          rollbackRestart?.output || ""
+        ]
+          .filter(Boolean)
+          .join("\n")
+      );
+    }
+
+    let autoApprove;
+    try {
+      autoApprove = await approvePendingGatewayPairings({
+        panelConfig
+      });
+    } catch (error) {
+      autoApprove = {
+        ok: false,
+        message: error.message || String(error),
+        pendingCount: 0,
+        approvedCount: 0,
+        failedCount: 0,
+        pending: [],
+        approvals: [],
+        steps: []
+      };
+    }
+
+    return {
+      ok: true,
+      result: {
+        message: repairResult.message,
+        changedKeys: repairResult.changedKeys,
+        changes: repairResult.changed,
+        addedOrigins: repairResult.addedOrigins,
+        normalizedOrigins: repairResult.normalizedOrigins,
+        requestedOrigin: repairResult.requestedOrigin,
+        requestedInput: repairResult.requestedInput,
+        authMode: repairResult.nextConfig?.gateway?.auth?.mode || "",
+        path: saved.path,
+        backupPath: saved.backupPath,
+        restart: {
+          ok: statusResult.ok,
+          active: statusResult.active,
+          output: statusResult.output
+        },
+        autoApprove
       }
     };
   } catch (error) {

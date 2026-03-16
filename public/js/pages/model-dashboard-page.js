@@ -903,6 +903,7 @@ let dashboardGatewayTokenLoadPending = false;
 let dashboardGatewayPairingApprovePending = false;
 let dashboardGatewayRestartPending = false;
 let dashboardGatewayPairingWatchPending = false;
+let dashboardGatewayControlUiHealPending = false;
 const DASHBOARD_PAIRING_WATCH_DURATION_MS = 2 * 60 * 1000;
 const DASHBOARD_PAIRING_WATCH_INTERVAL_MS = 3 * 1000;
 
@@ -1055,6 +1056,14 @@ function readDashboardGatewayTokenValue() {
     return "";
   }
   return String(tokenInput.value || "").trim();
+}
+
+function readDashboardGatewayControlUiUrl() {
+  const input = document.querySelector("#dashboard_gateway_control_ui_url");
+  if (!(input instanceof HTMLInputElement)) {
+    return "";
+  }
+  return String(input.value || "").trim();
 }
 
 async function copyTextToClipboard(text) {
@@ -1233,6 +1242,83 @@ async function syncDashboardGatewayToken() {
     setMessage(`Gateway Token 自动配置失败：${detail}`, "error");
   } finally {
     dashboardGatewayTokenSyncPending = false;
+    if (triggerButton instanceof HTMLButtonElement) {
+      triggerButton.disabled = false;
+      triggerButton.setAttribute("aria-busy", "false");
+    }
+  }
+}
+
+async function selfHealDashboardGatewayControlUi() {
+  if (dashboardGatewayControlUiHealPending) {
+    setMessage("原生 UI 自愈正在执行，请稍候", "info");
+    return;
+  }
+
+  const triggerButton = document.querySelector("#dashboard_gateway_control_ui_heal");
+  const controlUiUrl = readDashboardGatewayControlUiUrl();
+  dashboardGatewayControlUiHealPending = true;
+  if (triggerButton instanceof HTMLButtonElement) {
+    triggerButton.disabled = true;
+    triggerButton.setAttribute("aria-busy", "true");
+  }
+  setDashboardGatewayTokenStatus("正在修复原生 UI 连接配置...", "info");
+  setDashboardGatewayPairingStatus("正在重启网关并检查待处理配对...", "info");
+
+  try {
+    const result = await api("/api/gateway/control-ui/self-heal", {
+      method: "POST",
+      body: {
+        controlUiUrl
+      },
+      allowBusinessError: true
+    });
+    const payload = result?.result || {};
+    if (!result.ok) {
+      throw new Error(payload.message || result.message || "原生 UI 自愈失败");
+    }
+
+    const originSummary =
+      Array.isArray(payload.normalizedOrigins) && payload.normalizedOrigins.length > 0
+        ? payload.normalizedOrigins.join("、")
+        : "当前原生 UI 来源";
+    setDashboardGatewayTokenStatus(
+      `原生 UI 自愈完成：已切到本地模式 + loopback，关闭 token 门槛，并放行 ${originSummary}。`,
+      "ok"
+    );
+
+    const autoApprove = payload?.autoApprove && typeof payload.autoApprove === "object" ? payload.autoApprove : null;
+    if (!autoApprove) {
+      setDashboardGatewayPairingStatus("自愈已完成：未返回首轮审批结果，已进入 2 分钟自动监听。", "info");
+      setMessage("原生 UI 自愈完成。请重新打开原生 UI；如果随后触发新配对，面板会继续自动监听 2 分钟。", "ok");
+      watchDashboardPendingPairingsAfterReset().catch(() => {});
+      return;
+    }
+
+    const parsed = parseDashboardPairingApprovePayload(autoApprove);
+    if (parsed.state === "approved") {
+      setDashboardGatewayPairingStatus(`自愈完成：已批准 ${parsed.approvedCount} 个待处理配对，已进入 2 分钟自动监听。`, "ok");
+      setMessage("原生 UI 自愈完成，且已自动批准待处理配对。请重新打开原生 UI。", "ok");
+      watchDashboardPendingPairingsAfterReset().catch(() => {});
+      return;
+    }
+
+    if (parsed.state === "failed") {
+      setDashboardGatewayPairingStatus(`自愈后自动审批失败：${parsed.message}`, "error");
+      setMessage(`原生 UI 自愈已完成，但自动审批失败：${parsed.message}`, "error");
+      return;
+    }
+
+    setDashboardGatewayPairingStatus("自愈完成：当前没有待处理配对，已进入 2 分钟自动监听。", "ok");
+    setMessage("原生 UI 自愈完成。当前没有待处理配对，请重新打开原生 UI；如果稍后出现新配对，面板会继续自动监听。", "ok");
+    watchDashboardPendingPairingsAfterReset().catch(() => {});
+  } catch (error) {
+    const detail = error.message || String(error);
+    setDashboardGatewayTokenStatus(`原生 UI 自愈失败：${detail}`, "error");
+    setDashboardGatewayPairingStatus(`原生 UI 自愈失败：${detail}`, "error");
+    setMessage(`原生 UI 自愈失败：${detail}`, "error");
+  } finally {
+    dashboardGatewayControlUiHealPending = false;
     if (triggerButton instanceof HTMLButtonElement) {
       triggerButton.disabled = false;
       triggerButton.setAttribute("aria-busy", "false");
@@ -1433,6 +1519,15 @@ function setupDashboard() {
     copyDashboardGatewayToken().catch((error) => {
       const detail = error.message || String(error);
       setMessage(`Gateway Token 复制失败：${detail}`, "error");
+    });
+  });
+
+  document.querySelector("#dashboard_gateway_control_ui_heal")?.addEventListener("click", () => {
+    selfHealDashboardGatewayControlUi().catch((error) => {
+      const detail = error.message || String(error);
+      setDashboardGatewayTokenStatus(`原生 UI 自愈失败：${detail}`, "error");
+      setDashboardGatewayPairingStatus(`原生 UI 自愈失败：${detail}`, "error");
+      setMessage(`原生 UI 自愈失败：${detail}`, "error");
     });
   });
 

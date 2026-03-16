@@ -34,7 +34,7 @@ export function rotateGatewayTokenConfig(openclawConfig, tokenGenerator = genera
     nextGateway?.auth && typeof nextGateway.auth === "object" && !Array.isArray(nextGateway.auth)
       ? { ...nextGateway.auth }
       : {};
-  nextAuth.mode = "token";
+  nextAuth.mode = prevMode === "none" ? "none" : "token";
   nextAuth.token = token;
   nextGateway.auth = nextAuth;
 
@@ -45,7 +45,7 @@ export function rotateGatewayTokenConfig(openclawConfig, tokenGenerator = genera
     },
     token,
     source: "generated-rotate",
-    changed: prevMode !== "token" || prevToken !== token
+    changed: nextAuth.mode !== prevMode || prevToken !== token
   };
 }
 
