@@ -229,12 +229,15 @@ function hasTransientGatewayLoopbackSignal(result) {
     return false;
   }
   const localLoopback = text.includes("source: local loopback") || text.includes("bind: loopback");
-  const normalClose =
+  const transientClose =
     text.includes("gateway closed (1000)") ||
+    text.includes("gateway closed (1006)") ||
     text.includes("normal closure") ||
+    text.includes("abnormal closure") ||
+    text.includes("no close frame") ||
     text.includes("closed before connect") ||
     text.includes("handshake timeout");
-  return localLoopback && normalClose;
+  return localLoopback && transientClose;
 }
 
 function buildGatewayLocalFallbackConfig(baseConfig = {}) {

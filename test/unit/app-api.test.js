@@ -57,8 +57,10 @@ test("requestJson does not set content-type when body is missing", async () => {
 
 test("requestJson sets json content-type when body exists", async () => {
   let capturedHeaders;
+  let capturedBody;
   const fetchImpl = async (_url, options = {}) => {
     capturedHeaders = options.headers;
+    capturedBody = options.body;
     return {
       ok: true,
       status: 200,
@@ -69,4 +71,24 @@ test("requestJson sets json content-type when body exists", async () => {
   await requestJson(fetchImpl, "/api/demo", { method: "POST", body: JSON.stringify({ ping: true }) });
   assert.equal(capturedHeaders instanceof Headers, true);
   assert.equal(capturedHeaders.get("content-type"), "application/json");
+  assert.equal(capturedBody, JSON.stringify({ ping: true }));
+});
+
+test("requestJson auto-stringifies plain object body", async () => {
+  let capturedHeaders;
+  let capturedBody;
+  const fetchImpl = async (_url, options = {}) => {
+    capturedHeaders = options.headers;
+    capturedBody = options.body;
+    return {
+      ok: true,
+      status: 200,
+      json: async () => ({ ok: true })
+    };
+  };
+
+  await requestJson(fetchImpl, "/api/demo", { method: "POST", body: { ping: true } });
+  assert.equal(capturedHeaders instanceof Headers, true);
+  assert.equal(capturedHeaders.get("content-type"), "application/json");
+  assert.equal(capturedBody, JSON.stringify({ ping: true }));
 });
